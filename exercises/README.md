@@ -12,7 +12,7 @@ All 19 exercises. Check off each one as you complete it.
 | [06](./06-stuck-pipeline/README.md) | The Stuck Pipeline | pipeline | Intermediate |
 | [07](./07-phantom-matrix/README.md) | The Phantom Matrix | gh-forge | Intermediate |
 | [08](./08-zombie-metric/README.md) | The Zombie Metric | pipeline | Intermediate |
-| [09](./09-immortal-connection/README.md) | The Immortal Connection | kube-patrol | Intermediate |
+| [09](./09-immortal-connection/README.md) | The Immortal Connection | kube-patrol | Beginner |
 | [10](./10-hanging-health-check/README.md) | The Hanging Health Check | pipeline | Intermediate |
 | [11](./11-template-trap/README.md) | The Template Trap | gh-forge | Intermediate |
 | [12](./12-race-report/README.md) | The Race Report | kube-patrol | Intermediate |
@@ -20,7 +20,7 @@ All 19 exercises. Check off each one as you complete it.
 | [14](./14-forever-forwarder/README.md) | The Forever Forwarder | pipeline | Advanced |
 | [15](./15-config-surprise/README.md) | The Config Surprise | gh-forge | Advanced |
 | [16](./16-leaking-linter/README.md) | The Leaking Linter | gh-forge | Advanced |
-| [17](./17-metric-mirage/README.md) | The Metric Mirage | pipeline | Advanced |
+| [17](./17-metric-mirage/README.md) | The Metric Mirage | pipeline | Intermediate |
 | [18](./18-ticking-leak/README.md) | The Ticking Leak | pipeline | Advanced |
 | [19](./19-graceless-shutdown/README.md) | The Graceless Shutdown | pipeline | Advanced |
 

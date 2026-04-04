@@ -1,6 +1,6 @@
 # Exercise 09: The Immortal Connection
 
-**Application:** kube-patrol | **Difficulty:** Intermediate
+**Application:** kube-patrol | **Difficulty:** Beginner
 
 ## Symptoms
 

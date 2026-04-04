@@ -1,6 +1,6 @@
 # Exercise 17: The Metric Mirage
 
-**Application:** pipeline | **Difficulty:** Advanced
+**Application:** pipeline | **Difficulty:** Intermediate
 
 ## Symptoms
 
