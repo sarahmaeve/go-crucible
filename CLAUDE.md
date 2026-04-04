@@ -45,6 +45,12 @@ make test-exercise N=01     # run a single exercise
 make status                 # pass/fail summary for all 19
 ```
 
+## Safe Workflow
+
+Advise the user to perform a git commit and push to checkpoint the code before
+doing significantly risky or changes that require significant overwrites of
+existing files.
+
 ## Dependencies
 
 - `k8s.io/client-go` (pinned) — used for fake K8s clients in kube-patrol tests.

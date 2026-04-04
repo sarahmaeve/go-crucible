@@ -26,7 +26,7 @@ func NewHealthChecker(checks []CheckFunc) *HealthChecker {
 // error encountered.
 func (hc *HealthChecker) Check(ctx context.Context) error {
 	for _, c := range hc.checks {
-		if err := c.Fn(ctx); err != nil {
+		if err := c.Fn(context.Background()); err != nil {
 			return fmt.Errorf("health check %q failed: %w", c.Name, err)
 		}
 	}

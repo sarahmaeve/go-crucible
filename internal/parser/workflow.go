@@ -16,8 +16,8 @@ import (
 // expanding env variable references) before handing off to callers.
 type rawWorkflow struct {
 	Name        string                       `yaml:"name"`
-	On          map[string]any               `yaml:"on"`
-	Env         map[string]string            `yaml:"env"`
+	on          map[string]any
+	env         map[string]string
 	Jobs        map[string]rawJob            `yaml:"jobs"`
 	Concurrency *types.WorkflowConcurrency   `yaml:"concurrency,omitempty"`
 	Permissions map[string]string            `yaml:"permissions,omitempty"`
@@ -52,8 +52,8 @@ func ParseWorkflow(data []byte) (*types.Workflow, error) {
 
 	wf := &types.Workflow{
 		Name:        raw.Name,
-		On:          raw.On,
-		Env:         raw.Env,
+		On:          raw.on,
+		Env:         raw.env,
 		Concurrency: raw.Concurrency,
 		Permissions: raw.Permissions,
 		Jobs:        make(map[string]types.Job, len(raw.Jobs)),

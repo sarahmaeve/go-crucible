@@ -140,37 +140,24 @@ func LintWorkflows(dir string) ([]types.LintFinding, error) {
 
 		path := filepath.Join(dir, name)
 
-		fileFindings, err := lintFile(path)
+		f, err := os.Open(path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("lint: opening %q: %w", path, err)
 		}
-		findings = append(findings, fileFindings...)
+		defer f.Close()
+
+		var doc yaml.Node
+		dec := yaml.NewDecoder(f)
+		if err := dec.Decode(&doc); err != nil {
+			// Skip files that aren't valid YAML.
+			continue
+		}
+
+		for _, rule := range builtinRules {
+			ruleFindings := rule.check(path, &doc)
+			findings = append(findings, ruleFindings...)
+		}
 	}
 
-	return findings, nil
-}
-
-// lintFile opens, parses, and lints a single YAML workflow file. By isolating
-// the per-file logic in its own function, the deferred f.Close() runs at the
-// end of each file's processing rather than accumulating until LintWorkflows
-// returns.
-func lintFile(path string) ([]types.LintFinding, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("lint: opening %q: %w", path, err)
-	}
-	defer f.Close()
-
-	var doc yaml.Node
-	dec := yaml.NewDecoder(f)
-	if err := dec.Decode(&doc); err != nil {
-		// Skip files that aren't valid YAML.
-		return nil, nil
-	}
-
-	var findings []types.LintFinding
-	for _, rule := range builtinRules {
-		findings = append(findings, rule.check(path, &doc)...)
-	}
 	return findings, nil
 }

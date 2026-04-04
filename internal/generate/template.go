@@ -138,5 +138,5 @@ func BuildAdvancedTemplate(name string, osTargets, goVersions []string, concurre
 		GoVersions:       goVersions,
 		ConcurrencyGroup: concurrencyGroup,
 	}
-	return adv
+	return adv.BaseTemplate
 }

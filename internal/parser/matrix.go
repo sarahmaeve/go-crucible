@@ -27,11 +27,8 @@ func ExpandMatrix(strategy *types.Strategy) []types.MatrixCombination {
 		expanded := make([]types.MatrixCombination, 0, len(result)*len(values))
 
 		for _, existing := range result {
+			base := existing
 			for _, v := range values {
-				base := make(types.MatrixCombination, len(existing))
-				for k, val := range existing {
-					base[k] = val
-				}
 				base[dim] = v
 				expanded = append(expanded, base)
 			}

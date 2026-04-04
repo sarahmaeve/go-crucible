@@ -30,7 +30,7 @@ func (r *MetricRelabeler) Relabel(metrics map[string]types.Metric, rules map[str
 			}
 		}
 		m.Labels = newLabels
-		result[key] = m
+		_ = key
 	}
 
 	return result
