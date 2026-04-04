@@ -1,0 +1,17 @@
+# Exercise 09: The Immortal Connection
+# App: kube-patrol | Difficulty: intermediate
+# File: internal/audit/secrets.go
+# Function: AuditSecretExpiry
+#
+diff --git a/internal/audit/secrets.go b/internal/audit/secrets.go
+index 91f6010..09a8e31 100644
+--- a/internal/audit/secrets.go
++++ b/internal/audit/secrets.go
+@@ -84,6 +84,7 @@ func AuditSecretExpiry(c client.AuditClient, namespace string) ([]types.Finding,
+
+ 		// Open a reader over the secret data.
+ 		reader := newSecretReader(secret.Data["value"])
++		defer reader.Close()
+
+ 		expiry, err := parseExpiryFromReader(reader, expiryStr)
+ 		if err != nil {

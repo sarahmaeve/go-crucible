@@ -1,0 +1,41 @@
+# Exercise 08: The Zombie Metric
+# App: pipeline | Difficulty: intermediate
+# File: internal/transform/aggregate.go
+# Function: WindowedAggregator.Add
+#
+diff --git a/internal/transform/aggregate.go b/internal/transform/aggregate.go
+index faf13fc..7311db4 100644
+--- a/internal/transform/aggregate.go
++++ b/internal/transform/aggregate.go
+@@ -2,12 +2,15 @@
+ package transform
+
+ import (
++	"sync"
++
+ 	"github.com/go-crucible/go-crucible/internal/types"
+ )
+
+ // WindowedAggregator accumulates metric samples in a sliding window keyed by
+ // metric name.
+ type WindowedAggregator struct {
++	mu      sync.Mutex
+ 	samples map[string][]float64
+ }
+
+@@ -20,11 +23,15 @@ func NewWindowedAggregator() *WindowedAggregator {
+
+ // Add appends the metric's value to the internal window for that metric name.
+ func (a *WindowedAggregator) Add(m types.Metric) {
++	a.mu.Lock()
++	defer a.mu.Unlock()
+ 	a.samples[m.Name] = append(a.samples[m.Name], m.Value)
+ }
+
+ // Flush returns a copy of all accumulated samples and resets internal state.
+ func (a *WindowedAggregator) Flush() map[string][]float64 {
++	a.mu.Lock()
++	defer a.mu.Unlock()
+ 	result := make(map[string][]float64, len(a.samples))
+ 	for k, v := range a.samples {
+ 		cp := make([]float64, len(v))

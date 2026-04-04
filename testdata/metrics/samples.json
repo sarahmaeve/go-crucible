@@ -1,0 +1,144 @@
+[
+  {
+    "name": "http_requests_total",
+    "labels": {
+      "method": "GET",
+      "path": "/api/v1/pods",
+      "status": "200"
+    },
+    "value": 14872,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "http_requests_total",
+    "labels": {
+      "method": "GET",
+      "path": "/api/v1/pods",
+      "status": "500"
+    },
+    "value": 42,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "http_request_duration_seconds",
+    "labels": {
+      "method": "GET",
+      "path": "/api/v1/pods",
+      "quantile": "0.99"
+    },
+    "value": 1.204,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "http_request_duration_seconds",
+    "labels": {
+      "method": "GET",
+      "path": "/api/v1/pods",
+      "quantile": "0.50"
+    },
+    "value": 0.038,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "container_cpu_usage_seconds_total",
+    "labels": {
+      "namespace": "default",
+      "pod": "web-6d4f8b9c7-xk2rp",
+      "container": "web"
+    },
+    "value": 302.57,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "container_memory_working_set_bytes",
+    "labels": {
+      "namespace": "default",
+      "pod": "web-6d4f8b9c7-xk2rp",
+      "container": "web"
+    },
+    "value": 134217728,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "container_memory_working_set_bytes",
+    "labels": {
+      "namespace": "kube-system",
+      "pod": "coredns-5dd5756b68-9pntq",
+      "container": "coredns"
+    },
+    "value": 20971520,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "kube_pod_status_phase",
+    "labels": {
+      "namespace": "default",
+      "pod": "web-6d4f8b9c7-xk2rp",
+      "phase": "Running"
+    },
+    "value": 1,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "kube_pod_status_phase",
+    "labels": {
+      "namespace": "default",
+      "pod": "job-runner-29173840-zzxpk",
+      "phase": "Failed"
+    },
+    "value": 1,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "kube_deployment_status_replicas_available",
+    "labels": {
+      "namespace": "default",
+      "deployment": "web"
+    },
+    "value": 3,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "kube_deployment_status_replicas_unavailable",
+    "labels": {
+      "namespace": "default",
+      "deployment": "web"
+    },
+    "value": 0,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "node_cpu_seconds_total",
+    "labels": {
+      "node": "node-1",
+      "mode": "idle"
+    },
+    "value": 891234.5,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "node_cpu_seconds_total",
+    "labels": {
+      "node": "node-1",
+      "mode": "user"
+    },
+    "value": 42310.2,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "node_memory_MemAvailable_bytes",
+    "labels": {
+      "node": "node-1"
+    },
+    "value": 4294967296,
+    "timestamp": "2026-04-03T08:00:00Z"
+  },
+  {
+    "name": "node_memory_MemTotal_bytes",
+    "labels": {
+      "node": "node-1"
+    },
+    "value": 17179869184,
+    "timestamp": "2026-04-03T08:00:00Z"
+  }
+]

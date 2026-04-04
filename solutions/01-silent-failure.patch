@@ -1,0 +1,8 @@
+# Exercise 01: The Silent Failure
+# App: kube-patrol | Difficulty: beginner
+# File: internal/audit/pods.go
+# Function: AuditPodLimits
+#
+# No diff: internal/audit/pods.go already contained the correct fix
+# (return nil, err) in the initial commit. The bug described in exercises.yaml
+# (log-and-fall-through without returning) is not present in the source tree.

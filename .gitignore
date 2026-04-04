@@ -17,16 +17,41 @@ coverage.*
 *.coverprofile
 profile.cov
 
-# Dependency directories (remove the comment below to include it)
+# Vendor directory (uncomment to ignore when using -mod=vendor)
 # vendor/
 
 # Go workspace file
 go.work
 go.work.sum
 
-# env file
+# Environment and secrets
 .env
+.env.*
+*.pem
+*.key
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Editor and IDE directories
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Maintainer-only directory (uncomment to exclude from learner distributions)
+# .crucible/
+
+# Build output binaries
+/go-crucible
+/kube-patrol
+/gh-forge
+/pipeline

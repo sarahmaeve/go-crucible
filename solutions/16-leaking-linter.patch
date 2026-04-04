@@ -1,0 +1,60 @@
+# Exercise 16: The Leaking Linter
+# App: gh-forge | Difficulty: advanced
+# File: internal/lint/linter.go
+# Function: LintWorkflows
+#
+diff --git a/internal/lint/linter.go b/internal/lint/linter.go
+index 8008ad8..b7431ad 100644
+--- a/internal/lint/linter.go
++++ b/internal/lint/linter.go
+@@ -140,24 +140,37 @@ func LintWorkflows(dir string) ([]types.LintFinding, error) {
+
+ 		path := filepath.Join(dir, name)
+
+-		f, err := os.Open(path)
++		fileFindings, err := lintFile(path)
+ 		if err != nil {
+-			return nil, fmt.Errorf("lint: opening %q: %w", path, err)
++			return nil, err
+ 		}
+-		defer f.Close()
++		findings = append(findings, fileFindings...)
++	}
+
+-		var doc yaml.Node
+-		dec := yaml.NewDecoder(f)
+-		if err := dec.Decode(&doc); err != nil {
+-			// Skip files that aren't valid YAML.
+-			continue
+-		}
++	return findings, nil
++}
+
+-		for _, rule := range builtinRules {
+-			ruleFindings := rule.check(path, &doc)
+-			findings = append(findings, ruleFindings...)
+-		}
++// lintFile opens, parses, and lints a single YAML workflow file. By isolating
++// the per-file logic in its own function, the deferred f.Close() runs at the
++// end of each file's processing rather than accumulating until LintWorkflows
++// returns.
++func lintFile(path string) ([]types.LintFinding, error) {
++	f, err := os.Open(path)
++	if err != nil {
++		return nil, fmt.Errorf("lint: opening %q: %w", path, err)
++	}
++	defer f.Close()
++
++	var doc yaml.Node
++	dec := yaml.NewDecoder(f)
++	if err := dec.Decode(&doc); err != nil {
++		// Skip files that aren't valid YAML.
++		return nil, nil
+ 	}
+
++	var findings []types.LintFinding
++	for _, rule := range builtinRules {
++		findings = append(findings, rule.check(path, &doc)...)
++	}
+ 	return findings, nil
+ }

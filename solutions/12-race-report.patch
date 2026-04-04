@@ -1,0 +1,39 @@
+# Exercise 12: The Race Report
+# App: kube-patrol | Difficulty: intermediate
+# File: internal/audit/report.go
+# Function: ConcurrentAudit
+#
+diff --git a/internal/audit/report.go b/internal/audit/report.go
+index b10d993..45920b2 100644
+--- a/internal/audit/report.go
++++ b/internal/audit/report.go
+@@ -32,9 +32,9 @@ func buildReport(findings []types.Finding) *types.Report {
+ func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
+ 	var (
+ 		wg       sync.WaitGroup
++		mu       sync.Mutex
+ 		findings []types.Finding
+ 		firstErr error
+-		errMu    sync.Mutex
+ 	)
+
+ 	for _, auditor := range auditors {
+@@ -43,12 +43,14 @@ func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace strin
+ 		go func(fn AuditFunc) {
+ 			defer wg.Done()
+ 			result, err := fn(c, namespace)
+ 			if err != nil {
+-				errMu.Lock()
++				mu.Lock()
+ 				if firstErr == nil {
+ 					firstErr = err
+ 				}
+-				errMu.Unlock()
++				mu.Unlock()
+ 				return
+ 			}
++			mu.Lock()
+ 			findings = append(findings, result...)
++			mu.Unlock()
+ 		}(auditor)
+ 	}

@@ -1,0 +1,19 @@
+# Exercise 13: The Lost Goroutine
+# App: kube-patrol | Difficulty: intermediate
+# File: internal/audit/report.go
+# Function: ParallelAudit
+#
+diff --git a/internal/audit/report.go b/internal/audit/report.go
+index b10d993..45920b2 100644
+--- a/internal/audit/report.go
++++ b/internal/audit/report.go
+@@ -72,8 +74,8 @@ func ParallelAudit(auditors []AuditFunc, c client.AuditClient, namespace string)
+ 	)
+
+ 	for _, auditor := range auditors {
++		wg.Add(1)
+ 		go func(fn AuditFunc) {
+-			wg.Add(1)
+ 			defer wg.Done()
+
+ 			result, err := fn(c, namespace)

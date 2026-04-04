@@ -1,0 +1,22 @@
+# Exercise 05: The Nil Check That Lies
+# App: kube-patrol | Difficulty: intermediate
+# File: internal/client/client.go
+# Function: NewAuditClient
+#
+diff --git a/internal/client/client.go b/internal/client/client.go
+--- a/internal/client/client.go
++++ b/internal/client/client.go
+@@ -60,12 +60,12 @@ func NewAuditClient(kubeconfig string) (AuditClient, error) {
+ 	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+ 	if err != nil {
+-		return (*KubeClient)(nil), nil
++		return nil, err
+ 	}
+
+ 	cs, err := kubernetes.NewForConfig(cfg)
+ 	if err != nil {
+-		return (*KubeClient)(nil), nil
++		return nil, err
+ 	}
+
+ 	return &KubeClient{cs: cs}, nil

@@ -1,0 +1,26 @@
+# Exercise 14: The Forever Forwarder
+# App: pipeline | Difficulty: advanced
+# File: internal/ingest/reader.go
+# Function: ForwardMetrics
+#
+diff --git a/internal/ingest/reader.go b/internal/ingest/reader.go
+index 9338b66..dc81e23 100644
+--- a/internal/ingest/reader.go
++++ b/internal/ingest/reader.go
+@@ -24,13 +28,13 @@ func ReadMetrics(ctx context.Context, source MetricSource, out chan<- types.Metr
+ // ForwardMetrics copies metrics from in to out until in is closed or the
+ // context is cancelled.
+ func ForwardMetrics(ctx context.Context, in <-chan types.Metric, out chan<- types.Metric) error {
+-	_ = ctx
+ 	for {
+ 		select {
++		case <-ctx.Done():
++			return ctx.Err()
+ 		case m, ok := <-in:
+ 			if !ok {
+-				_ = m
+-				continue
++				return nil
+ 			}
+ 			out <- m
+ 		}

@@ -1,0 +1,18 @@
+# Exercise 02: The Unwritten Labels
+# App: kube-patrol | Difficulty: beginner
+# File: internal/audit/deployments.go
+# Function: AuditDeploymentLabels
+#
+diff --git a/internal/audit/deployments.go b/internal/audit/deployments.go
+index b666166..c98e23e 100644
+--- a/internal/audit/deployments.go
++++ b/internal/audit/deployments.go
+@@ -40,7 +40,7 @@ func AuditDeploymentLabels(c client.AuditClient, namespace string, requiredLabel
+ 		return nil, err
+ 	}
+
+-	var missingLabels map[string]bool
++	missingLabels := make(map[string]bool)
+
+ 	return checkDeploymentLabels(deployments, requiredLabels, missingLabels), nil
+ }

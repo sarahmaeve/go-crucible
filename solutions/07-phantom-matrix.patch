@@ -1,0 +1,23 @@
+# Exercise 07: The Phantom Matrix
+# App: gh-forge | Difficulty: intermediate
+# File: internal/parser/matrix.go
+# Function: ExpandMatrix
+#
+diff --git a/internal/parser/matrix.go b/internal/parser/matrix.go
+index 686025e..538867d 100644
+--- a/internal/parser/matrix.go
++++ b/internal/parser/matrix.go
+@@ -27,9 +27,11 @@ func ExpandMatrix(strategy *types.Strategy) []types.MatrixCombination {
+ 		expanded := make([]types.MatrixCombination, 0, len(result)*len(values))
+
+ 		for _, existing := range result {
+-			base := existing
+-
+ 			for _, v := range values {
++				base := make(types.MatrixCombination, len(existing))
++				for k, val := range existing {
++					base[k] = val
++				}
+ 				base[dim] = v
+ 				expanded = append(expanded, base)
+ 			}

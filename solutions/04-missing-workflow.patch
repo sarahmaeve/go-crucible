@@ -1,0 +1,31 @@
+# Exercise 04: The Missing Workflow
+# App: gh-forge | Difficulty: beginner
+# File: internal/parser/workflow.go
+# Function: ParseWorkflow
+#
+diff --git a/internal/parser/workflow.go b/internal/parser/workflow.go
+index 84418ac..d9bb4c7 100644
+--- a/internal/parser/workflow.go
++++ b/internal/parser/workflow.go
+@@ -16,8 +16,8 @@ import (
+ // expanding env variable references) before handing off to callers.
+ type rawWorkflow struct {
+ 	Name        string                       `yaml:"name"`
+-	on          map[string]any
+-	env         map[string]string
++	On          map[string]any               `yaml:"on"`
++	Env         map[string]string            `yaml:"env"`
+ 	Jobs        map[string]rawJob            `yaml:"jobs"`
+ 	Concurrency *types.WorkflowConcurrency   `yaml:"concurrency,omitempty"`
+ 	Permissions map[string]string            `yaml:"permissions,omitempty"`
+@@ -52,8 +52,8 @@ func ParseWorkflow(data []byte) (*types.Workflow, error) {
+
+ 	wf := &types.Workflow{
+ 		Name:        raw.Name,
+-		On:          raw.on,
+-		Env:         raw.env,
++		On:          raw.On,
++		Env:         raw.Env,
+ 		Concurrency: raw.Concurrency,
+ 		Permissions: raw.Permissions,
+ 		Jobs:        make(map[string]types.Job, len(raw.Jobs)),

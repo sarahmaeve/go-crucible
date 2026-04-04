@@ -1,0 +1,22 @@
+# Exercise 06: The Stuck Pipeline
+# App: pipeline | Difficulty: intermediate
+# File: internal/ingest/reader.go
+# Function: ReadMetrics
+#
+diff --git a/internal/ingest/reader.go b/internal/ingest/reader.go
+index 9338b66..dc81e23 100644
+--- a/internal/ingest/reader.go
++++ b/internal/ingest/reader.go
+@@ -15,7 +15,11 @@ func ReadMetrics(ctx context.Context, source MetricSource, out chan<- types.Metr
+ 			if err != nil {
+ 				return
+ 			}
+-			out <- m
++			select {
++			case out <- m:
++			case <-ctx.Done():
++				return
++			}
+ 		}
+ 	}()
+ 	return nil

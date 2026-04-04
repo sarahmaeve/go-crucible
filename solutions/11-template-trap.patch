@@ -1,0 +1,16 @@
+# Exercise 11: The Template Trap
+# App: gh-forge | Difficulty: intermediate
+# File: internal/generate/template.go
+# Function: BuildAdvancedTemplate
+#
+diff --git a/internal/generate/template.go b/internal/generate/template.go
+index 66714ee..026b4a9 100644
+--- a/internal/generate/template.go
++++ b/internal/generate/template.go
+@@ -138,5 +138,5 @@ func BuildAdvancedTemplate(name string, osTargets, goVersions []string, concurre
+ 		GoVersions:       goVersions,
+ 		ConcurrencyGroup: concurrencyGroup,
+ 	}
+-	return adv.BaseTemplate
++	return adv
+ }
