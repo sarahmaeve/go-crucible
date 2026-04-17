@@ -1,0 +1,27 @@
+# Exercise 20: The Brittle Match
+# App: pipeline | Difficulty: intermediate
+# File: internal/ingest/dedup.go
+# Function: Deduplicator.Ingest
+#
+diff --git a/internal/ingest/dedup.go b/internal/ingest/dedup.go
+index 65cb284..8e54b07 100644
+--- a/internal/ingest/dedup.go
++++ b/internal/ingest/dedup.go
+@@ -2,7 +2,7 @@ package ingest
+
+ import (
+ 	"context"
+-	"strings"
++	"errors"
+ 	"time"
+
+ 	"github.com/go-crucible/go-crucible/internal/types"
+@@ -39,7 +39,7 @@ func (d *Deduplicator) Ingest(ctx context.Context, metric types.Metric) error {
+ 	}
+ 	// If the store reports the key was already recorded, treat it as an
+ 	// idempotent success.
+-	if strings.Contains(err.Error(), "already recorded") {
++	if errors.Is(err, types.ErrDuplicate) {
+ 		return nil
+ 	}
+ 	return err

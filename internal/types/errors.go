@@ -28,6 +28,13 @@ var (
 	// terminating because the pipeline's context was cancelled. (pipeline)
 	ErrPipelineShutdown = errors.New("pipeline is shutting down")
 
+	// ErrDuplicate is returned by [CacheStore] implementations when a key has
+	// already been written. Deduplicating callers treat this as an idempotent
+	// success. Implementations should wrap this sentinel with %w so that
+	// callers can use [errors.Is] to recognise it regardless of the
+	// surrounding message. (pipeline)
+	ErrDuplicate = errors.New("duplicate write rejected")
+
 	// ErrInvalidWorkflow indicates a workflow failed semantic validation
 	// (required fields missing, disallowed values, etc.). (gh-forge)
 	ErrInvalidWorkflow = errors.New("invalid workflow file")

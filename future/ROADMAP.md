@@ -5,7 +5,7 @@
 The Crucible is designed as stage 1 of a three-stage progression:
 
 1. **Stage 1: Debug and Fix** (current Crucible) — Learn Go's footguns by encountering
-   them in realistic infrastructure code. 19 exercises across three apps. The learner
+   them in realistic infrastructure code. 20 exercises across three apps. The learner
    reads code they didn't write, finds planted bugs, and fixes them.
 
 2. **Stage 2: Extend and Design** — Add features to existing code, write tests, make

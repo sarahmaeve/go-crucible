@@ -59,7 +59,7 @@ go test -race ./internal/audit/ -run TestExercise13 -v -count=10
 
 ## Exercise Index
 
-See [exercises/README.md](./exercises/README.md) for the full checklist of all 19 exercises organized by difficulty.
+See [exercises/README.md](./exercises/README.md) for the full checklist of all 20 exercises organized by difficulty.
 
 ## Repository Layout
 

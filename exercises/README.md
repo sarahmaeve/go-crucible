@@ -1,6 +1,6 @@
 # Exercise Index
 
-All 19 exercises. Check off each one as you complete it.
+All 20 exercises. Check off each one as you complete it.
 
 | # | Title | Application | Difficulty |
 |---|-------|-------------|------------|
@@ -23,6 +23,7 @@ All 19 exercises. Check off each one as you complete it.
 | [17](./17-metric-mirage/README.md) | The Metric Mirage | pipeline | Intermediate |
 | [18](./18-ticking-leak/README.md) | The Ticking Leak | pipeline | Advanced |
 | [19](./19-graceless-shutdown/README.md) | The Graceless Shutdown | pipeline | Advanced |
+| [20](./20-brittle-match/README.md) | The Brittle Match | pipeline | Intermediate |
 
 ## Progress Checklist
 
@@ -48,6 +49,7 @@ Copy this into a local file or a notebook to track your progress:
 [ ] 17 - The Metric Mirage
 [ ] 18 - The Ticking Leak
 [ ] 19 - The Graceless Shutdown
+[ ] 20 - The Brittle Match
 ```
 
 ## Difficulty Guide

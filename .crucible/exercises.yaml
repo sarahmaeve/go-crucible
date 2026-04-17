@@ -429,3 +429,40 @@ exercises:
       exits-on-cancel). See .crucible/notes/19-graceless-shutdown.md for
       the full modernization rationale. Learners who want the buggy form
       back: `git apply -R solutions/19-*.patch`.
+
+  - number: "20"
+    title: The Brittle Match
+    app: pipeline
+    difficulty: intermediate
+    file: internal/ingest/dedup.go
+    function: Deduplicator.Ingest
+    mechanism: >
+      Ingest recognises the "duplicate metric, treat as idempotent" case by
+      testing whether the store's error message contains the substring
+      "already recorded". Two CacheStore implementations in the test wrap
+      the same sentinel (types.ErrDuplicate) with different surrounding
+      messages; only the legacy store's wording contains the expected
+      substring. Idempotency works for one store and silently fails for
+      the other.
+    fix: >
+      Replace `strings.Contains(err.Error(), "already recorded")` with
+      `errors.Is(err, types.ErrDuplicate)`. Both stores wrap the sentinel
+      with %w, so errors.Is walks the chain correctly regardless of the
+      surrounding message. Swap the `strings` import for `errors`.
+    teaches:
+      - Matching on err.Error() couples classification to a peer component's prose
+      - errors.Is walks the chain and compares by identity — the wrapping
+        layer's wording does not affect the result
+      - Brittle string matches tend to pass happy-path tests and fail
+        only when a driver, library, or reimplementation rewords the message
+    patch: solutions/20-brittle-match.patch
+    notes: >
+      Companion to exercise 03: where 03 teaches that %v breaks the chain
+      so errors.Is cannot find the sentinel, exercise 20 teaches that even
+      when the chain is intact, inspecting the error *text* instead of the
+      *chain* fails as soon as the wrapping layer rewords its message.
+      Inspired by the `isUniqueViolation` helper in go-prod-change-registry
+      (internal/store/sqlite/sqlite.go), which classifies SQLite driver
+      errors by substring-matching "UNIQUE constraint failed" — a
+      classification whose correctness depends on the driver never
+      changing its wording.
