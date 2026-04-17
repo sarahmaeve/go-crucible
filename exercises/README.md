@@ -1,6 +1,6 @@
 # Exercise Index
 
-All 20 exercises. Check off each one as you complete it.
+All 21 exercises. Check off each one as you complete it.
 
 | # | Title | Application | Difficulty |
 |---|-------|-------------|------------|
@@ -24,6 +24,7 @@ All 20 exercises. Check off each one as you complete it.
 | [18](./18-ticking-leak/README.md) | The Ticking Leak | pipeline | Advanced |
 | [19](./19-graceless-shutdown/README.md) | The Graceless Shutdown | pipeline | Advanced |
 | [20](./20-brittle-match/README.md) | The Brittle Match | pipeline | Intermediate |
+| [21](./21-unbounded-request/README.md) | The Unbounded Request | pipeline | Intermediate |
 
 ## Progress Checklist
 
@@ -50,6 +51,7 @@ Copy this into a local file or a notebook to track your progress:
 [ ] 18 - The Ticking Leak
 [ ] 19 - The Graceless Shutdown
 [ ] 20 - The Brittle Match
+[ ] 21 - The Unbounded Request
 ```
 
 ## Difficulty Guide

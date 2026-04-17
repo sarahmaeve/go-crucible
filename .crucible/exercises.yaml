@@ -466,3 +466,45 @@ exercises:
       errors by substring-matching "UNIQUE constraint failed" — a
       classification whose correctness depends on the driver never
       changing its wording.
+
+  - number: "21"
+    title: The Unbounded Request
+    app: pipeline
+    difficulty: intermediate
+    file: internal/ingest/http.go
+    function: PushHandler.ServeHTTP
+    mechanism: >
+      PushHandler.ServeHTTP decodes the HTTP request body with
+      json.NewDecoder(r.Body).Decode(&req) — reading from an unbounded
+      r.Body with no cap. The struct has a maxBytes field that the
+      constructor plumbs through, but ServeHTTP never reads it. A client
+      can post an arbitrarily large payload and exhaust server memory
+      before the handler notices.
+    fix: |
+      Two additions before the decode:
+        1. Wrap the body: r.Body = http.MaxBytesReader(w, r.Body, h.maxBytes).
+           Assigning back to r.Body propagates the cap to any downstream
+           reader (the JSON decoder, a streaming parser).
+        2. In the decode-error path, classify the error with
+           errors.As(err, &maxErr) where maxErr is *http.MaxBytesError.
+           On match, respond 413 Request Entity Too Large; otherwise fall
+           through to the existing 400 Bad Request response.
+      Add `errors` to the import block.
+    teaches:
+      - net/http does not cap request-body size by default
+      - http.MaxBytesReader wraps the body so reads past the limit return
+        *http.MaxBytesError
+      - Classify decode errors: 413 for size-cap violations, 400 for
+        malformed content — collapsing both hides signal from operators
+      - Defense in depth — the cap must be applied before the decoder
+        allocates memory, not after
+    patch: solutions/21-unbounded-request.patch
+    notes: >
+      The crucible's first HTTP-body-handling exercise. Companion pieces:
+      exercise 09 teaches "close what you open" on HTTP bodies; exercise
+      10 teaches context propagation inside handlers; exercise 21 teaches
+      bounded input. Together they form the core of "what a Go HTTP
+      handler must get right." Inspired by the go-prod-change-registry
+      audit: the change-registry's own event-creation handlers decode
+      JSON bodies without a MaxBytesReader cap, a realistic gap in
+      LLM-generated service code.

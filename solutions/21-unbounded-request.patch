@@ -1,0 +1,33 @@
+# Exercise 21: The Unbounded Request
+# App: pipeline | Difficulty: intermediate
+# File: internal/ingest/http.go
+# Function: PushHandler.ServeHTTP
+#
+diff --git a/internal/ingest/http.go b/internal/ingest/http.go
+index 6512fed..5b5499f 100644
+--- a/internal/ingest/http.go
++++ b/internal/ingest/http.go
+@@ -3,6 +3,7 @@ package ingest
+ import (
+ 	"context"
+ 	"encoding/json"
++	"errors"
+ 	"net/http"
+
+ 	"github.com/go-crucible/go-crucible/internal/types"
+@@ -47,8 +48,15 @@ func (h *PushHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+
++	r.Body = http.MaxBytesReader(w, r.Body, h.maxBytes)
++
+ 	var req PushRequest
+ 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
++		var maxErr *http.MaxBytesError
++		if errors.As(err, &maxErr) {
++			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
++			return
++		}
+ 		http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+ 		return
+ 	}

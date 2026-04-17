@@ -16,7 +16,7 @@ vet:
 status:
 	@echo "=== Go Crucible Exercise Status ==="
 	@echo "(run 'make status-race' for exercises 08 and 12 under the race detector)"
-	@for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20; do \
+	@for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21; do \
 		out=$$(go test ./... -run "^TestExercise$${n}" -count=1 -v 2>&1); \
 		if echo "$$out" | grep -qE "^--- PASS: TestExercise$${n}(_|$$)"; then \
 			echo "  Exercise $$n: PASS"; \
@@ -29,7 +29,7 @@ status:
 
 status-race:
 	@echo "=== Go Crucible Exercise Status (race detector) ==="
-	@for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20; do \
+	@for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21; do \
 		out=$$(go test -race ./... -run "^TestExercise$${n}" -count=1 -v 2>&1); \
 		if echo "$$out" | grep -qE "^--- PASS: TestExercise$${n}(_|$$)"; then \
 			echo "  Exercise $$n: PASS"; \

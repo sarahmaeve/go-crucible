@@ -19,7 +19,7 @@ escalation path.
 
 ## Contents
 
-- **`exercises.yaml`** — registry of all 20 intentional bugs, what each one
+- **`exercises.yaml`** — registry of all 21 intentional bugs, what each one
   teaches, and which patch file fixes it. Edit this file whenever the source
   code around an exercise changes (e.g., a log-package migration that shifts
   the snippet shown in a hint).
