@@ -508,3 +508,137 @@ exercises:
       audit: the change-registry's own event-creation handlers decode
       JSON bodies without a MaxBytesReader cap, a realistic gap in
       LLM-generated service code.
+
+# -----------------------------------------------------------------------------
+# Review Track
+#
+# Review exercises train a different skill from the numbered exercises —
+# reading change (a pull request) rather than reading isolated code. They
+# do not have a planted bug in the crucible source tree; the diff lives
+# inside the exercise's own README.md. There is no patch, no test, and
+# no entry in `make status`. The deliverable is a code review, and the
+# canonical sample review lives in the exercise directory as
+# REVIEWER_NOTES.md.
+#
+# Schema differs from numbered exercises:
+#   - number: "R01", "R02", ... — R-prefixed to keep namespaces distinct
+#   - tier: basic | intermediate | advanced
+#   - draws_on: list of numbered exercises whose reflexes the learner uses
+#   - directory: path relative to repo root
+#   - scenario: one-paragraph description of the simulated PR
+#   - planted: list of entries, each with {kind, echoes?, summary}
+#     kind ∈ {correctness, red-herring, process, question}
+#     echoes is the numbered exercise this item's pattern is drawn from
+#     (only set when kind == correctness)
+#   - teaches: review-craft skills, not Go-language concepts
+# -----------------------------------------------------------------------------
+
+review_exercises:
+  - number: "R01"
+    title: First Review — The --since Flag PR
+    tier: basic
+    draws_on: ["01", "09"]
+    directory: exercises/review/01-first-review/
+    scenario: >
+      Simulated PR against kube-patrol adding a --since flag to filter
+      findings by recency, plus a state-file mechanism for "since last
+      run" defaulting. The diff introduces two new helpers in
+      internal/audit/since.go and renames AuditReport.FindingCount to
+      NumFindings.
+    planted:
+      - kind: correctness
+        echoes: "01"
+        summary: >
+          ParseSince logs an invalid-duration error with slog.Error
+          but does not return it — caller receives time.Now() (d == 0
+          on parse failure) and has no way to know the input was
+          nonsense. Downstream FilterSince drops every finding.
+      - kind: correctness
+        echoes: "09"
+        summary: >
+          LoadLastRun calls os.Open on the state file and never closes
+          the returned *os.File. Single invocation is benign; cron
+          loops and long-running daemons leak one FD per call.
+      - kind: red-herring
+        summary: >
+          AuditReport.FindingCount → NumFindings rename. Consistent
+          within the diff (struct def + Summary method) and internal
+          to the audit package. Reviewer should verify consistency
+          and place in "Things I Verified," optionally with a tone
+          call about splitting refactor from feature.
+      - kind: process
+        summary: >
+          PR test plan lists "Unit tests for ParseSince and LoadLastRun —
+          follow-up." Reviewer should push for tests in this PR, not
+          a follow-up, given that a unit test for ParseSince would
+          have caught bug 1.
+    teaches:
+      - Reading code change as a distinct skill from reading isolated code
+      - Naming what you verified (false-positive discipline)
+      - Separating correctness issues from process concerns
+      - Proposing fixes alongside criticism when the fix is obvious
+      - Severity calibration — major vs minor vs question vs nit
+    notes: >
+      First exercise in the review track. Planted bugs echo ex 01
+      (log-and-continue) and ex 09 (missing defer Close) — both basic
+      tier, both single-line fixes in isolation.
+
+  - number: "R02"
+    title: The Annotations Feature PR
+    tier: basic
+    draws_on: ["02", "04"]
+    directory: exercises/review/02-annotations-feature/
+    scenario: >
+      Simulated PR against gh-forge adding a top-level annotations
+      block to workflow YAML, giving each job an owner team and
+      arbitrary string-valued tags. Also adds BuildOwnerIndex, a helper
+      that inverts annotations into an owner→jobs lookup for
+      alert-routing. The PR includes a unit test.
+    planted:
+      - kind: correctness
+        echoes: "04"
+        summary: >
+          rawAnnotation.tags is unexported. The yaml:"tags" struct tag
+          is decorative — Go's YAML decoder only populates exported
+          fields via reflection. Every Annotations.Tags in the decoded
+          result is silently nil.
+      - kind: correctness
+        echoes: "02"
+        summary: >
+          BuildOwnerIndex declares `var index map[string][]string` (nil
+          map) and writes `index[ann.Owner] = ...` inside the loop.
+          First write panics with "assignment to entry in nil map."
+      - kind: red-herring
+        summary: >
+          Tags field is map[string]string rather than a richer Value
+          union type. The PR description has an explicit Scope note
+          deferring richer types to a follow-up. Reviewer should
+          verify against the PR description and place in "Things I
+          Verified."
+      - kind: process
+        summary: >
+          The included unit test only exercises the happy path for
+          Owner parsing. The fixture has no tags: block (so bug 1
+          would pass even after half-fix), and BuildOwnerIndex is
+          never called (so bug 2 never fires under test). Reviewer
+          should demand test extensions in this PR — specifically for
+          the tags field and for BuildOwnerIndex invocation.
+      - kind: question
+        summary: >
+          Duplicate annotation names silently overwrite (map
+          assignment is last-write-wins). Reviewer raises this as a
+          question about intent, not a blocker — whichever behaviour
+          the author chooses should be documented and tested.
+    teaches:
+      - Reading a test critically — "tests exist" is not "tests are sufficient"
+      - Recognising yaml/json decoder visibility rules in a diff
+      - Distinguishing a question ("what should duplicates do?") from a blocker
+      - Re-reading the PR description before flagging — sometimes the
+        author has already addressed a concern in prose
+      - Calibrating severity — silent data loss is major even when fixable
+    notes: >
+      Second exercise in the review track. Planted bugs echo ex 04
+      (unexported yaml field) and ex 02 (nil map panic) — both basic
+      tier, both data-shape traps. Complements R01's control-flow +
+      resource-lifecycle shape so learners exercise different reflex
+      pathways across the two.

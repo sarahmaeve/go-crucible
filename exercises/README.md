@@ -59,3 +59,15 @@ Copy this into a local file or a notebook to track your progress:
 - **Beginner** — single-line fix; the concept is a core Go fundamental.
 - **Intermediate** — requires understanding a specific Go runtime or type-system behaviour.
 - **Advanced** — compound bugs or subtle runtime effects that are difficult to observe without the right tools.
+
+## Review Track
+
+A parallel track of exercises focused on **reading change** rather than
+reading isolated code. Each review exercise presents a simulated pull
+request — a description and a unified diff — and asks you to write a
+review. The deliverable is not a patch but a set of structured comments.
+
+Review exercises draw on the reflexes built by the numbered exercises,
+so each one names its prerequisite tier. See
+[review/README.md](./review/README.md) for the track introduction and
+the first exercise.
