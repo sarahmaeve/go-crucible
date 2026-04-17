@@ -3,10 +3,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-crucible/go-crucible/internal/audit"
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -15,7 +18,19 @@ import (
 
 var requiredDeploymentLabels = []string{"app", "version", "team"}
 
+// fatalf logs msg at error level with the given key-value pairs and exits 1.
+// It replaces log.Fatalf now that the CLI uses log/slog.
+func fatalf(msg string, args ...any) {
+	slog.Error(msg, args...)
+	os.Exit(1)
+}
+
 func main() {
+	// Install a single signal-aware context for the whole audit run so Ctrl-C
+	// or SIGTERM cancels in-flight Kubernetes API calls promptly.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	var (
 		kubeconfig = flag.String("kubeconfig", os.Getenv("KUBECONFIG"), "path to kubeconfig file")
 		namespace  = flag.String("namespace", "default", "namespace to audit")
@@ -30,10 +45,10 @@ func main() {
 	// Build the audit client.
 	auditClient, err := client.NewAuditClient(*kubeconfig)
 	if err != nil {
-		log.Fatalf("failed to create audit client: %v", err)
+		fatalf("failed to create audit client", "err", err)
 	}
 	if auditClient == nil {
-		log.Fatal("audit client is not available (nil interface)")
+		fatalf("audit client is not available (nil interface)")
 	}
 
 	auditors := []audit.AuditFunc{
@@ -42,9 +57,9 @@ func main() {
 		secretExpiryAuditor,
 	}
 
-	report, err := audit.ConcurrentAudit(auditors, auditClient, *namespace)
+	report, err := audit.ConcurrentAudit(ctx, auditors, auditClient, *namespace)
 	if err != nil {
-		log.Fatalf("audit failed: %v", err)
+		fatalf("audit failed", "err", err)
 	}
 
 	fmt.Printf("Audit complete — %d finding(s)\n", report.Summary.Total)
@@ -59,14 +74,14 @@ func main() {
 	}
 }
 
-func podLimitsAuditor(c client.AuditClient, ns string) ([]types.Finding, error) {
-	return audit.AuditPodLimits(c, ns)
+func podLimitsAuditor(ctx context.Context, c client.AuditClient, ns string) ([]types.Finding, error) {
+	return audit.AuditPodLimits(ctx, c, ns)
 }
 
-func deploymentLabelsAuditor(c client.AuditClient, ns string) ([]types.Finding, error) {
-	return audit.AuditDeploymentLabels(c, ns, requiredDeploymentLabels)
+func deploymentLabelsAuditor(ctx context.Context, c client.AuditClient, ns string) ([]types.Finding, error) {
+	return audit.AuditDeploymentLabels(ctx, c, ns, requiredDeploymentLabels)
 }
 
-func secretExpiryAuditor(c client.AuditClient, ns string) ([]types.Finding, error) {
-	return audit.AuditSecretExpiry(c, ns)
+func secretExpiryAuditor(ctx context.Context, c client.AuditClient, ns string) ([]types.Finding, error) {
+	return audit.AuditSecretExpiry(ctx, c, ns)
 }

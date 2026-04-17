@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,18 +23,18 @@ func NewFakeClient(objs ...runtime.Object) *FakeClient {
 }
 
 // ListPods returns all pods in the fake clientset for the given namespace.
-func (f *FakeClient) ListPods(namespace string) ([]corev1.Pod, error) {
-	return (&KubeClient{cs: f.cs}).ListPods(namespace)
+func (f *FakeClient) ListPods(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+	return (&KubeClient{cs: f.cs}).ListPods(ctx, namespace)
 }
 
 // ListDeployments returns all deployments in the fake clientset for the given namespace.
-func (f *FakeClient) ListDeployments(namespace string) ([]appsv1.Deployment, error) {
-	return (&KubeClient{cs: f.cs}).ListDeployments(namespace)
+func (f *FakeClient) ListDeployments(ctx context.Context, namespace string) ([]appsv1.Deployment, error) {
+	return (&KubeClient{cs: f.cs}).ListDeployments(ctx, namespace)
 }
 
 // ListSecrets returns all secrets in the fake clientset for the given namespace.
-func (f *FakeClient) ListSecrets(namespace string) ([]corev1.Secret, error) {
-	return (&KubeClient{cs: f.cs}).ListSecrets(namespace)
+func (f *FakeClient) ListSecrets(ctx context.Context, namespace string) ([]corev1.Secret, error) {
+	return (&KubeClient{cs: f.cs}).ListSecrets(ctx, namespace)
 }
 
 // ErrorClient is an AuditClient that always returns the configured errors.
@@ -43,14 +45,17 @@ type ErrorClient struct {
 	SecretError     error
 }
 
-func (e *ErrorClient) ListPods(_ string) ([]corev1.Pod, error) {
+// ListPods always returns (nil, e.PodError).
+func (e *ErrorClient) ListPods(_ context.Context, _ string) ([]corev1.Pod, error) {
 	return nil, e.PodError
 }
 
-func (e *ErrorClient) ListDeployments(_ string) ([]appsv1.Deployment, error) {
+// ListDeployments always returns (nil, e.DeploymentError).
+func (e *ErrorClient) ListDeployments(_ context.Context, _ string) ([]appsv1.Deployment, error) {
 	return nil, e.DeploymentError
 }
 
-func (e *ErrorClient) ListSecrets(_ string) ([]corev1.Secret, error) {
+// ListSecrets always returns (nil, e.SecretError).
+func (e *ErrorClient) ListSecrets(_ context.Context, _ string) ([]corev1.Secret, error) {
 	return nil, e.SecretError
 }

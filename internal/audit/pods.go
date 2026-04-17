@@ -2,10 +2,10 @@
 package audit
 
 import (
-	"log"
+	"context"
+	"log/slog"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/go-crucible/go-crucible/internal/client"
 	"github.com/go-crucible/go-crucible/internal/types"
@@ -13,10 +13,10 @@ import (
 
 // AuditPodLimits inspects every pod in namespace and returns a Finding for
 // each container that is missing CPU or memory resource limits.
-func AuditPodLimits(c client.AuditClient, namespace string) ([]types.Finding, error) {
-	pods, err := c.ListPods(namespace)
+func AuditPodLimits(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
+	pods, err := c.ListPods(ctx, namespace)
 	if err != nil {
-		log.Printf("AuditPodLimits: failed to list pods: %v", err)
+		slog.Error("AuditPodLimits: failed to list pods", "err", err)
 	}
 
 	var findings []types.Finding
@@ -51,17 +51,13 @@ func auditPodContainerLimits(pod corev1.Pod) []types.Finding {
 	return findings
 }
 
-func hasLimit(limits corev1.ResourceList, resource corev1.ResourceName) bool {
+func hasLimit(limits corev1.ResourceList, name corev1.ResourceName) bool {
 	if limits == nil {
 		return false
 	}
-	q, ok := limits[resource]
+	q, ok := limits[name]
 	if !ok {
 		return false
 	}
-	return q.Cmp(resource_zero()) > 0
-}
-
-func resource_zero() resource.Quantity {
-	return resource.MustParse("0")
+	return q.Sign() > 0
 }

@@ -10,7 +10,7 @@ No Kubernetes cluster is required. All tests run locally against in-process fake
 
 ## Prerequisites
 
-- Go 1.22 or later (`go version`)
+- Go 1.25 or later (`go version`) — required by the pinned `k8s.io/client-go`
 - Git
 
 ## Getting Started

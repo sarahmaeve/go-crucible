@@ -1,14 +1,16 @@
 package audit
 
 import (
+	"context"
 	"sync"
 
 	"github.com/go-crucible/go-crucible/internal/client"
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// AuditFunc is a function that runs an audit and returns findings.
-type AuditFunc func(c client.AuditClient, namespace string) ([]types.Finding, error)
+// AuditFunc is a function that runs an audit and returns findings. Auditors
+// must honor ctx and return promptly when it is cancelled.
+type AuditFunc func(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error)
 
 // buildReport aggregates findings into a Report with summary counts.
 func buildReport(findings []types.Finding) *types.Report {
@@ -29,7 +31,7 @@ func buildReport(findings []types.Finding) *types.Report {
 
 // ConcurrentAudit runs all provided auditors concurrently and aggregates their
 // findings into a single Report.
-func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
+func ConcurrentAudit(ctx context.Context, auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
 	var (
 		wg       sync.WaitGroup
 		findings []types.Finding
@@ -41,7 +43,7 @@ func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace strin
 		wg.Add(1)
 		go func(fn AuditFunc) {
 			defer wg.Done()
-			result, err := fn(c, namespace)
+			result, err := fn(ctx, c, namespace)
 			if err != nil {
 				errMu.Lock()
 				if firstErr == nil {
@@ -63,7 +65,7 @@ func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace strin
 
 // ParallelAudit runs all provided auditors concurrently using a WaitGroup and
 // aggregates their findings into a single Report.
-func ParallelAudit(auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
+func ParallelAudit(ctx context.Context, auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
 	var (
 		wg       sync.WaitGroup
 		mu       sync.Mutex
@@ -76,7 +78,7 @@ func ParallelAudit(auditors []AuditFunc, c client.AuditClient, namespace string)
 			wg.Add(1)
 			defer wg.Done()
 
-			result, err := fn(c, namespace)
+			result, err := fn(ctx, c, namespace)
 			if err != nil {
 				mu.Lock()
 				if firstErr == nil {

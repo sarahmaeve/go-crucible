@@ -1,6 +1,7 @@
 package audit_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -17,11 +18,13 @@ type directSecretsClient struct {
 	secrets []corev1.Secret
 }
 
-func (d *directSecretsClient) ListPods(_ string) ([]corev1.Pod, error) { return nil, nil }
-func (d *directSecretsClient) ListDeployments(_ string) ([]appsv1.Deployment, error) {
+func (d *directSecretsClient) ListPods(_ context.Context, _ string) ([]corev1.Pod, error) {
 	return nil, nil
 }
-func (d *directSecretsClient) ListSecrets(_ string) ([]corev1.Secret, error) {
+func (d *directSecretsClient) ListDeployments(_ context.Context, _ string) ([]appsv1.Deployment, error) {
+	return nil, nil
+}
+func (d *directSecretsClient) ListSecrets(_ context.Context, _ string) ([]corev1.Secret, error) {
 	result := make([]corev1.Secret, len(d.secrets))
 	copy(result, d.secrets)
 	return result, nil
@@ -69,7 +72,7 @@ func TestExercise09_ImmortalConnection(t *testing.T) {
 
 	fc := &directSecretsClient{secrets: secrets}
 
-	findings, err := audit.AuditSecretExpiry(fc, "default")
+	findings, err := audit.AuditSecretExpiry(t.Context(), fc, "default")
 	if err != nil {
 		t.Fatalf("unexpected error from AuditSecretExpiry: %v", err)
 	}

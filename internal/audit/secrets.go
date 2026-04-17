@@ -2,6 +2,7 @@ package audit
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"time"
 
@@ -67,8 +68,8 @@ func newSecretReader(data []byte) io.ReadCloser {
 
 // AuditSecretExpiry inspects every secret in namespace and returns a Finding
 // for each secret whose "patrol.k8s.io/expiry-date" annotation is in the past.
-func AuditSecretExpiry(c client.AuditClient, namespace string) ([]types.Finding, error) {
-	secrets, err := c.ListSecrets(namespace)
+func AuditSecretExpiry(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
+	secrets, err := c.ListSecrets(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}

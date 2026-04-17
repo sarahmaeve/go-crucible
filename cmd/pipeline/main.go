@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/go-crucible/go-crucible/internal/ingest"
 	"github.com/go-crucible/go-crucible/internal/types"
@@ -18,7 +19,7 @@ func main() {
 	defer cancel()
 
 	sigCh := make(chan os.Signal, 1)
-	_ = sigCh
+	signalNotify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-sigCh
@@ -36,7 +37,8 @@ func main() {
 	slog.Info("pipeline stopped")
 }
 
-// doneCh is a package-level channel closed by RunPipeline's deferred cleanup.
+// doneCh is a package-level channel used to signal pipeline completion.
+// It is reset at the start of each RunPipeline call. Tests may also reset it.
 var doneCh = make(chan struct{})
 
 // RunPipeline starts the ingestion pipeline and blocks until ctx is cancelled
@@ -46,14 +48,13 @@ var doneCh = make(chan struct{})
 func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
 	slog.Info("pipeline starting", "sources", len(sources))
 
-	defer func() {
-		close(doneCh)
-	}()
+	doneCh = make(chan struct{})
+	defer close(doneCh)
 
 	go func() {
 		for _, src := range sources {
 			for {
-				m, err := src.Read(context.Background())
+				m, err := src.Read(ctx)
 				if err != nil {
 					break
 				}
@@ -70,7 +71,7 @@ func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
 	}
 
 	<-ctx.Done()
-	return ctx.Err()
+	return nil
 }
 
 // signalNotify is a variable to allow tests to replace os/signal.Notify.

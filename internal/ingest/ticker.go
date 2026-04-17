@@ -14,11 +14,13 @@ type TickerForwarder struct{}
 // Run polls source every interval and sends each metric to out until ctx is
 // cancelled or the source is drained.
 func (tf *TickerForwarder) Run(ctx context.Context, interval time.Duration, source MetricSource, out chan<- types.Metric) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(interval):
+		case <-ticker.C:
 			m, err := source.Read(ctx)
 			if err != nil {
 				return err

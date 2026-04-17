@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"slices"
+
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
@@ -16,8 +18,7 @@ func ExpandMatrix(strategy *types.Strategy) []types.MatrixCombination {
 	for k := range strategy.Matrix {
 		dims = append(dims, k)
 	}
-	// Sort for determinism.
-	sortStrings(dims)
+	slices.Sort(dims)
 
 	// Start with one empty combination.
 	result := []types.MatrixCombination{{}}
@@ -38,18 +39,4 @@ func ExpandMatrix(strategy *types.Strategy) []types.MatrixCombination {
 	}
 
 	return result
-}
-
-// sortStrings sorts a string slice in-place using a simple insertion sort.
-// This avoids importing sort just for this internal helper.
-func sortStrings(s []string) {
-	for i := 1; i < len(s); i++ {
-		key := s[i]
-		j := i - 1
-		for j >= 0 && s[j] > key {
-			s[j+1] = s[j]
-			j--
-		}
-		s[j+1] = key
-	}
 }

@@ -1,6 +1,8 @@
 package audit
 
 import (
+	"context"
+
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -24,8 +26,8 @@ func NewDeploymentAuditor(requiredLabels []string) *DeploymentAuditor {
 
 // Audit is a method on DeploymentAuditor that uses the pre-allocated map — this
 // path works correctly.
-func (da *DeploymentAuditor) Audit(c client.AuditClient, namespace string) ([]types.Finding, error) {
-	deployments, err := c.ListDeployments(namespace)
+func (da *DeploymentAuditor) Audit(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
+	deployments, err := c.ListDeployments(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +36,8 @@ func (da *DeploymentAuditor) Audit(c client.AuditClient, namespace string) ([]ty
 
 // AuditDeploymentLabels is a standalone function that checks every deployment
 // in namespace for the presence of each label in requiredLabels.
-func AuditDeploymentLabels(c client.AuditClient, namespace string, requiredLabels []string) ([]types.Finding, error) {
-	deployments, err := c.ListDeployments(namespace)
+func AuditDeploymentLabels(ctx context.Context, c client.AuditClient, namespace string, requiredLabels []string) ([]types.Finding, error) {
+	deployments, err := c.ListDeployments(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}

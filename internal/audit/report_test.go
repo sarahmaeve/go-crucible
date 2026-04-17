@@ -1,6 +1,7 @@
 package audit_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -14,9 +15,9 @@ import (
 )
 
 // makeConstantAuditor returns an AuditFunc that always returns n findings,
-// regardless of the client or namespace.
+// regardless of the context, client, or namespace.
 func makeConstantAuditor(n int, name string) audit.AuditFunc {
-	return func(_ client.AuditClient, _ string) ([]types.Finding, error) {
+	return func(_ context.Context, _ client.AuditClient, _ string) ([]types.Finding, error) {
 		findings := make([]types.Finding, n)
 		for i := range findings {
 			findings[i] = types.Finding{
@@ -71,7 +72,7 @@ func TestExercise12_RaceReport(t *testing.T) {
 	}
 
 	fc := client.NewFakeClient()
-	report, err := audit.ConcurrentAudit(auditors, fc, "default")
+	report, err := audit.ConcurrentAudit(t.Context(), auditors, fc, "default")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -105,7 +106,7 @@ func TestExercise13_LostGoroutine(t *testing.T) {
 	fc := client.NewFakeClient()
 
 	for i := range iterations {
-		report, err := audit.ParallelAudit(auditors, fc, "default")
+		report, err := audit.ParallelAudit(t.Context(), auditors, fc, "default")
 		if err != nil {
 			t.Fatalf("iteration %d: unexpected error: %v", i, err)
 		}

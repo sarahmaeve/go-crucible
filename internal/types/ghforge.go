@@ -65,6 +65,8 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
+// Error formats the error as "field: message" so that validation errors from
+// multiple fields read well when concatenated.
 func (v ValidationError) Error() string {
 	return v.Field + ": " + v.Message
 }

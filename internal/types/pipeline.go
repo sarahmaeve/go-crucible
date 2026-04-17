@@ -16,16 +16,30 @@ type Sample struct {
 	Values []float64 `json:"values"`
 }
 
-// AlertState represents the current state of an alert.
+// AlertState represents the current state of an alert in its lifecycle.
 type AlertState int
 
+// AlertState lifecycle values, in the order an alert progresses through them.
 const (
+	// AlertStateInactive means the rule is configured but no metric has yet
+	// crossed its threshold.
 	AlertStateInactive AlertState = iota
+
+	// AlertStatePending means the threshold has been crossed but the rule's
+	// Duration (hold-down window) has not yet elapsed.
 	AlertStatePending
+
+	// AlertStateFiring means the threshold has been crossed for at least the
+	// rule's Duration and the alert is active.
 	AlertStateFiring
+
+	// AlertStateResolved means a previously firing alert's metric has
+	// returned below threshold.
 	AlertStateResolved
 )
 
+// String returns the lowercase name of the state ("inactive", "pending",
+// "firing", "resolved"), or "unknown" for out-of-range values.
 func (s AlertState) String() string {
 	switch s {
 	case AlertStateInactive:
@@ -47,7 +61,7 @@ type Alert struct {
 	State     AlertState        `json:"state"`
 	Labels    map[string]string `json:"labels"`
 	Message   string            `json:"message"`
-	FiredAt   time.Time         `json:"fired_at,omitempty"`
+	FiredAt   time.Time         `json:"fired_at,omitzero"`
 	Value     float64           `json:"value"`
 	Threshold float64           `json:"threshold"`
 }

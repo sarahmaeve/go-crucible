@@ -21,7 +21,7 @@ func TestExercise01_SilentFailure(t *testing.T) {
 		PodError: sentinelErr,
 	}
 
-	findings, err := audit.AuditPodLimits(errClient, "default")
+	findings, err := audit.AuditPodLimits(t.Context(), errClient, "default")
 
 	if err == nil {
 		t.Errorf(
@@ -60,7 +60,7 @@ func TestAuditPodLimits_FindsMissingLimits(t *testing.T) {
 	}
 
 	fc := client.NewFakeClient(pod)
-	findings, err := audit.AuditPodLimits(fc, "default")
+	findings, err := audit.AuditPodLimits(t.Context(), fc, "default")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestAuditPodLimits_NoFindingsWhenLimitsSet(t *testing.T) {
 	}
 
 	fc := client.NewFakeClient(pod)
-	findings, err := audit.AuditPodLimits(fc, "default")
+	findings, err := audit.AuditPodLimits(t.Context(), fc, "default")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

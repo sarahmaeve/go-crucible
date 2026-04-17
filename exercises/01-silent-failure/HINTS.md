@@ -14,7 +14,7 @@ The block currently reads:
 
 ```go
 if err != nil {
-    log.Printf("AuditPodLimits: failed to list pods: %v", err)
+    slog.Error("AuditPodLimits: failed to list pods", "err", err)
     // fall through with empty pods slice
 }
 ```

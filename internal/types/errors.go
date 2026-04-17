@@ -2,19 +2,41 @@ package types
 
 import "errors"
 
-// Sentinel errors used across the applications.
+// Sentinel errors used across the applications. Callers should prefer
+// [errors.Is] over string comparison when checking for these.
 var (
-	// kube-patrol errors
+	// ErrClientNotReady is returned when a call is made against an
+	// uninitialised or disconnected Kubernetes client. (kube-patrol)
 	ErrClientNotReady = errors.New("kubernetes client is not ready")
-	ErrAuditFailed    = errors.New("audit operation failed")
 
-	// pipeline errors
+	// ErrAuditFailed indicates an audit could not complete. The wrapped error
+	// (via %w) carries the underlying cause. (kube-patrol)
+	ErrAuditFailed = errors.New("audit operation failed")
+
+	// ErrThresholdExceeded signals that a metric value crossed its alert rule
+	// threshold. Alert evaluators wrap this with %w so that callers can use
+	// [errors.Is] to distinguish threshold crossings from other errors.
+	// (pipeline)
 	ErrThresholdExceeded = errors.New("metric threshold exceeded")
-	ErrSourceDrained     = errors.New("metric source has been drained")
-	ErrPipelineShutdown  = errors.New("pipeline is shutting down")
 
-	// gh-forge errors
+	// ErrSourceDrained is returned by a [MetricSource] once no further
+	// metrics are available. It is a clean end-of-stream signal, not a
+	// failure. (pipeline)
+	ErrSourceDrained = errors.New("metric source has been drained")
+
+	// ErrPipelineShutdown is returned by pipeline operations that are
+	// terminating because the pipeline's context was cancelled. (pipeline)
+	ErrPipelineShutdown = errors.New("pipeline is shutting down")
+
+	// ErrInvalidWorkflow indicates a workflow failed semantic validation
+	// (required fields missing, disallowed values, etc.). (gh-forge)
 	ErrInvalidWorkflow = errors.New("invalid workflow file")
-	ErrParseFailure    = errors.New("failed to parse workflow")
-	ErrTemplateError   = errors.New("template rendering failed")
+
+	// ErrParseFailure indicates the YAML/JSON for a workflow could not be
+	// decoded into the workflow data model. (gh-forge)
+	ErrParseFailure = errors.New("failed to parse workflow")
+
+	// ErrTemplateError indicates a generator template failed to produce a
+	// valid workflow. (gh-forge)
+	ErrTemplateError = errors.New("template rendering failed")
 )

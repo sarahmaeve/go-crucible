@@ -36,7 +36,7 @@ func TestExercise05_NilCheckThatLies(t *testing.T) {
 				didPanic = true
 			}
 		}()
-		_, _ = c.ListPods("default") //nolint:errcheck
+		_, _ = c.ListPods(t.Context(), "default") //nolint:errcheck
 		return false
 	}()
 

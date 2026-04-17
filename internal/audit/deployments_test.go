@@ -35,7 +35,7 @@ func TestExercise02_UnwrittenLabels(t *testing.T) {
 				panicVal = r
 			}
 		}()
-		_, _ = audit.AuditDeploymentLabels(fc, "default", []string{"app", "version", "team"})
+		_, _ = audit.AuditDeploymentLabels(t.Context(), fc, "default", []string{"app", "version", "team"})
 	}()
 
 	if panicked {
@@ -72,7 +72,7 @@ func TestAuditDeploymentLabels_DetectsMissingLabels(t *testing.T) {
 				panicked = true
 			}
 		}()
-		f, err := audit.AuditDeploymentLabels(fc, "production", []string{"app", "version", "team"})
+		f, err := audit.AuditDeploymentLabels(t.Context(), fc, "production", []string{"app", "version", "team"})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
