@@ -642,3 +642,69 @@ review_exercises:
       tier, both data-shape traps. Complements R01's control-flow +
       resource-lifecycle shape so learners exercise different reflex
       pathways across the two.
+
+  - number: "R03"
+    title: The Tagging Rules PR
+    tier: basic
+    draws_on: ["03", "04"]
+    directory: exercises/review/03-tagging-rules/
+    scenario: >
+      Simulated PR against pipeline adding a metric-tagging-rules
+      feature. Rules are loaded from YAML, each rule matches a metric
+      name prefix, and matching metrics get tags added or overwritten.
+      Exposes an ErrInvalidRule sentinel for downstream error
+      classification.
+    planted:
+      - kind: correctness
+        echoes: "04"
+        summary: >
+          rawRule.replace is unexported. Go's reflect-based YAML
+          decoder silently skips it; every Rule.Replace in the
+          returned slice is nil regardless of the YAML contents.
+          The feature silently no-ops.
+      - kind: correctness
+        echoes: "03"
+        summary: >
+          The outer error wrap in LoadRules uses %v instead of %w on
+          validateRule's error. validateRule itself wraps ErrInvalidRule
+          with %w correctly, but the outer %v breaks the chain. Callers
+          using errors.Is(err, ErrInvalidRule) get false.
+      - kind: red-herring
+        summary: >
+          `var out []Rule` followed by `append` looks like R02's nil-map
+          bug at first glance. It isn't — Go's `append` is defined to
+          work on nil slices. Reviewer should verify, note in "Things
+          I Verified," and not flag.
+      - kind: red-herring
+        summary: >
+          The diff contains four fmt.Errorf sites, three correct and
+          one buggy. A reviewer who sees "they used %w somewhere" and
+          ticks the box misses the bug. Reviewer should check each
+          fmt.Errorf site individually, name the correct ones in
+          "Things I Verified," and flag only the one buggy site.
+      - kind: process
+        summary: >
+          PR test plan argues "straightforward code" doesn't need unit
+          tests and relies entirely on manual testing. The exact
+          failure modes of both planted bugs are invisible to the
+          manual test plan as written. Reviewer should push for at
+          least two unit tests — one asserting Rule.Replace populated
+          from YAML, one asserting errors.Is(err, ErrInvalidRule) on
+          invalid input.
+    teaches:
+      - Checking every occurrence of a pattern, not just confirming
+        the pattern is present somewhere
+      - Distinguishing Go's nil-slice semantics from nil-map semantics
+        (don't over-generalize a recently-learned trap)
+      - Recognising that silent failures pass manual test plans
+      - Pushing back on "this code is too simple to test" —
+        simple-looking code with silent failure modes is where unit
+        tests pay off most
+    notes: >
+      Third exercise in the review track. Planted bugs echo ex 03 (%v
+      vs %w) and ex 04 (unexported yaml field) — both basic tier,
+      both silent failures. R03's distinctive shape is that NEITHER
+      planted bug produces a visible runtime symptom; both require
+      pure static reading to catch. Completes the basic-tier coverage
+      — across R01+R02+R03, every basic-tier pattern is exercised at
+      least once.

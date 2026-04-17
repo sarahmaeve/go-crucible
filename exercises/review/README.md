@@ -56,3 +56,4 @@ them inside a diff.
 |---|-------|------|----------|
 | [01](./01-first-review/README.md) | First Review: The `--since` Flag PR | Basic | 01, 09 |
 | [02](./02-annotations-feature/README.md) | The Annotations Feature PR | Basic | 02, 04 |
+| [03](./03-tagging-rules/README.md) | The Tagging Rules PR | Basic | 03, 04 |
