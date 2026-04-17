@@ -55,3 +55,7 @@ Desktop.ini
 /kube-patrol
 /gh-forge
 /pipeline
+
+# Claude Code artifacts (project memory, local settings, worktree scratch)
+CLAUDE.md
+.claude/
