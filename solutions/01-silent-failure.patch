@@ -3,6 +3,14 @@
 # File: internal/audit/pods.go
 # Function: AuditPodLimits
 #
-# No diff: internal/audit/pods.go already contained the correct fix
-# (return nil, err) in the initial commit. The bug described in exercises.yaml
-# (log-and-fall-through without returning) is not present in the source tree.
+diff --git a/internal/audit/pods.go b/internal/audit/pods.go
+--- a/internal/audit/pods.go
++++ b/internal/audit/pods.go
+@@ -17,6 +17,7 @@ func AuditPodLimits(ctx context.Context, c client.AuditClient, namespace string)
+ 	pods, err := c.ListPods(ctx, namespace)
+ 	if err != nil {
+ 		slog.Error("AuditPodLimits: failed to list pods", "err", err)
++		return nil, err
+ 	}
+
+ 	var findings []types.Finding

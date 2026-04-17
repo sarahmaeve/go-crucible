@@ -15,17 +15,11 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sigCh := make(chan os.Signal, 1)
-	signalNotify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigCh
-		slog.Info("received shutdown signal")
-		cancel()
-	}()
+	// signal.NotifyContext (Go 1.16+) gives us a context that cancels on
+	// SIGINT/SIGTERM. stop() deregisters the signal handlers — call it via
+	// defer so the process is a good citizen even on normal exit.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	src := ingest.NewFakeSourceN("pipeline.metrics", 1.0, 100)
 	if err := RunPipeline(ctx, []ingest.MetricSource{src}); err != nil {
@@ -73,6 +67,3 @@ func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
 	<-ctx.Done()
 	return nil
 }
-
-// signalNotify is a variable to allow tests to replace os/signal.Notify.
-var signalNotify = signal.Notify

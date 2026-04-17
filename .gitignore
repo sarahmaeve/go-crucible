@@ -47,9 +47,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Maintainer-only directory (uncomment to exclude from learner distributions)
-# .crucible/
-
 # Build output binaries
 /go-crucible
 /kube-patrol

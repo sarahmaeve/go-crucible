@@ -4,16 +4,16 @@
 # Function: ParallelAudit
 #
 diff --git a/internal/audit/report.go b/internal/audit/report.go
-index b10d993..45920b2 100644
+index e286a58..c6eed6c 100644
 --- a/internal/audit/report.go
 +++ b/internal/audit/report.go
-@@ -72,8 +74,8 @@ func ParallelAudit(auditors []AuditFunc, c client.AuditClient, namespace string)
+@@ -74,8 +74,8 @@ func ParallelAudit(ctx context.Context, auditors []AuditFunc, c client.AuditClie
  	)
-
+ 
  	for _, auditor := range auditors {
 +		wg.Add(1)
  		go func(fn AuditFunc) {
 -			wg.Add(1)
  			defer wg.Done()
-
- 			result, err := fn(c, namespace)
+ 
+ 			result, err := fn(ctx, c, namespace)

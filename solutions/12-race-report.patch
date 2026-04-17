@@ -4,36 +4,32 @@
 # Function: ConcurrentAudit
 #
 diff --git a/internal/audit/report.go b/internal/audit/report.go
-index b10d993..45920b2 100644
+index e286a58..6c6f8ed 100644
 --- a/internal/audit/report.go
 +++ b/internal/audit/report.go
-@@ -32,9 +32,9 @@ func buildReport(findings []types.Finding) *types.Report {
- func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
+@@ -33,10 +33,11 @@ func buildReport(findings []types.Finding) *types.Report {
+ // findings into a single Report.
+ func ConcurrentAudit(ctx context.Context, auditors []AuditFunc, c client.AuditClient, namespace string) (*types.Report, error) {
  	var (
- 		wg       sync.WaitGroup
-+		mu       sync.Mutex
- 		findings []types.Finding
- 		firstErr error
+-		wg       sync.WaitGroup
+-		findings []types.Finding
+-		firstErr error
 -		errMu    sync.Mutex
++		wg         sync.WaitGroup
++		findings   []types.Finding
++		findingsMu sync.Mutex
++		firstErr   error
++		errMu      sync.Mutex
  	)
-
+ 
  	for _, auditor := range auditors {
-@@ -43,12 +43,14 @@ func ConcurrentAudit(auditors []AuditFunc, c client.AuditClient, namespace strin
- 		go func(fn AuditFunc) {
- 			defer wg.Done()
- 			result, err := fn(c, namespace)
- 			if err != nil {
--				errMu.Lock()
-+				mu.Lock()
- 				if firstErr == nil {
- 					firstErr = err
- 				}
--				errMu.Unlock()
-+				mu.Unlock()
+@@ -52,7 +53,9 @@ func ConcurrentAudit(ctx context.Context, auditors []AuditFunc, c client.AuditCl
+ 				errMu.Unlock()
  				return
  			}
-+			mu.Lock()
++			findingsMu.Lock()
  			findings = append(findings, result...)
-+			mu.Unlock()
++			findingsMu.Unlock()
  		}(auditor)
  	}
+ 

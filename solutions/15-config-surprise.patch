@@ -1,16 +1,18 @@
 # Exercise 15: The Config Surprise
 # App: gh-forge | Difficulty: advanced
 # File: internal/parser/workflow.go
-# Function: RoundTripWorkflow
+# Function: RoundTripWorkflow (concurrencyIntermediate struct)
 #
 diff --git a/internal/parser/workflow.go b/internal/parser/workflow.go
-index 84418ac..d9bb4c7 100644
+index 84418ac..fe67151 100644
 --- a/internal/parser/workflow.go
 +++ b/internal/parser/workflow.go
 @@ -89,7 +89,7 @@ type roundTripIntermediate struct {
-
+ 
  type concurrencyIntermediate struct {
  	Group            string `json:"group"`
 -	CancelInProgress bool   `json:"cancel-in-progress,omitempty"`
 +	CancelInProgress bool   `json:"cancel-in-progress"`
  }
+ 
+ // RoundTripWorkflow parses a YAML workflow, converts it through a JSON

@@ -78,4 +78,24 @@ internal/       All buggy application packages
 exercises/      One subdirectory per exercise — README.md and HINTS.md
 solutions/      Reference solutions (consult only after you have tried)
 testdata/       Sample YAML files used by tests
+.crucible/      Maintainer registry — contains spoilers; do not read until
+                after attempting an exercise
 ```
+
+## A note on pre-solved exercises
+
+Some exercises are pre-solved on `main` as reference implementations (currently
+10, 18, 19 — see `.crucible/exercises.yaml` for the authoritative list). If
+you want to practise on those, reintroduce the buggy form with:
+
+```bash
+git apply -R solutions/NN-<name>.patch
+```
+
+Re-apply the solution to check your work:
+
+```bash
+git apply solutions/NN-<name>.patch
+```
+
+Every solution patch round-trips cleanly in both directions.

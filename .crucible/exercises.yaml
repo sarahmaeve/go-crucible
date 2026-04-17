@@ -1,0 +1,431 @@
+# Go Crucible — Exercise Registry (MAINTAINER CONTENT — CONTAINS SPOILERS)
+#
+# This file is the canonical registry of all intentional bugs in the codebase.
+# It ships publicly as of 2026-04-16. See .crucible/README.md for the
+# rationale and the source-of-truth rules.
+#
+# Learners: please do not read this file until after you have attempted an
+# exercise. The learning value is in the struggle.
+#
+# Each exercise entry documents:
+#   - where the bug is (file, function, line region)
+#   - what the bug is (mechanism)
+#   - what the fix is (the change)
+#   - what it teaches (the Go concept)
+#   - patch file for the canonical solution
+#   - solved_in_main: <date> if the fix is applied on main (learners who
+#     want the buggy form run `git apply -R solutions/NN-*.patch`)
+
+exercises:
+  - number: "01"
+    title: The Silent Failure
+    app: kube-patrol
+    difficulty: beginner
+    file: internal/audit/pods.go
+    function: AuditPodLimits
+    mechanism: >
+      When client.ListPods returns an error, the function logs it with
+      slog.Error but does not return. It falls through and processes an
+      empty pod list, returning (nil, nil). Callers cannot distinguish
+      "no issues found" from "audit couldn't run."
+    fix: >
+      Add "return nil, err" inside the error-handling block after the
+      slog.Error call.
+    teaches:
+      - Error swallowing (log-and-continue vs log-and-return)
+      - The single handling rule — errors must be either logged OR returned
+    patch: solutions/01-silent-failure.patch
+    notes: >
+      Source migrated from `log.Printf` to `slog.Error` on 2026-04-16 as
+      part of the logger-unification sweep. The solution patch was stale
+      ("no diff" stub) from the initial commit until 2026-04-16; see
+      .crucible/notes/01-silent-failure.md for the full history.
+
+  - number: "02"
+    title: The Unwritten Labels
+    app: kube-patrol
+    difficulty: beginner
+    file: internal/audit/deployments.go
+    function: AuditDeploymentLabels
+    mechanism: >
+      The standalone function declares `var missingLabels map[string]bool`
+      (nil map) instead of using make(). The DeploymentAuditor.Audit
+      method works because the constructor initializes the map — but the
+      direct function path panics on first write.
+    fix: >
+      Change `var missingLabels map[string]bool` to
+      `missingLabels := make(map[string]bool)`.
+    teaches:
+      - Nil maps panic on write but not on read
+      - Why constructors and direct-call paths can diverge
+    patch: solutions/02-unwritten-labels.patch
+
+  - number: "03"
+    title: The Lost Alert
+    app: pipeline
+    difficulty: beginner
+    file: internal/alert/evaluator.go
+    function: AlertEvaluator.Evaluate
+    mechanism: >
+      Error is wrapped with fmt.Errorf("evaluation failed: %v", err) using
+      %v instead of %w. This converts the error to a string, breaking the
+      error chain. Callers using errors.Is(err, ErrThresholdExceeded) get
+      false because the sentinel is no longer in the chain.
+    fix: >
+      Change %v to %w in the fmt.Errorf call.
+    teaches:
+      - Error wrapping with %w vs string conversion with %v
+      - errors.Is requires an intact error chain
+    patch: solutions/03-lost-alert.patch
+
+  - number: "04"
+    title: The Missing Workflow
+    app: gh-forge
+    difficulty: beginner
+    file: internal/parser/workflow.go
+    function: ParseWorkflow
+    mechanism: >
+      The intermediate rawWorkflow struct has unexported fields `on` and
+      `env` (lowercase). The YAML decoder silently skips them. Exported
+      fields like Name and Jobs parse correctly, making the failure
+      non-obvious — only some fields are missing.
+    fix: >
+      Export the fields: change `on` to `On` and `env` to `Env`, adding
+      appropriate yaml struct tags.
+    teaches:
+      - Go visibility rules affect YAML/JSON unmarshaling
+      - Silent failure mode — no error, just zero values
+    patch: solutions/04-missing-workflow.patch
+
+  - number: "05"
+    title: The Nil Check That Lies
+    app: kube-patrol
+    difficulty: intermediate
+    file: internal/client/client.go
+    function: NewAuditClient
+    mechanism: >
+      On error, returns (*KubeClient)(nil) as the AuditClient interface
+      instead of returning nil, err. The caller's `if client != nil` check
+      passes because the interface holds (type=*KubeClient, value=nil),
+      which is non-nil. The next method call panics.
+    fix: >
+      Change `return (*KubeClient)(nil), nil` to `return nil, err` in
+      both error paths.
+    teaches:
+      - Interface values are (type, value) pairs
+      - Typed nil vs untyped nil
+      - Always return untyped nil for interface error paths
+    patch: solutions/05-nil-check-that-lies.patch
+    notes: >
+      Test uses a nonexistent kubeconfig path. Empty string would fall back
+      to ~/.kube/config which may succeed on developer machines.
+
+  - number: "06"
+    title: The Stuck Pipeline
+    app: pipeline
+    difficulty: intermediate
+    file: internal/ingest/reader.go
+    function: ReadMetrics
+    mechanism: >
+      The goroutine reads from the source and sends to an unbuffered `out`
+      channel. There is no `select` on ctx.Done(). When the context is
+      cancelled and the consumer stops reading, the goroutine blocks
+      forever on `out <- m`, leaking.
+    fix: >
+      Wrap the send in a select with a ctx.Done() case.
+    teaches:
+      - Goroutine lifecycle — every goroutine must have an exit path
+      - Always include ctx.Done() in select when sending on channels
+      - Unbuffered channels block when the other side stops
+    patch: solutions/06-stuck-pipeline.patch
+
+  - number: "07"
+    title: The Phantom Matrix
+    app: gh-forge
+    difficulty: intermediate
+    file: internal/parser/matrix.go
+    function: ExpandMatrix
+    mechanism: >
+      The inner loop does `base := existing` which is a shallow copy of
+      the map (reference copy). Then `base[dim] = v` mutates the shared
+      map, corrupting all previously appended combinations that reference
+      the same underlying map.
+    fix: >
+      Deep-copy the map before mutating: create a new map and copy all
+      key-value pairs from existing before setting base[dim] = v.
+    teaches:
+      - Maps are reference types — assignment copies the reference
+      - Shallow copy vs deep copy for composite types
+    patch: solutions/07-phantom-matrix.patch
+
+  - number: "08"
+    title: The Zombie Metric
+    app: pipeline
+    difficulty: intermediate
+    file: internal/transform/aggregate.go
+    function: WindowedAggregator.Add
+    mechanism: >
+      The Add method writes to the internal map[string][]float64 without
+      any synchronization. Multiple goroutines calling Add concurrently
+      cause a data race. Without -race it may crash with "concurrent map
+      writes"; with -race it is reliably detected.
+    fix: >
+      Add a sync.Mutex to the struct and Lock/Unlock around map access
+      in both Add and Flush.
+    teaches:
+      - Maps are not safe for concurrent use
+      - sync.Mutex for protecting shared state
+      - The -race flag as a diagnostic tool
+    patch: solutions/08-zombie-metric.patch
+    notes: >
+      Test requires -race flag. Without it, the test skips to avoid a
+      fatal runtime abort that kills the test binary.
+
+  - number: "09"
+    title: The Immortal Connection
+    app: kube-patrol
+    difficulty: beginner
+    file: internal/audit/secrets.go
+    function: AuditSecretExpiry
+    mechanism: >
+      For each secret with an expiry annotation, the function opens an
+      io.ReadCloser via newSecretReader but never calls Close(). The
+      reader is used and then abandoned.
+    fix: >
+      Add `defer reader.Close()` immediately after opening the reader.
+    teaches:
+      - Resource management — always close what you open
+      - The defer pattern for cleanup
+      - Modeling real-world leaks (HTTP bodies, gRPC streams, DB cursors)
+    patch: solutions/09-immortal-connection.patch
+
+  - number: "10"
+    title: The Hanging Health Check
+    app: pipeline
+    difficulty: intermediate
+    file: internal/health/checker.go
+    function: HealthChecker.Check
+    mechanism: >
+      The Check method calls each dependency check function with
+      context.Background() instead of the caller's ctx. When the request
+      context has a deadline or is cancelled, the health check ignores it
+      and blocks until the dependency responds (or forever).
+    fix: >
+      Pass ctx instead of context.Background() to each dependency function.
+    teaches:
+      - Context propagation — pass the caller's context, not a fresh one
+      - Why context.Background() in library code is almost always wrong
+    patch: solutions/10-hanging-health-check.patch
+    solved_in_main: 2026-04-16
+    notes: >
+      Fix applied on main 2026-04-16. The same audit also threaded ctx
+      through the internal/client and internal/audit packages (previously
+      they used context.Background() internally), so the lesson of this
+      exercise now matches the shape of the surrounding codebase. Learners
+      who want the buggy form back: `git apply -R solutions/10-*.patch`.
+
+  - number: "11"
+    title: The Template Trap
+    app: gh-forge
+    difficulty: intermediate
+    file: internal/generate/template.go
+    function: BuildAdvancedTemplate
+    mechanism: >
+      BuildAdvancedTemplate returns `adv.BaseTemplate` (the embedded field)
+      as the Template interface, not `adv` itself. Since BaseTemplate also
+      satisfies the Template interface, this compiles. At runtime,
+      BaseTemplate.Generate() runs — which produces a plain workflow
+      without matrix strategy or concurrency settings.
+    fix: >
+      Return `adv` (or `&adv`) instead of `adv.BaseTemplate`.
+    teaches:
+      - Struct embedding and method sets
+      - Interface satisfaction with embedded types
+      - Silent wrong-method-dispatch when both embedded and outer satisfy an interface
+    patch: solutions/11-template-trap.patch
+
+  - number: "12"
+    title: The Race Report
+    app: kube-patrol
+    difficulty: intermediate
+    file: internal/audit/report.go
+    function: ConcurrentAudit
+    mechanism: >
+      Multiple goroutines append to a shared []Finding slice without a
+      mutex. Slice append is not atomic — concurrent appends can lose
+      data or corrupt the slice header.
+    fix: >
+      Add a sync.Mutex and lock around the findings append.
+    teaches:
+      - Slice append is not atomic
+      - Data races on slices (different from concurrent map writes)
+      - The -race flag catches this reliably
+    patch: solutions/12-race-report.patch
+
+  - number: "13"
+    title: The Lost Goroutine
+    app: kube-patrol
+    difficulty: intermediate
+    file: internal/audit/report.go
+    function: ParallelAudit
+    mechanism: >
+      wg.Add(1) is called inside the goroutine body instead of before
+      the go statement. If the scheduler runs wg.Wait() before any
+      goroutine has called wg.Add(1), Wait returns immediately with a
+      counter of zero, and goroutine results are lost.
+    fix: >
+      Move wg.Add(1) to before the `go func()` call.
+    teaches:
+      - sync.WaitGroup.Add must be called before the goroutine starts
+      - Race between goroutine scheduling and Wait()
+      - go vet detects this pattern
+    patch: solutions/13-lost-goroutine.patch
+    notes: >
+      go vet flags this with "WaitGroup.Add called from inside new
+      goroutine". This is the only expected go vet warning in the repo.
+
+  - number: "14"
+    title: The Forever Forwarder
+    app: pipeline
+    difficulty: advanced
+    file: internal/ingest/reader.go
+    function: ForwardMetrics
+    mechanism: >
+      The select reads from the input channel but does not handle the
+      closed-channel case correctly. When the channel is closed, the
+      receive returns (zero-value, false) but the code continues instead
+      of returning. The function spins forever on a closed channel.
+      Additionally, ctx.Done() is never checked.
+    fix: >
+      Check the `ok` boolean from the channel receive — return when
+      !ok. Add a ctx.Done() case to the select.
+    teaches:
+      - Closed channels return zero value immediately
+      - The comma-ok idiom for channel reads
+      - Always handle channel closure in select loops
+    patch: solutions/14-forever-forwarder.patch
+
+  - number: "15"
+    title: The Config Surprise
+    app: gh-forge
+    difficulty: advanced
+    file: internal/parser/workflow.go
+    function: RoundTripWorkflow
+    mechanism: >
+      The concurrencyIntermediate struct has CancelInProgress with
+      `json:"cancel-in-progress,omitempty"`. When the value is false
+      (a meaningful configuration), omitempty drops it during JSON
+      serialization. After the YAML->JSON->YAML round-trip, the field
+      is absent from the output.
+    fix: >
+      Remove `omitempty` from the CancelInProgress JSON tag, or use
+      a *bool pointer type so that nil (absent) is distinguishable
+      from false (explicitly set).
+    teaches:
+      - omitempty treats Go zero values as "empty" even when meaningful
+      - The *bool pattern for distinguishing absent from false
+      - Round-trip fidelity in serialization pipelines
+    patch: solutions/15-config-surprise.patch
+
+  - number: "16"
+    title: The Leaking Linter
+    app: gh-forge
+    difficulty: advanced
+    file: internal/lint/linter.go
+    function: LintWorkflows
+    mechanism: >
+      Inside the for loop over directory entries, each file is opened with
+      os.Open and `defer f.Close()` is called. Since defer is scoped to
+      the enclosing function (not the loop), all file descriptors stay open
+      until LintWorkflows returns. With hundreds of files, this exhausts
+      the process's file descriptor limit.
+    fix: >
+      Extract the per-file logic into a separate function so defer runs
+      per iteration, or close the file explicitly at the end of each
+      iteration (without defer).
+    teaches:
+      - defer runs at function exit, not loop iteration
+      - Resource accumulation in loops
+      - The extract-to-function pattern for per-iteration cleanup
+    patch: solutions/16-leaking-linter.patch
+
+  - number: "17"
+    title: The Metric Mirage
+    app: pipeline
+    difficulty: intermediate
+    file: internal/transform/relabel.go
+    function: MetricRelabeler.Relabel
+    mechanism: >
+      The loop `for key, m := range result` reads each Metric value into
+      local variable m. The code modifies m.Labels, but m is a copy of
+      the map value. The modified copy is never written back to
+      result[key], so the changes are silently discarded.
+    fix: >
+      After modifying m.Labels, write the value back: `result[key] = m`.
+    teaches:
+      - Map values are copies — modifying a local variable doesn't
+        modify the map entry
+      - The read-modify-writeback pattern for map value structs
+    patch: solutions/17-metric-mirage.patch
+
+  - number: "18"
+    title: The Ticking Leak
+    app: pipeline
+    difficulty: advanced
+    file: internal/ingest/ticker.go
+    function: TickerForwarder.Run
+    mechanism: >
+      The select loop uses `case <-time.After(interval)` which allocates
+      a new timer on every iteration. Each timer lives until it fires,
+      even after the next iteration has started. In a long-running daemon
+      with a short interval, this causes unbounded timer/memory growth.
+    fix: >
+      Replace time.After with time.NewTicker (or time.NewTimer with
+      Reset). Defer ticker.Stop() for cleanup.
+    teaches:
+      - time.After allocates per call — not suitable for loops
+      - time.NewTicker/time.NewTimer for recurring timers
+      - Memory profiling to detect allocation growth
+    patch: solutions/18-ticking-leak.patch
+    solved_in_main: 2026-04-16
+    notes: >
+      Fix applied on main 2026-04-16. Learners who want the buggy form back:
+      `git apply -R solutions/18-*.patch`.
+
+  - number: "19"
+    title: The Graceless Shutdown
+    app: pipeline
+    difficulty: advanced
+    file: cmd/pipeline/main.go
+    function: RunPipeline + main
+    mechanism: |
+      Three independent bugs:
+      1. signal.Notify is never called — sigCh is created but discarded
+         with `_ = sigCh`. The daemon cannot be stopped via signals.
+      2. doneCh is a package-level channel closed in a deferred func.
+         Calling RunPipeline twice (e.g., in tests) panics on the second
+         close of an already-closed channel.
+      3. A background goroutine calls src.Read(context.Background())
+         instead of src.Read(ctx). It ignores context cancellation and
+         outlives the shutdown.
+    fix: |
+      1. Add `signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)`.
+      2. Make doneCh local to RunPipeline, or use sync.Once to guard
+         the close.
+      3. Pass ctx to src.Read instead of context.Background().
+    teaches:
+      - Signal handling requires signal.Notify registration
+      - Closing an already-closed channel panics
+      - Every goroutine must honor the caller's context
+      - Compound bugs in shutdown paths cause data loss
+    patch: solutions/19-graceless-shutdown.patch
+    solved_in_main: 2026-04-16
+    notes: >
+      Fix applied on main 2026-04-16. Canonical fix migrated from the old
+      sigCh+signalNotify form to `signal.NotifyContext` (Go 1.16+), which
+      makes bug 19-1 (signal.Notify never called) structurally
+      inexpressible. The test dropped its `signal_notify_called` subtest
+      accordingly; two subtests remain (double-close panic, goroutine-
+      exits-on-cancel). See .crucible/notes/19-graceless-shutdown.md for
+      the full modernization rationale. Learners who want the buggy form
+      back: `git apply -R solutions/19-*.patch`.

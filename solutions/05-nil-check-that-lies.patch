@@ -4,19 +4,21 @@
 # Function: NewAuditClient
 #
 diff --git a/internal/client/client.go b/internal/client/client.go
+index 10af51d..01ef32a 100644
 --- a/internal/client/client.go
 +++ b/internal/client/client.go
-@@ -60,12 +60,12 @@ func NewAuditClient(kubeconfig string) (AuditClient, error) {
+@@ -58,12 +58,12 @@ func (k *KubeClient) ListSecrets(ctx context.Context, namespace string) ([]corev
+ func NewAuditClient(kubeconfig string) (AuditClient, error) {
  	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
  	if err != nil {
 -		return (*KubeClient)(nil), nil
 +		return nil, err
  	}
-
+ 
  	cs, err := kubernetes.NewForConfig(cfg)
  	if err != nil {
 -		return (*KubeClient)(nil), nil
 +		return nil, err
  	}
-
+ 
  	return &KubeClient{cs: cs}, nil

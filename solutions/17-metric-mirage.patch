@@ -1,5 +1,5 @@
 # Exercise 17: The Metric Mirage
-# App: pipeline | Difficulty: advanced
+# App: pipeline | Difficulty: intermediate
 # File: internal/transform/relabel.go
 # Function: MetricRelabeler.Relabel
 #
@@ -8,10 +8,11 @@ index 3e9097a..38480cd 100644
 --- a/internal/transform/relabel.go
 +++ b/internal/transform/relabel.go
 @@ -30,7 +30,7 @@ func (r *MetricRelabeler) Relabel(metrics map[string]types.Metric, rules map[str
+ 			}
  		}
  		m.Labels = newLabels
 -		_ = key
 +		result[key] = m
  	}
-
+ 
  	return result

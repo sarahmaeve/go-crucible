@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"runtime"
-	"syscall"
 	"testing"
 	"time"
 
@@ -58,26 +56,11 @@ func TestExercise19_GracelessShutdown(t *testing.T) {
 		}
 	})
 
-	t.Run("signal_notify_called", func(t *testing.T) {
-		// Verify that signal.Notify is called to register the shutdown signal
-		// channel. We detect this by replacing signalNotify with a tracking
-		// wrapper and running the same signal setup flow as main().
-		called := false
-		origNotify := signalNotify
-		defer func() { signalNotify = origNotify }()
-
-		signalNotify = func(c chan<- os.Signal, sig ...os.Signal) {
-			called = true
-			origNotify(c, sig...)
-		}
-
-		sigCh := make(chan os.Signal, 1)
-		signalNotify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-		if !called {
-			t.Errorf("exercise 19: signal.Notify was never called; the process cannot receive shutdown signals")
-		}
-	})
+	// Note: the old "signal_notify_called" subtest was removed when main()
+	// migrated to signal.NotifyContext. That helper registers signals and
+	// creates the context in one structural step, so the failure mode the
+	// subtest guarded against — registering a channel but forgetting to call
+	// signal.Notify — is no longer expressible. See .crucible/notes/19.md.
 
 	t.Run("goroutine_exits_on_context_cancellation", func(t *testing.T) {
 		// Verify that background goroutines spawned by RunPipeline exit when
