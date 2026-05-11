@@ -1,0 +1,25 @@
+# Exercise 22: The Hollow Recovery
+# App: pipeline | Difficulty: advanced
+# File: internal/worker/pool.go
+# Function: Pool.processOne
+#
+# recover() only takes effect when called *directly* from a deferred
+# function. The buggy form defers an anonymous function that *calls*
+# recoverPanic — recover() inside recoverPanic then runs one frame too
+# deep and returns nil. Deferring recoverPanic itself puts recover() in
+# the deferred function as the spec requires.
+#
+diff --git a/internal/worker/pool.go b/internal/worker/pool.go
+--- a/internal/worker/pool.go
++++ b/internal/worker/pool.go
+@@ -66,9 +66,7 @@ func (p *Pool) Process(samples []types.Metric) []Result {
+ // surfaced as an error on the returned Result.
+ func (p *Pool) processOne(m types.Metric) (r Result) {
+ 	r.In = m
+-	defer func() {
+-		p.recoverPanic(&r)
+-	}()
++	defer p.recoverPanic(&r)
+ 	out, err := p.fn(m)
+ 	r.Out = out
+ 	r.Err = err

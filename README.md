@@ -59,7 +59,7 @@ go test -race ./internal/audit/ -run TestExercise13 -v -count=10
 
 ## Exercise Index
 
-See [exercises/README.md](./exercises/README.md) for the full checklist of all 21 exercises organized by difficulty.
+See [exercises/README.md](./exercises/README.md) for the full checklist of all 22 exercises organized by difficulty.
 
 ## Repository Layout
 
@@ -75,6 +75,7 @@ internal/       All buggy application packages
   lint/         Workflow linter (gh-forge)
   parser/       GitHub Actions YAML parsing (gh-forge)
   transform/    Metric transformation (pipeline)
+  worker/       Panic-safe processor pool (pipeline)
 exercises/      One subdirectory per exercise — README.md and HINTS.md
 solutions/      Reference solutions (consult only after you have tried)
 testdata/       Sample YAML files used by tests

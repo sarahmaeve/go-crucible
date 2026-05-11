@@ -509,6 +509,46 @@ exercises:
       JSON bodies without a MaxBytesReader cap, a realistic gap in
       LLM-generated service code.
 
+  - number: "22"
+    title: The Hollow Recovery
+    app: pipeline
+    difficulty: advanced
+    file: internal/worker/pool.go
+    function: Pool.processOne
+    mechanism: >
+      processOne defers `func() { p.recoverPanic(&r) }()` — an anonymous
+      function that *calls* recoverPanic. recover() inside recoverPanic
+      runs one frame deeper than the deferred function and returns nil
+      per the Go spec ("recover was not called directly by a deferred
+      function"). The panic from p.fn(m) is not consumed; it propagates
+      up past processOne, past Process, and out to the caller. The
+      recovery handler "runs" — logs nothing because recover returns
+      nil — but does not actually recover.
+    fix: >
+      Change `defer func() { p.recoverPanic(&r) }()` to
+      `defer p.recoverPanic(&r)`. Deferring recoverPanic directly puts
+      recover() inside the deferred function where the spec requires
+      it.
+    teaches:
+      - recover() must be called directly by a deferred function, not
+        by a helper the deferred function calls
+      - Extracting recovery into a helper for "cleanliness" silently
+        breaks correctness if the extraction crosses the defer boundary
+      - Hollow recovery (recovery code that exists but cannot fire) is
+        worse than no recovery — the code reads as safe
+      - No compile-time warning, no `go vet` flag, no symptom until a
+        real panic exposes the gap
+    patch: solutions/22-hollow-recovery.patch
+    notes: >
+      Inspired by John Doak's §15 (defer/panic/recover) from the 2018
+      "Go Language Basics" deck. The deck's "only in package main"
+      guidance is now outdated: modern Go services routinely recover at
+      goroutine and handler boundaries (net/http's Server does it
+      per-request, gRPC interceptors do it per-call). This exercise
+      teaches the contemporary realistic bug shape — recovery is in the
+      code, but mis-framed so it does nothing — rather than the older
+      "recover wasn't used at all" failure mode.
+
 # -----------------------------------------------------------------------------
 # Review Track
 #

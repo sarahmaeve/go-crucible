@@ -1,6 +1,6 @@
 # Exercise Index
 
-All 21 exercises. Check off each one as you complete it.
+All 22 exercises. Check off each one as you complete it.
 
 | # | Title | Application | Difficulty |
 |---|-------|-------------|------------|
@@ -25,6 +25,7 @@ All 21 exercises. Check off each one as you complete it.
 | [19](./19-graceless-shutdown/README.md) | The Graceless Shutdown | pipeline | Advanced |
 | [20](./20-brittle-match/README.md) | The Brittle Match | pipeline | Intermediate |
 | [21](./21-unbounded-request/README.md) | The Unbounded Request | pipeline | Intermediate |
+| [22](./22-hollow-recovery/README.md) | The Hollow Recovery | pipeline | Advanced |
 
 ## Progress Checklist
 
@@ -52,6 +53,7 @@ Copy this into a local file or a notebook to track your progress:
 [ ] 19 - The Graceless Shutdown
 [ ] 20 - The Brittle Match
 [ ] 21 - The Unbounded Request
+[ ] 22 - The Hollow Recovery
 ```
 
 ## Difficulty Guide
