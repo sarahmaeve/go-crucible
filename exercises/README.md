@@ -73,3 +73,23 @@ Review exercises draw on the reflexes built by the numbered exercises,
 so each one names its prerequisite tier. See
 [review/README.md](./review/README.md) for the track introduction and
 the first exercise.
+
+## Hard Mode
+
+The numbered exercises point you at the file and function; hard mode
+removes the pointers. [HARD_MODE.md](./HARD_MODE.md) restates all 22
+exercises as **symptom-only cards** — the ticket an operator would
+file — and asks you to localize the bug yourself before opening any
+exercise README. Same bugs, second difficulty axis: fault
+*localization* instead of fault *recognition*. Recommended for
+experienced Go developers entering the crucible, and for replaying
+exercises you solved months ago.
+
+## Diagnosis Track
+
+A parallel track that starts you from a **captured diagnostic
+artifact** — a goroutine dump, a race detector report, a panic
+traceback — instead of a failing test. You write your diagnosis
+(file:line, mechanism, fix) from the artifact *before* opening the
+source, then verify against the underlying numbered exercise. See
+[diagnosis/README.md](./diagnosis/README.md).

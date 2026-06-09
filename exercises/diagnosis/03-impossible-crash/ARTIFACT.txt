@@ -1,0 +1,37 @@
+Source: job runner stderr capture, job reprocess-backfill-2026-06-08,
+host batch-04, exit status 2.
+Binary: /srv/reprocess/reprocess (one-off tool; embeds
+github.com/go-crucible/go-crucible internal/worker)
+
+time=2026-06-08T22:14:03.118Z level=INFO msg="reprocess starting" archive=/data/archive/2026-05.jsonl samples=2000 workers=1
+time=2026-06-08T22:14:03.642Z level=INFO msg="progress" done=50 errors=0
+time=2026-06-08T22:14:04.170Z level=INFO msg="progress" done=100 errors=0
+panic: reprocess: malformed sample 117: negative timestamp delta
+
+goroutine 1 [running]:
+panic({0x5b8460?, 0xc000136050?})
+	/usr/local/go/src/runtime/panic.go:792 +0x132
+main.reprocessBatch.func1({0xc0003a2d80?, 0x11?, 0xc000136040?})
+	/srv/reprocess/main.go:84 +0x1e5
+github.com/go-crucible/go-crucible/internal/worker.(*Pool).processOne(0xc00012e5a0, {0xc0003a2d80, 0x11}, ...)
+	/build/go-crucible/internal/worker/pool.go:72 +0xc5
+github.com/go-crucible/go-crucible/internal/worker.(*Pool).Process(0xc00012e5a0, {0xc000400000, 0x7d0, 0x7d0})
+	/build/go-crucible/internal/worker/pool.go:59 +0x9e
+main.reprocessBatch(0xc00012e5a0, {0xc000400000, 0x7d0, 0x7d0})
+	/srv/reprocess/main.go:71 +0x178
+main.main()
+	/srv/reprocess/main.go:38 +0x2ec
+exit status 2
+
+[Attached by the reporting engineer:]
+[1. The closure at main.go:84 is our processor; it panics on samples
+    that fail validation. Per the worker package docs this is the
+    supported way to reject one input: "A panic in any single
+    invocation is converted into a regular error on that invocation's
+    Result; the remaining inputs in the batch continue to be
+    processed."]
+[2. grep -r "processor panicked" across all retained logs, all
+    environments, since we adopted the pool: 0 matches. The pool docs
+    say recovered panics are logged with the panic value and stack.]
+[3. We pass the pool our real slog logger (not nil); INFO lines from
+    the same logger appear above.]

@@ -74,6 +74,21 @@ bugs, deliberate red herrings, and a canonical sample review to compare
 against. Each review exercise names the numbered exercises whose reflexes
 it draws on; attempt it after completing those.
 
+## Hard Mode and the Diagnosis Track
+
+Two further entry paths to the same 22 bugs:
+
+- **[Hard mode](./exercises/HARD_MODE.md)** strips the pointers: each
+  exercise becomes a symptom-only card written like an operator's
+  ticket, and you localize the bug yourself. The exercise README
+  becomes a hint instead of a starting point.
+- **The [diagnosis track](./exercises/diagnosis/README.md)** starts
+  from a captured artifact — a goroutine dump, a race detector
+  report, a panic traceback — and asks for a written diagnosis
+  (file:line, mechanism, fix) *before* you open the source. This is
+  the on-call skill: most production bugs arrive as an artifact, not
+  as a failing test.
+
 ## Repository Layout
 
 ```
@@ -90,7 +105,9 @@ internal/       All buggy application packages
   transform/    Metric transformation (pipeline)
   worker/       Panic-safe processor pool (pipeline)
 exercises/      One subdirectory per exercise — README.md and HINTS.md
+  HARD_MODE.md  Symptom-only cards for all 22 exercises (no file pointers)
   review/       Review track — simulated PRs to review (R01, R02, ...)
+  diagnosis/    Diagnosis track — artifact-first debugging (D01, D02, ...)
 solutions/      Reference solutions (consult only after you have tried)
 testdata/       Sample YAML files used by tests
 .crucible/      Maintainer registry — contains spoilers; do not read until

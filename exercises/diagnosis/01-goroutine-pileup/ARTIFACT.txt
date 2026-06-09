@@ -1,0 +1,60 @@
+Capture: metrics-scheduler-7f9c4b6d8-xk2lp, 2026-06-02 04:17 UTC
+Captured by: on-call SRE, incident INC-4471 ("scheduler goroutine growth")
+Binary embeds: github.com/go-crucible/go-crucible (ingest package)
+
+$ curl -s http://localhost:6060/debug/pprof/goroutine?debug=1
+goroutine profile: total 3871
+3848 @ 0x43e96e 0x40764d 0x4071b8 0x4cf3a5 0x46c041
+#	0x4cf3a4	github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1+0x84	/build/go-crucible/internal/ingest/reader.go:18
+
+8 @ 0x43e96e 0x437a17 0x46f9c5 0x4e58e7 0x4e6bcd 0x4e6bbb 0x57a4ce 0x58c3e5 0x46c041
+#	0x46f9c4	internal/poll.runtime_pollWait+0x84		/usr/local/go/src/runtime/netpoll.go:351
+#	0x4e58e6	internal/poll.(*pollDesc).wait+0x26		/usr/local/go/src/internal/poll/fd_poll_runtime.go:84
+#	0x4e6bcc	internal/poll.(*FD).Read+0x2ac			/usr/local/go/src/internal/poll/fd_unix.go:165
+#	0x57a4cd	net/http.(*conn).serve+0x62d			/usr/local/go/src/net/http/server.go:2102
+
+6 @ 0x43e96e 0x44f5e5 0x44f5bc 0x46c041
+#	0x44f5e4	runtime.gcBgMarkWorker+0xe4			/usr/local/go/src/runtime/mgc.go:1412
+
+4 @ 0x43e96e 0x40764d 0x4071f8 0x6e2b31 0x46c041
+#	0x6e2b30	main.(*scheduler).runTarget+0x190		/srv/metrics-scheduler/scheduler.go:212
+
+2 @ 0x43e96e 0x40764d 0x4071b8 0x6e1a44 0x46c041
+#	0x6e1a43	main.(*scheduler).reloadLoop+0xc4		/srv/metrics-scheduler/scheduler.go:148
+
+1 @ 0x43e96e 0x40764d 0x4071b8 0x6e3209 0x6e55a6 0x43e55b 0x46c041
+#	0x6e3208	main.run+0x2e8					/srv/metrics-scheduler/main.go:96
+#	0x6e55a5	main.main+0x85					/srv/metrics-scheduler/main.go:41
+#	0x43e55a	runtime.main+0x29a				/usr/local/go/src/runtime/proc.go:283
+
+[snip: remaining buckets of 1 each — signal handler, pprof serving
+ this request, netpoll. Full dump archived in INC-4471.]
+
+$ curl -s 'http://localhost:6060/debug/pprof/goroutine?debug=2' | head -60
+goroutine 81442 [chan send, 1129 minutes]:
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
+	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+
+goroutine 81519 [chan send, 1127 minutes]:
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
+	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+
+goroutine 82201 [chan send, 1102 minutes]:
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
+	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+
+[snip: 3,845 further goroutines with this exact stack, wait durations
+ ranging from 2 minutes to 9,841 minutes. Oldest entries date to the
+ start of the config migration. Full dump archived in INC-4471.]
+
+goroutine 412 [select, 3 minutes]:
+main.(*scheduler).reloadLoop(0xc0001b8000)
+	/srv/metrics-scheduler/scheduler.go:148 +0xc4
+created by main.run in goroutine 1
+	/srv/metrics-scheduler/main.go:96 +0x2e8

@@ -961,3 +961,138 @@ review_exercises:
       must articulate the distinction rather than pattern-match.
       Completes the planned intermediate coverage: across R04–R06,
       exercises 05/06/07/10/11/17 are each echoed exactly once.
+
+# -----------------------------------------------------------------------------
+# Diagnosis Track
+#
+# Diagnosis exercises train artifact-first debugging: the learner reads
+# a captured diagnostic artifact (goroutine profile, race detector
+# report, panic traceback) and must localize the bug to file:line and
+# write a diagnosis BEFORE opening the source. Each exercise reuses a
+# numbered exercise's planted bug as ground truth; fixing it and
+# running the numbered exercise's test is the verification step.
+#
+# MAINTENANCE WARNING: artifacts embed real file:line references into
+# this repository (the `references` field lists which files). When a
+# refactor shifts lines in a referenced file, update the artifact in
+# the same commit — see rule 4 in .crucible/README.md.
+#
+# Schema:
+#   - number: "D01", "D02", ... — D-prefixed namespace
+#   - tier: basic | intermediate | advanced
+#   - artifact_kind: goroutine-profile | race-report | panic-traceback | ...
+#   - localizes: the numbered exercise whose planted bug the artifact captures
+#   - artifact: path to the ARTIFACT.txt
+#   - references: source files whose line numbers the artifact embeds
+#   - directory, scenario, teaches, notes: as elsewhere
+# -----------------------------------------------------------------------------
+
+diagnosis_exercises:
+  - number: "D01"
+    title: The Pile-Up
+    tier: intermediate
+    artifact_kind: goroutine-profile
+    localizes: "06"
+    artifact: exercises/diagnosis/01-goroutine-pileup/ARTIFACT.txt
+    references:
+      - internal/ingest/reader.go   # lines 12 (go stmt) and 18 (chan send)
+    directory: exercises/diagnosis/01-goroutine-pileup/
+    scenario: >
+      An in-universe metrics-scheduler service embeds the ingest
+      package, one reader per scrape target, cancelling the target's
+      context on removal. After a week of target churn the goroutine
+      count is ~3,900 and monotonically climbing. The artifact is a
+      pprof goroutine profile in both debug=1 (aggregated buckets
+      with counts) and debug=2 (per-goroutine state and wait
+      duration) form: 3,848 goroutines share one stack, parked in
+      [chan send] at reader.go:18 with wait durations spread over
+      the whole migration week, created at reader.go:12.
+    teaches:
+      - Reading debug=1 (what is most of the process doing) before
+        debug=2 (how long, in what state)
+      - The leak signature — many goroutines, one stack — and using
+        wait-duration spread to distinguish leak from burst
+      - Walking created-by frames from a parked goroutine to the
+        code that started it
+      - Triaging frames you own from runtime/embedder frames
+    notes: >
+      First diagnosis exercise. Gentlest of the three: the leaked
+      stack is one frame deep and both of its lines point straight
+      at the bug. The scenario's "we cancel every context" claim
+      teaches that delivery of cancellation is not the same as
+      listening for it.
+
+  - number: "D02"
+    title: Two Stacks, One Line
+    tier: intermediate
+    artifact_kind: race-report
+    localizes: "12"
+    artifact: exercises/diagnosis/02-two-stacks/ARTIFACT.txt
+    references:
+      - internal/audit/report.go       # lines 44 (go stmt) and 55 (append)
+      - internal/audit/report_test.go  # line 75 (ConcurrentAudit call)
+    directory: exercises/diagnosis/02-two-stacks/
+    scenario: >
+      Nightly -race CI has been failing intermittently for a month
+      and the team has been re-running it ("it's flaky").  The
+      artifact is the failing job's output: a WARNING DATA RACE block
+      whose two access stacks both point at report.go:55
+      (ConcurrentAudit.func1), both created at report.go:44, plus the
+      test's failing count assertion (got 35, want 50) and a CI
+      annotation listing failing counts 35/40/45 across runs — whole
+      5-finding batches lost.
+    teaches:
+      - Race report anatomy — two access stacks, the shared address,
+        and the created-at stacks, read as a sentence
+      - Same line in both stacks = a function racing its own
+        instances; find the fan-out
+      - Varying wrong counts as a concurrency fingerprint; whole-batch
+        loss as the slice-header-append signature
+      - "-race failures are never flaky tests" — the detector has no
+        false positives
+    notes: >
+      Second diagnosis exercise. The artifact deliberately includes
+      the month-of-re-runs framing so the canonical notes can model
+      reframing "flaky" as "racy". DIAGNOSIS_NOTES points at the
+      ConcurrentAudit/ParallelAudit irony (errMu correctly guards the
+      error two lines above the unguarded append; the sibling locks
+      its append but has ex 13's bug).
+
+  - number: "D03"
+    title: The Crash That Couldn't Happen
+    tier: advanced
+    artifact_kind: panic-traceback
+    localizes: "22"
+    artifact: exercises/diagnosis/03-impossible-crash/ARTIFACT.txt
+    references:
+      - internal/worker/pool.go   # lines 59 (processOne call) and 72 (p.fn call)
+    directory: exercises/diagnosis/03-impossible-crash/
+    scenario: >
+      An in-universe one-off batch tool (reprocess) replays archived
+      samples through worker.Pool, whose docs promise per-invocation
+      panic recovery. The artifact is the job's stderr: normal slog
+      progress lines, then a panic traceback travelling from the
+      processor closure through pool.go:72 and pool.go:59 to the top
+      of main — plus the reporting engineer's notes: the docs quote,
+      a zero-hit historical grep for "processor panicked", and
+      confirmation that a real logger is attached.
+    teaches:
+      - Traceback frame line numbers are call sites — the hand-off
+        line in every function on the path
+      - Deferred functions that ran leave no frames; failed recovery
+        is diagnosed from absence (the log line it should have
+        produced)
+      - Differential diagnosis — write the ranked hypothesis list
+        with kill-conditions BEFORE reading the source
+      - The spec's recover()-must-be-called-directly rule as the one
+        structural explanation that fits "never worked, ever"
+    notes: >
+      Third diagnosis exercise and deliberately the hardest shape:
+      the artifact alone cannot name the line — it proves a
+      contradiction (documented recovery, traceback indistinguishable
+      from no recovery) and the learner must rank hypotheses and
+      eliminate them against pool.go. The DIAGNOSIS_TEMPLATE differs
+      from D01/D02 accordingly (proves/absences/hypotheses sections).
+      Unlike D01/D02 the embedded artifact line numbers (72, 59) are
+      call sites inside frames, not the buggy lines themselves — the
+      bug (the defer wrapper at pool.go:69-71) is one screen away.

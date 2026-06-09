@@ -48,3 +48,12 @@ escalation path.
    `solved_in_main: <YYYY-MM-DD>` to that exercise's entry. Learners who
    want the buggy version can `git apply -R solutions/NN-*.patch` to
    reintroduce it.
+
+4. Diagnosis-track artifacts (`exercises/diagnosis/*/ARTIFACT.txt`) embed
+   real `file:line` references into the source tree — that is the point of
+   the track, and it makes them line-number-sensitive. When a refactor
+   shifts lines in a file an artifact references, fix the artifact in the
+   **same commit**: an artifact pointing at the wrong line teaches the
+   wrong lesson, which is worse than no exercise at all. Each
+   `diagnosis_exercises` entry in `exercises.yaml` lists the files (and
+   lines) its artifact embeds under `references`.

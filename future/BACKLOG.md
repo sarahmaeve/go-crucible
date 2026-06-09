@@ -339,6 +339,18 @@ Move entries here when the exercise lands on `main`.
 - **Exercise 22 — The Hollow Recovery.** Commit `df3862b`. Inspired
   by John Doak's §15 (defer/panic/recover) deck; recovery helper
   mis-framed across the defer boundary so recover() returns nil.
+- **Hard Mode + Diagnosis Track (D01–D03).** Shipped 2026-06-09.
+  `exercises/HARD_MODE.md` restates all 22 exercises as symptom-only
+  cards (fault localization as a second difficulty axis; exercise
+  READMEs demoted to hint tier 1). `exercises/diagnosis/` opens the
+  artifact-first track: D01 (goroutine profile → ex 06), D02 (race
+  report → ex 12), D03 (panic traceback → ex 22), each with
+  README/ARTIFACT/DIAGNOSIS_TEMPLATE/HINTS/DIAGNOSIS_NOTES.
+  Artifacts embed real file:line references — see source-of-truth
+  rule 4 in .crucible/README.md and the `references` fields in the
+  registry. Candidate future artifacts: heap profile (ex 18,
+  pre-solved), vet output (ex 13), fatal "concurrent map writes"
+  dump (ex 08), pprof CPU profile of the spin loop (ex 14).
 - **Review Exercises R04 / R05 / R06.** Shipped 2026-06-09.
   Intermediate-tier review-track coverage complete: R04 pairs
   ex 05+10 (typed-nil constructor + context.Background in Publish),
