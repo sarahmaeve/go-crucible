@@ -31,7 +31,11 @@ To see every failing test at once:
 go test ./...
 ```
 
-All tests fail out of the box — that is the point.
+Most exercise tests fail out of the box — that is the point. Expect 19
+failing exercise tests on a fresh clone, not 22: three exercises (10, 18, 19)
+ship pre-solved on `main` (see
+[the note below](#a-note-on-pre-solved-exercises)), and the repo's
+non-exercise sanity tests pass throughout.
 
 ## How to Work Through the Exercises
 
@@ -61,6 +65,15 @@ go test -race ./internal/audit/ -run TestExercise13 -v -count=10
 
 See [exercises/README.md](./exercises/README.md) for the full checklist of all 22 exercises organized by difficulty.
 
+## Review Track
+
+Alongside the numbered exercises, [exercises/review/](./exercises/review/README.md)
+holds a parallel track that trains **code review**: each exercise is a
+simulated pull request — a description plus a unified diff — with planted
+bugs, deliberate red herrings, and a canonical sample review to compare
+against. Each review exercise names the numbered exercises whose reflexes
+it draws on; attempt it after completing those.
+
 ## Repository Layout
 
 ```
@@ -77,6 +90,7 @@ internal/       All buggy application packages
   transform/    Metric transformation (pipeline)
   worker/       Panic-safe processor pool (pipeline)
 exercises/      One subdirectory per exercise — README.md and HINTS.md
+  review/       Review track — simulated PRs to review (R01, R02, ...)
 solutions/      Reference solutions (consult only after you have tried)
 testdata/       Sample YAML files used by tests
 .crucible/      Maintainer registry — contains spoilers; do not read until
