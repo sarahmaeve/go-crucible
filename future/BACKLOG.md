@@ -239,11 +239,15 @@ material keeps accumulating.
 
 ### CI for `make verify-solution`
 
-`solutions/README.md` notes that a CI workflow running
-`make verify-solution` on every exercise on each PR would catch
-patch rot automatically. Still outstanding. A GitHub Actions workflow
-doing this is probably 40-50 lines of YAML plus the matrix over
-exercise numbers.
+**Re-scoped and resolved locally, 2026-06-09.** Remote CI is off the
+table (GitHub capacity collapse; hosted runners largely inoperative),
+so the invariant protection moved local: `make verify-quick`
+(tools/verify — registry/tree consistency across all three tracks,
+diagnosis artifact line pins, spoiler lint, Makefile drift) and
+`make verify` (adds the vet expectation, sanity tests, expected
+exercise failures, and patch round-trips in a sandboxed copy). If
+hosted CI ever becomes viable again, the workflow is one job that
+runs `make verify`.
 
 ### Adversarial-review framing in the root README
 
@@ -339,6 +343,12 @@ Move entries here when the exercise lands on `main`.
 - **Exercise 22 — The Hollow Recovery.** Commit `df3862b`. Inspired
   by John Doak's §15 (defer/panic/recover) deck; recovery helper
   mis-framed across the defer boundary so recover() returns nil.
+- **Local verification harness.** Shipped 2026-06-09. `tools/verify`
+  (structural checks: registry ↔ tree, artifact pins, spoiler lint,
+  Makefile drift) plus Makefile targets verify-quick / verify-vet /
+  verify-sanity / verify-failures / verify-patches / verify. The
+  diagnosis registry's `references` fields upgraded from prose
+  comments to machine-checkable pins ({line, contains}).
 - **Hard Mode + Diagnosis Track (D01–D03).** Shipped 2026-06-09.
   `exercises/HARD_MODE.md` restates all 22 exercises as symptom-only
   cards (fault localization as a second difficulty axis; exercise

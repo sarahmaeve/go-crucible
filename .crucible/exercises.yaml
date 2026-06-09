@@ -494,8 +494,8 @@ exercises:
       - net/http does not cap request-body size by default
       - http.MaxBytesReader wraps the body so reads past the limit return
         *http.MaxBytesError
-      - Classify decode errors: 413 for size-cap violations, 400 for
-        malformed content — collapsing both hides signal from operators
+      - "Classify decode errors: 413 for size-cap violations, 400 for
+        malformed content — collapsing both hides signal from operators"
       - Defense in depth — the cap must be applied before the decoder
         allocates memory, not after
     patch: solutions/21-unbounded-request.patch
@@ -983,7 +983,10 @@ review_exercises:
 #   - artifact_kind: goroutine-profile | race-report | panic-traceback | ...
 #   - localizes: the numbered exercise whose planted bug the artifact captures
 #   - artifact: path to the ARTIFACT.txt
-#   - references: source files whose line numbers the artifact embeds
+#   - references: files the artifact embeds line numbers for, each with
+#     machine-checkable pins ({line, contains}) verified by tools/verify
+#     (make verify-quick) — when a referenced file shifts, update the
+#     artifact and its pins together in the same commit
 #   - directory, scenario, teaches, notes: as elsewhere
 # -----------------------------------------------------------------------------
 
@@ -995,7 +998,10 @@ diagnosis_exercises:
     localizes: "06"
     artifact: exercises/diagnosis/01-goroutine-pileup/ARTIFACT.txt
     references:
-      - internal/ingest/reader.go   # lines 12 (go stmt) and 18 (chan send)
+      - file: internal/ingest/reader.go
+        pins:
+          - { line: 12, contains: "go func()" }
+          - { line: 18, contains: "out <- m" }
     directory: exercises/diagnosis/01-goroutine-pileup/
     scenario: >
       An in-universe metrics-scheduler service embeds the ingest
@@ -1029,8 +1035,14 @@ diagnosis_exercises:
     localizes: "12"
     artifact: exercises/diagnosis/02-two-stacks/ARTIFACT.txt
     references:
-      - internal/audit/report.go       # lines 44 (go stmt) and 55 (append)
-      - internal/audit/report_test.go  # line 75 (ConcurrentAudit call)
+      - file: internal/audit/report.go
+        pins:
+          - { line: 44, contains: "go func(fn AuditFunc)" }
+          - { line: 55, contains: "findings = append(findings, result...)" }
+      - file: internal/audit/report_test.go
+        pins:
+          - { line: 75, contains: "audit.ConcurrentAudit" }
+          - { line: 81, contains: "t.Errorf" }
     directory: exercises/diagnosis/02-two-stacks/
     scenario: >
       Nightly -race CI has been failing intermittently for a month
@@ -1048,8 +1060,8 @@ diagnosis_exercises:
         instances; find the fan-out
       - Varying wrong counts as a concurrency fingerprint; whole-batch
         loss as the slice-header-append signature
-      - "-race failures are never flaky tests" — the detector has no
-        false positives
+      - '"-race failures are never flaky tests" — the detector has no
+        false positives'
     notes: >
       Second diagnosis exercise. The artifact deliberately includes
       the month-of-re-runs framing so the canonical notes can model
@@ -1065,7 +1077,10 @@ diagnosis_exercises:
     localizes: "22"
     artifact: exercises/diagnosis/03-impossible-crash/ARTIFACT.txt
     references:
-      - internal/worker/pool.go   # lines 59 (processOne call) and 72 (p.fn call)
+      - file: internal/worker/pool.go
+        pins:
+          - { line: 59, contains: "p.processOne(m)" }
+          - { line: 72, contains: "p.fn(m)" }
     directory: exercises/diagnosis/03-impossible-crash/
     scenario: >
       An in-universe one-off batch tool (reprocess) replays archived

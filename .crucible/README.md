@@ -33,6 +33,27 @@ escalation path.
   refactors that cut across multiple exercises. Useful when an outside
   contributor asks "why is it like this?" months later.
 
+## Verification
+
+Remote CI is not available to this repo, so invariant protection is
+local:
+
+- **`make verify-quick`** — seconds. Structural checks via
+  `tools/verify`: registry ↔ tree consistency for all three tracks
+  (numbered, review, diagnosis), solution patches present and
+  mentioning their target file, diagnosis artifact line pins intact,
+  spoiler lint over non-test `.go` files, and Makefile
+  `EXERCISES`/`PRESOLVED` drift against the registry.
+- **`make verify`** — minutes. Everything above plus: `go vet` emits
+  exactly the one expected warning, all non-exercise tests pass on the
+  buggy tree, every exercise test FAILS on the buggy tree (pre-solved
+  ones PASS; 08 and 12 are checked under `-race`), and every solution
+  patch round-trips — apply, test passes, revert, test fails — in a
+  sandboxed copy of the repo.
+
+Run `verify-quick` before any commit that touches exercise material,
+and `verify` before anything that touches `.go` files or patches.
+
 ## Source-of-truth rules
 
 1. If the source code around an exercise changes, update the matching entry

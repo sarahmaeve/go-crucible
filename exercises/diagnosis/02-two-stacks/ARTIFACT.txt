@@ -29,7 +29,7 @@ Goroutine 25 (finished) created at:
   testing.tRunner()
       /usr/local/go/src/testing/testing.go:1792 +0xf4
 ==================
-    report_test.go:80: expected 50 total findings from 10 auditors × 5 findings each, got 35
+    report_test.go:81: expected 50 total findings from 10 auditors × 5 findings each, got 35
     testing.go:1490: race detected during execution of test
 --- FAIL: TestExercise12_RaceReport (0.01s)
 === RUN   TestExercise13_LostGoroutine

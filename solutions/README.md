@@ -103,5 +103,7 @@ When an unrelated refactor breaks a patch:
 5. Confirm the exercise test fails again.
 6. Run `make verify-solution N=NN` as a final sanity check.
 
-A CI workflow that runs `make verify-solution` for every exercise on each
-PR would catch patch rot automatically — it's on the roadmap.
+Patch rot across all exercises at once is caught by `make verify` (its
+`verify-patches` step round-trips every solution in a sandboxed copy —
+apply, test passes, revert, test fails). Remote CI is not used; run
+`make verify` locally before committing changes near an exercise.
