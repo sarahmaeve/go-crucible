@@ -60,3 +60,7 @@ them inside a diff.
 | [04](./04-remote-write/README.md) | The Remote Write PR | Intermediate | 05, 10 |
 | [05](./05-alert-summaries/README.md) | The Alert Summaries PR | Intermediate | 06, 17 |
 | [06](./06-org-defaults/README.md) | The Org Defaults PR | Intermediate | 07, 11 |
+| [07](./07-drain-on-shutdown/README.md) | The Drain-On-Shutdown PR | Advanced | 14, 19 |
+| [08](./08-workflow-sync/README.md) | The Workflow Sync PR | Advanced | 15, 16 |
+| [09](./09-replay-throttle/README.md) | The Replay Throttle PR | Advanced | 18, 19 |
+| [10](./10-watch-mode/README.md) | Capstone: The Watch Mode PR | Capstone | 02, 13, 22 |

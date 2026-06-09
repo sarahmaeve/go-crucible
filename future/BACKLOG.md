@@ -195,25 +195,23 @@ summaries), and R06 (07+11, org defaults). See the Shipped section.
 
 ### Advanced tier
 
-- **R07 candidate — closed-channel spin + graceless shutdown.** Draws
-  on ex 14 + ex 19. The compound-bugs shape teaches the learner to
-  find *multiple* independent issues in a single shutdown path.
-- **R08 candidate — `omitempty` on bool + defer-in-loop FD leak.**
-  Draws on ex 15 + ex 16. Both produce latent bugs; both are the
-  kind of thing that only surfaces at scale or in production.
-- **R09 candidate — `time.After` leak + HTTP shutdown race.** Draws
-  on ex 18 plus a new compound shutdown bug. More advanced shape
-  where the two issues interact (one provides the sustained load that
-  makes the other visible).
+**Shipped in full on 2026-06-09** as R07 (14+19, drain-on-shutdown:
+three compound bugs in one shutdown path), R08 (15+16, workflow sync:
+both bugs latent until fleet scale), and R09 (18 + a novel
+Shutdown-with-cancelled-ctx bug, replay throttle: the two bugs
+interact). See the Shipped section. R09 is the track's first exercise
+with a planted bug that has no numbered-exercise ancestor — by
+design, and announced to the learner up front.
 
 ### Capstone (cross-tier)
 
-- **R10 candidate — the ~200-line feature diff.** A plausible new
-  feature (e.g., "add bulk event upload to pipeline") that plants
-  one bug each from beginner, intermediate, and advanced tiers, plus
-  one or two process concerns. Closes the review track with a
-  realistic "senior engineer reviewing a mid-level's feature branch"
-  experience.
+**Shipped 2026-06-09** as R10 — Capstone: The Watch Mode PR
+(kube-patrol, ~200-line diff, one bug per tier: ex 02 nil map on the
+--diff path, ex 13 wg.Add inside the goroutine, ex 22 hollow recovery
+extended with the per-goroutine axis). The review track is complete:
+R01–R03 basic, R04–R06 intermediate, R07–R09 advanced, R10 capstone.
+Numbered exercises never echoed in the track — 08, 12, 20, 21 — are
+candidate material if the track ever grows a second lap.
 
 ---
 
@@ -343,6 +341,25 @@ Move entries here when the exercise lands on `main`.
 - **Exercise 22 — The Hollow Recovery.** Commit `df3862b`. Inspired
   by John Doak's §15 (defer/panic/recover) deck; recovery helper
   mis-framed across the defer boundary so recover() returns nil.
+- **Review Exercise R10 (Capstone).** Shipped 2026-06-09. The Watch
+  Mode PR — kube-patrol --watch daemon mode, feature-branch-sized
+  diff, one planted bug per tier (02 / 13 / 22), with a detonation
+  chain (the --diff nil-map write panics through the doubly-hollow
+  guard — wrong frame AND wrong goroutine — into a crash loop). The
+  included in-diff test is deliberately made flaky by the wg.Add bug
+  so "flaky test" vs "racy code" lands as a process lesson. Review
+  track complete across all four tiers.
+- **Review Exercises R07 / R08 / R09.** Shipped 2026-06-09.
+  Advanced-tier review-track coverage complete: R07 pairs ex 14+19
+  (break-in-select on a closed channel, frame-scoped defer
+  deregistering signal handlers, double close on the error path),
+  R08 pairs ex 15+16 (flattened *bool + omitempty deleting
+  fail-fast: false org-wide, defer-in-loop FD exhaustion with
+  provenance pointing at the real linter.go), R09 pairs ex 18 with a
+  novel http.Server.Shutdown(already-cancelled-ctx) bug — the
+  track's first planted issue with no numbered ancestor. In-universe
+  continuity: R07's spill file is what R09 replays. Remaining
+  review-track item: the R10 capstone.
 - **Local verification harness.** Shipped 2026-06-09. `tools/verify`
   (structural checks: registry ↔ tree, artifact pins, spoiler lint,
   Makefile drift) plus Makefile targets verify-quick / verify-vet /

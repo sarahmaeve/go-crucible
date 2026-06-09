@@ -562,7 +562,8 @@ exercises:
 #
 # Schema differs from numbered exercises:
 #   - number: "R01", "R02", ... — R-prefixed to keep namespaces distinct
-#   - tier: basic | intermediate | advanced
+#   - tier: basic | intermediate | advanced | capstone (R10 — one bug
+#     per tier in a feature-branch-sized diff)
 #   - draws_on: list of numbered exercises whose reflexes the learner uses
 #   - directory: path relative to repo root
 #   - scenario: one-paragraph description of the simulated PR
@@ -961,6 +962,375 @@ review_exercises:
       must articulate the distinction rather than pattern-match.
       Completes the planned intermediate coverage: across R04–R06,
       exercises 05/06/07/10/11/17 are each echoed exactly once.
+
+  - number: "R07"
+    title: The Drain-On-Shutdown PR
+    tier: advanced
+    draws_on: ["14", "19"]
+    directory: exercises/review/07-drain-on-shutdown/
+    scenario: >
+      Simulated PR against pipeline adding drain-on-shutdown: an
+      ingest.Drainer that spills still-buffered metrics to a
+      JSON-lines file, signal setup refactored into a setupSignals
+      helper, and drain wiring in RunPipeline's shutdown path with a
+      package-level drainDone channel for a future health endpoint.
+      Three independent bugs, one per leg of the shutdown — trigger,
+      drain, aftermath.
+    planted:
+      - kind: correctness
+        echoes: "19"
+        summary: >
+          setupSignals calls signal.NotifyContext and then `defer
+          stop()` inside the helper — the defer fires when the helper
+          returns, immediately deregistering the handlers and
+          restoring default signal disposition. The returned ctx can
+          never cancel on a signal; the first SIGTERM default-kills
+          the process and the drain never runs. Modern re-expression
+          of 19-1 (signal handling that isn't), with exercise 22's
+          frame-scoped-defer lesson as the mechanism.
+      - kind: correctness
+        echoes: "14"
+        summary: >
+          Drain's receive case handles comma-ok with `if !ok { break }`
+          — but break exits the select, not the for. On a closed
+          channel the receive is always ready, the default branch can
+          never be chosen, and the loop spins at full CPU forever.
+          The doc comment explicitly promises closed-channel
+          termination. Latent today (no call site closes the
+          channel); armed for the replay follow-up and any test.
+      - kind: correctness
+        echoes: "19"
+        summary: >
+          RunPipeline's drain error path does close(drainDone) and
+          then falls through — no return — to the unconditional
+          close(drainDone). Any drain failure becomes panic, close of
+          closed channel, during shutdown, after logging "drain
+          complete" directly under "drain failed". Echo of 19-2.
+      - kind: red-herring
+        summary: >
+          len(in) in the drain's opening log line. Channel length is
+          approximate under concurrency and wrong for control flow,
+          but for a log message it is the right tool. Verify, don't
+          flag.
+      - kind: red-herring
+        summary: >
+          The per-call `defer f.Close()` on the spill file — one open
+          per Drain invocation, function-scoped defer working as
+          intended. Not the defer-in-loop trap (the loop iterates
+          channel receives, not opens).
+      - kind: process
+        summary: >
+          The included test drains an open channel with buffered
+          items — the one scenario where none of the three bugs fire.
+          The signal path is explicitly deferred as "hard to
+          automate" though it IS the feature; the doc-promised
+          closed-channel case is untested (it would hang); the
+          drain-error path is untested (it panics). Each planted bug
+          maps to a missing test.
+      - kind: question
+        summary: >
+          Metrics arriving during the drain race the default branch
+          and are lost; and the replay follow-up will re-publish
+          spilled metrics. Is the tiny loss window accepted, and does
+          the dedup layer's ErrDuplicate handling cover replays?
+    teaches:
+      - Walking a shutdown path end to end as separate questions —
+        can it trigger, does it terminate, does the aftermath run
+        exactly once — instead of stopping at the first find
+      - Transferring the frame-scoped-defer lesson from recover() to
+        signal.NotifyContext's stop function
+      - break-in-select semantics as a closed-channel trap even when
+        the comma-ok flag is checked
+      - Severity through reachability — unreachable feature vs
+        error-path panic vs latent contract violation
+    notes: >
+      First advanced-tier review exercise; first with three
+      correctness issues, matching ex 19's compound shape. The
+      setupSignals bug deliberately re-expresses 19-1 in the
+      signal.NotifyContext idiom that ex 19's modernization adopted —
+      the registry note there says NotifyContext makes 19-1
+      "structurally inexpressible"; wrapping it in a helper with a
+      mis-framed defer is exactly how it comes back.
+
+  - number: "R08"
+    title: The Workflow Sync PR
+    tier: advanced
+    draws_on: ["15", "16"]
+    directory: exercises/review/08-workflow-sync/
+    scenario: >
+      Simulated PR against gh-forge adding parser.SyncWorkflows — an
+      in-place normaliser meant to run from cron across the org's
+      couple of thousand workflow files. Walks a directory (loop
+      adapted from lint.LintWorkflows), round-trips each file through
+      a flattened JSON intermediate, writes back. Both real bugs are
+      invisible at desk scale and only surface at fleet scale.
+    planted:
+      - kind: correctness
+        echoes: "15"
+        summary: >
+          syncStrategy flattens types.Strategy's deliberate *bool
+          FailFast into plain bool with json omitempty. GitHub's
+          default is fail-fast true, so an explicit false is a
+          meaningful opt-out; the flatten collapses absent and false,
+          omitempty deletes the false, and the org's first sync run
+          silently flips every opted-out workflow back to fail-fast
+          true — idempotently, from cron, forever.
+      - kind: correctness
+        echoes: "16"
+        summary: >
+          The sweep loop does os.Open plus `defer f.Close()` per
+          iteration — function-scoped, so every descriptor stays open
+          until SyncWorkflows returns. Invisible at 11 files; at
+          fleet scale the sweep dies with "too many open files"
+          partway, after rewriting half the tree. The PR description
+          says the loop was adapted from LintWorkflows, which carries
+          the identical latent bug — copied code, copied bugs.
+      - kind: red-herring
+        summary: >
+          MaxParallel int with the same omitempty tag two lines below
+          the FailFast bug — fine, because max-parallel 0 is not a
+          meaningful GitHub configuration (unset means unlimited).
+          The omitempty verdict is domain semantics per field, not
+          syntax. Verify, don't flag.
+      - kind: red-herring
+        summary: >
+          The round-trip drops YAML comments and key order — normally
+          a major concern, but the PR description pre-answers it
+          (synced files are machine-owned, loss accepted). R02's
+          read-the-description lesson at advanced tier.
+      - kind: process
+        summary: >
+          Three fixtures cannot exhaust descriptors, and no fixture
+          asserts on fail-fast (the matrix test checks dimensions,
+          not strategy settings). Reviewer should demand a fail-fast
+          false round-trip assertion (fails today) and either the
+          os.ReadFile refactor or a many-files test.
+      - kind: question
+        summary: >
+          Partial-failure semantics — any parse or write error aborts
+          the sweep with files 1..k already rewritten; one malformed
+          workflow in one repo blocks the whole org's sync forever.
+          Skip-and-report, or validate-all-then-write?
+    teaches:
+      - Reviewing at deployment scale rather than diff scale — run
+        the code in your head where it will actually run
+      - Per-field omitempty verdicts decided by whether the zero
+        value is a meaningful domain configuration
+      - Following provenance — "adapted from X" means X probably has
+        the same bug; fix both
+      - Honouring the PR description's pre-answered concerns
+    notes: >
+      Second advanced-tier review exercise. Pairs ex 15 + ex 16 per
+      the backlog plan ("both produce latent bugs that only surface
+      at scale or in production"). The omitempty twins (FailFast bug,
+      MaxParallel fine) extend R06's twin discipline from syntax to
+      domain semantics. The defer-in-loop provenance points back at
+      the real linter.go on main, which genuinely contains ex 16's
+      planted form — the review and the numbered exercise reinforce
+      each other.
+
+  - number: "R09"
+    title: The Replay Throttle PR
+    tier: advanced
+    draws_on: ["18", "19"]
+    directory: exercises/review/09-replay-throttle/
+    scenario: >
+      Simulated PR against pipeline adding the replay follow-up to
+      R07's drain: an ingest.Replayer streaming spilled JSON-lines
+      metrics into a MetricSink at a throttled rate with an idle
+      watchdog, plus an embedded admin HTTP server hosting POST
+      /v1/replay with graceful shutdown. The two planted bugs
+      interact — one needs sustained load to matter, the other
+      decides what happens to that load at shutdown.
+    planted:
+      - kind: correctness
+        echoes: "18"
+        summary: >
+          The idle watchdog is `case <-time.After(rp.idleTimeout)` in
+          the hot replay loop. Every iteration allocates a fresh 30s
+          timer that another case abandons ~100 times per second
+          under healthy load; abandoned timers live out their full
+          duration in the runtime timer heap (~3,000 live per stream
+          at steady state). The rate limiter three lines up uses
+          NewTicker correctly, and ticker.go on main shows the right
+          shape — the bug sits next to two correct siblings. The
+          After form also resets on every select entry, so it never
+          measures input idleness as intended.
+      - kind: correctness
+        summary: >
+          srv.Shutdown(ctx) is called after <-ctx.Done() with that
+          same, already-cancelled context. Per the documented
+          contract, Shutdown waits for in-flight connections only
+          until its context is done — which it already is — so it
+          returns immediately with context.Canceled and abandons
+          in-flight replays. The comment promises the opposite.
+          Deliberately NOT an echo of any numbered exercise — the
+          first planted bug learners must derive from an API contract
+          rather than a practised pattern. Fix is a fresh
+          context.WithTimeout(context.Background(), ...) budget.
+      - kind: red-herring
+        summary: >
+          The `err != nil && !errors.Is(err, http.ErrServerClosed)`
+          filter on ListenAndServe — looks like error-swallowing, is
+          the documented idiom (ErrServerClosed is graceful
+          shutdown's success signal). Verify, don't flag.
+      - kind: red-herring
+        summary: >
+          http.MaxBytesReader applied to the replay body before the
+          decoder, assigned back to r.Body — exercise 21's lesson
+          correctly carried over. Positive verification material.
+      - kind: red-herring
+        summary: >
+          The decoder goroutine selects sends against ctx.Done() and
+          defers close(lines), so it terminates on all paths — the
+          exercise-06 shape done right, with a buffered decErr so the
+          error send can't block either.
+      - kind: process
+        summary: >
+          A 50-line unit replay and a 1,000-line manual replay cannot
+          surface timer accumulation, and "Ctrl-C during idle" is the
+          one shutdown with nothing in flight. Asks — a post-fix
+          watchdog test that fires after metrics have flowed, and a
+          shutdown test with a slow in-flight replay asserting
+          completion (fails today).
+      - kind: question
+        summary: >
+          Truncated replays will be re-POSTed from the top — does the
+          dedup layer (ErrDuplicate) sit downstream of the replay
+          sink so re-runs are idempotent? Prerequisite for safe
+          re-runs either way.
+    teaches:
+      - Reviewing past the pattern library — when a function takes a
+        context, ask which context, in what state, and what the
+        callee's contract says about it
+      - Spotting the wrong timer idiom next to correct siblings in
+        the same diff and the same package
+      - Naming bug interactions — two medium bugs that feed each
+        other are a severe system, and the merge decision should
+        hear the cycle, not two findings
+      - Positive verification with reasons on an advanced diff
+    notes: >
+      Third advanced-tier review exercise, completing the planned
+      tier. In-universe continuity with R07 (replays the drain PR's
+      spill file). Milestone for the track — the Shutdown
+      already-cancelled-ctx bug is the first planted issue with no
+      numbered-exercise ancestor, by design - the README says so up
+      front so learners know the pattern library has deliberately run
+      out. The interaction shape (timer growth causes the restarts
+      that the shutdown bug turns into replay truncation) realises
+      the backlog's "one provides the sustained load that makes the
+      other visible" intent in both directions.
+
+  - number: "R10"
+    title: Capstone — The Watch Mode PR
+    tier: capstone
+    draws_on: ["02", "13", "22"]
+    directory: exercises/review/10-watch-mode/
+    scenario: >
+      Simulated feature-branch-sized PR (~200 lines) against
+      kube-patrol adding --watch daemon mode: an audit.Watcher runs
+      the existing auditor suite against a set of namespaces
+      concurrently per interval tick, keeps per-namespace reports
+      under a mutex, logs finding deltas with --diff, and promises
+      (twice, in doc comments) that a panicking auditor cannot take
+      the daemon down. One planted bug per tier; two of them chain.
+    planted:
+      - kind: correctness
+        echoes: "02"
+        summary: >
+          NewWatcher initialises reports but never lastCounts. The
+          only write — w.lastCounts[ns] = ... — is gated behind the
+          --diff flag, so plain watch mode works and the first cycle
+          of any --diff run panics with a nil-map write. The read two
+          lines earlier is legal on a nil map (returns 0), which is
+          what lets the block survive a skim.
+      - kind: correctness
+        echoes: "13"
+        summary: >
+          wg.Add(1) is the first statement inside the per-namespace
+          goroutine instead of before the go statement. wg.Wait can
+          return with a zero counter; cycles intermittently aggregate
+          a subset — total_findings=0 on healthy clusters, phantom
+          deltas in both directions under --diff. go vet flags the
+          pattern mechanically (process tie-in). Also makes the PR's
+          own included test intermittently flaky.
+      - kind: correctness
+        echoes: "22"
+        summary: >
+          The cycle guard is `defer func() { w.recoverCyclePanic() }()`
+          — ex 22's wrong-frame shape, recover() one frame too deep,
+          always nil. Deliberately layered beyond ex 22 — even with
+          the frame fixed, auditor panics happen in the spawned
+          per-namespace goroutines, and recover only works in the
+          panicking goroutine; the guard must also live inside the
+          workers for the doc comment's promise to hold. Two
+          independent axes, one of which no numbered exercise covers.
+      - kind: red-herring
+        summary: >
+          time.NewTicker + defer Stop + an immediate first cycle —
+          the post-ex-18 idiom done correctly (and matching
+          ticker.go). Ex-18-primed learners should verify and clear
+          it.
+      - kind: red-herring
+        summary: >
+          The nil-map READ (w.lastCounts[ns] in the delta
+          computation) is legal and returns zero — only the write
+          panics. Ex 02's read-vs-write nuance, planted two lines
+          from the real bug.
+      - kind: red-herring
+        summary: >
+          Auditor-error handling logs and keeps the previous cycle's
+          report (stale beats wrong), with a comment saying so —
+          defensible and deliberate, not the ex-01 swallow. Sample
+          review verifies it and converts it into a staleness-signal
+          suggestion rather than a blocker.
+      - kind: red-herring
+        summary: >
+          main.go filters context.Canceled before fatalf — the
+          clean-shutdown idiom (Watch returns ctx.Err() on SIGTERM),
+          mirroring R09's ErrServerClosed lesson.
+      - kind: process
+        summary: >
+          The included test (one namespace, diff off, one cycle, no
+          panics) is blind to all three bugs and is itself made flaky
+          by the wg.Add race — CI will blame the test. Asks include a
+          two-cycle --diff test, a panicking-auditor survival test,
+          and -count=20 after the fix.
+      - kind: process
+        summary: >
+          go vet catches the wg.Add bug mechanically and the PR
+          checklist doesn't run vet — one line in the pre-merge
+          script eliminates the class.
+      - kind: question
+        summary: >
+          Delta semantics across failed cycles — deltas are computed
+          against kept (stale) counts, so a finding that appears and
+          resolves during an auditor outage never shows in any delta.
+          Fine for triage logs, maybe not for the planned
+          alert-routing. Intent should be documented.
+    teaches:
+      - Structure-first triage of a feature-branch-sized diff, then
+        passes by concern (state, concurrency, failure paths)
+      - Naming detonation chains — a one-line init bug plus a broken
+        containment mechanism price differently together than apart
+      - Pushing a known lesson past its exercise — recover() framing
+        AND recover()'s per-goroutine scope
+      - Verification at scale — the cleared list is what proves a
+        big review actually covered the branch
+      - Connecting findings to the workflow that should have caught
+        them (vet, test fixtures, -count)
+    notes: >
+      Capstone — closes the review track. One bug per tier (02
+      beginner, 13 intermediate, 22 advanced); 13 and 22 get their
+      first review-track echoes here. The chain (the --diff nil-map
+      write detonates through the hollow guard into a crash loop) is
+      the capstone's core lesson — severity lives in the system. The
+      guard's second failure axis (recover is per-goroutine) is
+      intentionally beyond ex 22, continuing R09's pattern-library-
+      runs-out theme. kube-patrol hosts it to balance app coverage
+      (only R01 before this). Numbered exercises still never echoed
+      in the review track — 08, 12, 20, 21 — noted as future
+      material.
 
 # -----------------------------------------------------------------------------
 # Diagnosis Track
