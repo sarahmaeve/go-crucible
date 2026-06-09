@@ -189,23 +189,9 @@ surface is currently one handler; these would round it out.
 ### Intermediate tier
 
 The basic tier (R01 + R02 + R03) covers ex 01/02/03/04/09. The
-intermediate tier should draw on 05/06/07/10/11/17. Sensible
-pairings:
-
-- **R04 candidate — typed-nil + context-not-propagated.** Draws on
-  ex 05 + ex 10. PR against pipeline adds a new downstream client
-  interface; constructor returns `(*Client)(nil), err` and a handler
-  passes `context.Background()` instead of the request ctx.
-- **R05 candidate — unbuffered channel deadlock + map value copy.**
-  Draws on ex 06 + ex 17. PR adds an event-aggregation function that
-  sends to an unbuffered channel under a select without
-  `ctx.Done()`, plus a loop that modifies a map-value struct without
-  writing it back.
-- **R06 candidate — shallow map copy + interface embedding.** Draws
-  on ex 07 + ex 11. PR adds a template-builder that shallow-copies
-  a shared config map into its results (so mutations leak across
-  templates) and returns the embedded base type instead of the outer
-  type.
+intermediate tier draws on 05/06/07/10/11/17 — **shipped in full on
+2026-06-09** as R04 (05+10, remote-write sink), R05 (06+17, alert
+summaries), and R06 (07+11, org defaults). See the Shipped section.
 
 ### Advanced tier
 
@@ -262,23 +248,26 @@ exercise numbers.
 ### Adversarial-review framing in the root README
 
 The user declined to reframe the crucible *entirely* as
-adversarial-review training but accepted a dedicated track. The
-current root README does not mention the review track. A one-
-paragraph addition pointing learners at `exercises/review/README.md`
-after the basic tier is still open.
+adversarial-review training but accepted a dedicated track.
+**Resolved 2026-06-09:** the root README now has a Review Track
+section pointing at `exercises/review/README.md`, and the
+repository-layout block lists `exercises/review/`.
 
 ### Pushing the unpushed commits
 
-As of the last planning session (2026-04-17), five commits sit
-unpushed on `main`:
+As of the 2026-04-17 planning session, five commits sat unpushed on
+`main`:
 
 - `2f02c44` exercise 20 + RECOMMENDED_READING.md
 - `f86f49d` exercise 21
 - `91de436` review track R01 + R02
 - `3764348` review track R03
-- (this commit — the backlog itself)
+- `be0a404` the backlog itself
 
-Push when ready.
+Since then, `df3862b` (exercise 22) and the 2026-06-09 session's work
+(doc/Makefile fixes + review exercises R04–R06) have landed on top.
+Verify what is still unpushed with `git log origin/main..main` and
+push when ready.
 
 ---
 
@@ -347,3 +336,15 @@ Move entries here when the exercise lands on `main`.
   Inspired by Registry HTTP handlers lacking `MaxBytesReader`.
 - **Review Exercises R01 / R02 / R03.** Commits `91de436` and
   `3764348`. Basic-tier review-track coverage complete.
+- **Exercise 22 — The Hollow Recovery.** Commit `df3862b`. Inspired
+  by John Doak's §15 (defer/panic/recover) deck; recovery helper
+  mis-framed across the defer boundary so recover() returns nil.
+- **Review Exercises R04 / R05 / R06.** Shipped 2026-06-09.
+  Intermediate-tier review-track coverage complete: R04 pairs
+  ex 05+10 (typed-nil constructor + context.Background in Publish),
+  R05 pairs ex 06+17 (bare channel send without ctx.Done() +
+  map-value copy never written back), R06 pairs ex 07+11 (shared
+  defaults-map aliasing + embedded base returned as the interface).
+  Each has README + HINTS + REVIEW_TEMPLATE + REVIEWER_NOTES,
+  registry entries in exercises.yaml, and index rows in
+  exercises/review/README.md.

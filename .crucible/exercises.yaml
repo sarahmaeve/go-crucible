@@ -748,3 +748,216 @@ review_exercises:
       pure static reading to catch. Completes the basic-tier coverage
       — across R01+R02+R03, every basic-tier pattern is exercised at
       least once.
+
+  - number: "R04"
+    title: The Remote Write PR
+    tier: intermediate
+    draws_on: ["05", "10"]
+    directory: exercises/review/04-remote-write/
+    scenario: >
+      Simulated PR against pipeline adding best-effort remote-write
+      forwarding: RemoteSink (an ingest.MetricSink implementation that
+      POSTs each metric to a central collector), an optional
+      -remote-url flag in cmd/pipeline, and a forwarding goroutine in
+      RunPipeline. Degraded mode — run local-only when the URL is
+      absent or invalid — is an explicit, stated design goal of the
+      PR.
+    planted:
+      - kind: correctness
+        echoes: "05"
+        summary: >
+          Both error paths in NewRemoteSink return (*RemoteSink)(nil)
+          as the MetricSink interface. main.go's degraded-mode check
+          `if sink != nil` passes because the interface holds
+          (type=*RemoteSink, value=nil); the daemon logs both "remote
+          write disabled" AND "remote write enabled", then panics on
+          the first Publish with a nil receiver. A config typo
+          becomes a crash loop — the opposite of the PR's degraded-
+          mode goal.
+      - kind: correctness
+        echoes: "10"
+        summary: >
+          Publish builds its request with
+          http.NewRequestWithContext(context.Background(), ...)
+          instead of the caller's ctx. Shutdown and per-request
+          deadlines never reach the HTTP layer; the only remaining
+          bound is the client's flat 5s timeout.
+      - kind: red-herring
+        summary: >
+          Publish drains the response body with io.Copy(io.Discard,
+          resp.Body) before the deferred Close. Looks like dead code;
+          it is the keep-alive connection-reuse idiom. Verify, place
+          in "Things I Verified", do not flag.
+      - kind: process
+        summary: >
+          The included unit test uses a valid httptest URL and a
+          Background context — the one configuration where neither
+          bug can fire. Reviewer should ask for an invalid-URL
+          constructor test asserting `sink == nil` (the assertion
+          that distinguishes untyped from typed nil) and a
+          cancelled-context Publish test against a blocking handler.
+      - kind: question
+        summary: >
+          Non-2xx handling treats 401 and 503 identically (log and
+          drop). Permanent-vs-transient classification raised as a
+          question about intent, not a blocker.
+    teaches:
+      - Tracing a constructor's return value across files into the
+        nil check that consumes it
+      - Typed-nil interface returns as a reviewable pattern, not just
+        a runtime surprise
+      - Context propagation through new I/O paths
+      - Recognising the body-drain idiom instead of over-flagging it
+      - Connecting a bug to the PR's own stated requirements
+    notes: >
+      First intermediate-tier review exercise. Pairs ex 05 + ex 10
+      per the backlog plan. Distinctive shape: neither bug is visible
+      inside a single hunk — both require simulating runtime
+      behaviour, one across two files. The typed-nil symptom
+      (contradictory log lines, then a panic) directly contradicts
+      the PR's degraded-mode design goal.
+
+  - number: "R05"
+    title: The Alert Summaries PR
+    tier: intermediate
+    draws_on: ["06", "17"]
+    directory: exercises/review/05-alert-summaries/
+    scenario: >
+      Simulated PR against pipeline adding per-team alert summaries:
+      Aggregate groups firing alerts by team label into a
+      map[string]Summary (count, capped example names, Truncated
+      counter for "and N more" rendering); Stream delivers summaries
+      to a channel in sorted order from its own goroutine for the
+      notifier to consume.
+    planted:
+      - kind: correctness
+        echoes: "17"
+        summary: >
+          markTruncated ranges over map values (`for _, s := range`),
+          sets s.Truncated on the local copy, and never writes the
+          copy back. Every summary's Truncated stays zero; the
+          "and N more" feature — the PR's stated purpose for the
+          field — silently never activates.
+      - kind: correctness
+        echoes: "06"
+        summary: >
+          Stream's goroutine sends with a bare `out <- summaries[t]`
+          and no ctx.Done() case, even though its own doc comment
+          promises "Cancel ctx to abandon delivery" (ctx is only used
+          in a debug log line). A consumer that stops reading leaks
+          the goroutine forever — one per evaluation cycle in a
+          daemon — and the deferred close(out) never runs.
+      - kind: red-herring
+        summary: >
+          Aggregate's accumulation loop also mutates values obtained
+          from a map range — but the map is map[string]*Summary, and
+          mutating through a pointer value works fine. A learner
+          fresh off ex 17 may over-flag. The later out[team] = *s
+          conversion to value copies is deliberate defensive copying.
+      - kind: process
+        summary: >
+          The included test's fixture has two firing alerts on one
+          team — below the three-example cap, so Truncated is
+          legitimately zero and the write-back bug is structurally
+          undetectable. Stream has no test at all. Reviewer should
+          ask for a 4+-alert fixture asserting Truncated, and a
+          Stream cancellation test (read one, cancel, assert close).
+      - kind: question
+        summary: >
+          Alerts without a team label aggregate under the empty
+          string. Is "" routed anywhere downstream, or do unowned
+          firing alerts vanish from notifications? Question about
+          intent — either answer should be documented and tested.
+    teaches:
+      - Map-value copy semantics inside a diff — plus the pointer-map
+        counterexample, so the rule is learned precisely
+      - Doc comments are claims to verify against the implementation
+      - Goroutine-lifecycle review — every send needs an exit path
+        the diff must show
+      - Reading a test's blind spots from its fixture sizes
+    notes: >
+      Second intermediate-tier review exercise. Pairs ex 06 + ex 17
+      per the backlog plan. The red herring deliberately inverts
+      ex 17 (pointer-valued maps mutate fine) so learners cannot
+      pattern-match "mutation in a range loop = bug" — they must
+      check the value type.
+
+  - number: "R06"
+    title: The Org Defaults PR
+    tier: intermediate
+    draws_on: ["07", "11"]
+    directory: exercises/review/06-org-defaults/
+    scenario: >
+      Simulated PR against gh-forge adding organisation-wide workflow
+      defaults: OrgTemplate embeds BaseTemplate and layers shared env
+      vars (plus a per-repo REPO entry) and a baseline permissions
+      block onto the generated workflow; BuildOrgTemplate returns it
+      as the Template interface; GenerateAll produces one workflow
+      per repository from one shared OrgDefaults value.
+    planted:
+      - kind: correctness
+        echoes: "11"
+        summary: >
+          BuildOrgTemplate returns t.BaseTemplate instead of t. The
+          embedded type also satisfies Template, so it compiles, and
+          BaseTemplate.Generate runs — producing valid-looking
+          workflows with no org env, no permissions, no REPO entry.
+          Silent policy omission: the worst failure shape for a
+          security-rollout feature.
+      - kind: correctness
+        echoes: "07"
+        summary: >
+          OrgTemplate.Generate does `env := o.Defaults.Env`
+          (reference copy) then `env["REPO"] = o.Repo`, writing into
+          the shared defaults map. Across GenerateAll every workflow
+          aliases that one map, so all report the last repo's REPO
+          value, and the caller's OrgDefaults is mutated as a side
+          effect. Latent nil-map write panic when Defaults.Env is
+          nil; a proper per-workflow copy fixes all three at once.
+      - kind: red-herring
+        summary: >
+          o.BaseTemplate.Generate() inside OrgTemplate.Generate has
+          the same x.BaseTemplate expression shape as the bug — but
+          it is the correct extend-the-base pattern: invoke the
+          embedded type's method, then layer on top of the result.
+          The expression is not the bug; the value crossing the
+          interface boundary is.
+      - kind: red-herring
+        summary: >
+          wf.Permissions = o.Defaults.Permissions aliases the shared
+          map exactly like the Env site — but nothing in the diff
+          writes through it, so it corrupts nothing today. Belongs in
+          Suggestions (defensive copy) with explicitly lower severity
+          than the Env site. Severity calibration on identical
+          patterns is the lesson.
+      - kind: process
+        summary: >
+          The included test calls GenerateAll with a single repo —
+          the one fixture size at which shared-map corruption cannot
+          manifest — and never invokes BuildOrgTemplate at all, so
+          the wrong-return bug never executes under test. Reviewer
+          should ask for a two-repo test asserting distinct REPO
+          values (plus no "REPO" key left in defaults.Env afterwards)
+          and a BuildOrgTemplate test asserting org defaults present.
+      - kind: question
+        summary: >
+          Env-key precedence is undecided: when a repo or template
+          later defines a key that collides with an org default,
+          which wins? Nothing in the diff decides; raise as a
+          question to document and test, not a blocker.
+    teaches:
+      - Telling twins apart — the same expression shape appearing
+        once correctly and once as a bug in one diff
+      - Severity calibration — two identical aliasing sites with
+        different consequences because only one is written through
+      - Fixture-size blindness — a one-element test cannot express
+        cross-element corruption
+      - Method-set reasoning when embedded and outer types both
+        satisfy an interface
+    notes: >
+      Third intermediate-tier review exercise. Pairs ex 07 + ex 11
+      per the backlog plan. Built deliberately from near-twins (two
+      x.BaseTemplate expressions, two map aliases) so the learner
+      must articulate the distinction rather than pattern-match.
+      Completes the planned intermediate coverage: across R04–R06,
+      exercises 05/06/07/10/11/17 are each echoed exactly once.

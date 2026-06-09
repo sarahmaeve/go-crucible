@@ -57,3 +57,6 @@ them inside a diff.
 | [01](./01-first-review/README.md) | First Review: The `--since` Flag PR | Basic | 01, 09 |
 | [02](./02-annotations-feature/README.md) | The Annotations Feature PR | Basic | 02, 04 |
 | [03](./03-tagging-rules/README.md) | The Tagging Rules PR | Basic | 03, 04 |
+| [04](./04-remote-write/README.md) | The Remote Write PR | Intermediate | 05, 10 |
+| [05](./05-alert-summaries/README.md) | The Alert Summaries PR | Intermediate | 06, 17 |
+| [06](./06-org-defaults/README.md) | The Org Defaults PR | Intermediate | 07, 11 |
