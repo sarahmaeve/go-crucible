@@ -55,8 +55,8 @@ If you get stuck, [`HINTS.md`](./HINTS.md) escalates progressively.
 ## What you will learn
 
 - How to read a Go panic traceback: the panic value, the
-  `goroutine N [running]` header, the runtime `panic` frame, and the
-  call chain beneath it — including which line each frame charges
+  `goroutine N [running]` header, and the call chain with its
+  rendered argument values — including which line each frame charges
   (the *call site* in that function, not its first line).
 - What a traceback does **not** show: deferred functions that ran
   during unwinding and returned. Recovery that fails leaves no frames

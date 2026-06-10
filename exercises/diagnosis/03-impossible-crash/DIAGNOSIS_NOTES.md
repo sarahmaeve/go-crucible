@@ -12,13 +12,18 @@ order, not just your final answer.
 panic: reprocess: malformed sample 117: negative timestamp delta
 
 goroutine 1 [running]:
-panic({...})                              runtime/panic.go:792
-main.reprocessBatch.func1({...})          /srv/reprocess/main.go:84
+main.reprocessBatch.func1({{...}, ...})   /srv/reprocess/main.go:84
 worker.(*Pool).processOne(...)            pool.go:72
-worker.(*Pool).Process(...)               pool.go:59
+worker.(*Pool).Process(..., {_, 0x7d0, _}) pool.go:59
 main.reprocessBatch(...)                  /srv/reprocess/main.go:71
 main.main()                               /srv/reprocess/main.go:38
 ```
+
+(The hex blobs after each function are rendered argument values —
+`0x7d0` in the `Process` frame is the 2,000-sample batch length, and
+`0x405d400000000000` in the upper frames is the IEEE-754 bit pattern
+of 117.0, the sample's value. They're occasionally useful corroboration,
+never required reading.)
 
 Reading frame line numbers as call sites: the processor closure
 (main.go:84) panicked; it had been invoked by `processOne` at

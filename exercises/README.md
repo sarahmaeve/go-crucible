@@ -62,6 +62,63 @@ Copy this into a local file or a notebook to track your progress:
 - **Intermediate** — requires understanding a specific Go runtime or type-system behaviour.
 - **Advanced** — compound bugs or subtle runtime effects that are difficult to observe without the right tools.
 
+## Topic Lanes
+
+Numeric order interleaves the difficulty tiers and scatters related
+patterns. If you'd rather build one pattern family at a time — or you
+have two hours and want a coherent subset — work a lane. Doing
+related exercises back to back is deliberate: the lessons sharpen
+each other (03 and 20 teach the *difference* between two
+error-classification failures far better together than weeks apart).
+Lanes overlap a little; that's fine. † marks exercises pre-solved on
+`main` (`git apply -R solutions/NN-*.patch` first).
+
+- **Errors — how failures travel:** 01 → 03 → 20
+  (swallowed entirely → chain broken by `%v` → chain intact but
+  matched by message text).
+  *Then review it:* [R01](./review/01-first-review/README.md),
+  [R03](./review/03-tagging-rules/README.md).
+- **Data shapes — values that aren't what they look like:**
+  02 → 04 → 17 → 07 → 15
+  (nil map → invisible fields → map values are copies → maps alias →
+  omitempty eats meaningful zeros).
+  *Then review it:* [R02](./review/02-annotations-feature/README.md),
+  [R05](./review/05-alert-summaries/README.md),
+  [R06](./review/06-org-defaults/README.md),
+  [R08](./review/08-workflow-sync/README.md).
+- **Goroutine lifecycle — every goroutine needs an exit:**
+  06 → 13 → 14 → 19†
+  (no exit path on send → Wait races Add → closed-channel spin →
+  compound shutdown).
+  *Then review it:* [R05](./review/05-alert-summaries/README.md),
+  [R07](./review/07-drain-on-shutdown/README.md),
+  [R10](./review/10-watch-mode/README.md);
+  *or diagnose it:* [D01](./diagnosis/01-goroutine-pileup/README.md).
+- **Resource lifecycle — close what you open:** 09 → 16 → 18†
+  (never closed → defer scoped to the wrong frame → timers are
+  resources too).
+  *Then review it:* [R01](./review/01-first-review/README.md),
+  [R08](./review/08-workflow-sync/README.md),
+  [R09](./review/09-replay-throttle/README.md).
+- **Races — run these with `-race`:** 08 → 12
+  (concurrent map writes → slice append is read-modify-write).
+  *Then diagnose it:*
+  [D02](./diagnosis/02-two-stacks/README.md).
+- **Type-system traps — the compiler is satisfied, you are not:**
+  05 → 11 → 22
+  (typed nil in an interface → embedded method dispatch → recover in
+  the wrong frame).
+  *Then review it:* [R04](./review/04-remote-write/README.md),
+  [R06](./review/06-org-defaults/README.md),
+  [R10](./review/10-watch-mode/README.md);
+  *or diagnose it:* [D03](./diagnosis/03-impossible-crash/README.md).
+- **The HTTP handler trio — what a handler must get right:**
+  09 → 10† → 21
+  (close the bodies you open → propagate the request context → bound
+  the request body).
+  *Then review it:* [R04](./review/04-remote-write/README.md),
+  [R09](./review/09-replay-throttle/README.md).
+
 ## Review Track
 
 A parallel track of exercises focused on **reading change** rather than

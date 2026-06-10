@@ -18,23 +18,32 @@ re-runs was a month of ignored evidence.
 ### 2. The two access stacks
 
 ```
-Write at 0x00c0001c4018 by goroutine 27:
-  audit.ConcurrentAudit.func1()  report.go:55
+Read at 0x00c0001c4018 by goroutine 27:
+  audit.ConcurrentAudit.func1()  report.go:55 +0x1ec
 Previous write at 0x00c0001c4018 by goroutine 25:
-  audit.ConcurrentAudit.func1()  report.go:55
+  audit.ConcurrentAudit.func1()  report.go:55 +0x284
 ```
 
 Three observations, in descending order of importance:
 
-- **Write / previous write** — both accesses are writes. Write/write
-  races corrupt state (read/write races usually just observe torn
-  state). Whatever lives at that address is being clobbered.
 - **The same line in both stacks** — `report.go:55` is racing against
   itself. The function isn't fighting some other subsystem; it is
   running concurrently with its own copies and sharing something it
   shouldn't.
+- **A read and a write at the same line, two instruction offsets
+  apart** — one goroutine was loading the cell while another had
+  stored to it, unordered. A read/write pair at a single source line
+  is read-modify-write caught mid-flight. (Later blocks in the same
+  run show write/write pairs at the same line; which shape gets
+  reported first is scheduling luck, and any unordered combination
+  convicts.)
 - **The same address in both** — one memory cell, not two elements of
   an array. Every worker is hitting one shared variable.
+
+One frame below each access, `ConcurrentAudit.gowrap1` is the
+compiler-generated wrapper that a `go` statement compiles into —
+runtime scaffolding you will see in every modern race report and
+traceback. Your code is the `func1` frame above it.
 
 ### 3. The created-at stacks
 
@@ -54,7 +63,7 @@ incidental — a goroutine ending doesn't un-race its writes.
 ### 4. The corroborating count
 
 ```
-report_test.go:80: expected 50 total findings ... got 35
+report_test.go:81: expected 50 total findings ... got 35
 ```
 
 The shared cell is written by every worker at line 55, and the test
@@ -105,7 +114,9 @@ mechanism story, and the count arithmetic locks that in.
 ## What this artifact teaches beyond the bug
 
 - A race report is four stacks and an address; read them as a
-  sentence: *who wrote, who else wrote, who started each*.
+  sentence: *who touched it, who touched it before, who started
+  each*. Read vs write tells you whether you caught the load or the
+  store of a read-modify-write.
 - **Same line in both stacks** = a function racing its own instances =
   look for the fan-out that launched it (the `created at` line hands
   it to you).

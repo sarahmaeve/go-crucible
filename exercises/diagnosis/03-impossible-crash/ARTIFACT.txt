@@ -9,18 +9,16 @@ time=2026-06-08T22:14:04.170Z level=INFO msg="progress" done=100 errors=0
 panic: reprocess: malformed sample 117: negative timestamp delta
 
 goroutine 1 [running]:
-panic({0x5b8460?, 0xc000136050?})
-	/usr/local/go/src/runtime/panic.go:792 +0x132
-main.reprocessBatch.func1({0xc0003a2d80?, 0x11?, 0xc000136040?})
-	/srv/reprocess/main.go:84 +0x1e5
-github.com/go-crucible/go-crucible/internal/worker.(*Pool).processOne(0xc00012e5a0, {0xc0003a2d80, 0x11}, ...)
-	/build/go-crucible/internal/worker/pool.go:72 +0xc5
+main.reprocessBatch.func1({{0xc0003a2d80, 0x11}, 0x0, 0x405d400000000000, {0x0, 0x0, 0x0}})
+	/srv/reprocess/main.go:84 +0x139
+github.com/go-crucible/go-crucible/internal/worker.(*Pool).processOne(0xc00012e5a0?, {{0xc0003a2d80, 0x11}, 0x0, 0x405d400000000000, {0x0, 0x0, 0x0}})
+	/build/go-crucible/internal/worker/pool.go:72 +0x137
 github.com/go-crucible/go-crucible/internal/worker.(*Pool).Process(0xc00012e5a0, {0xc000400000, 0x7d0, 0x7d0})
-	/build/go-crucible/internal/worker/pool.go:59 +0x9e
-main.reprocessBatch(0xc00012e5a0, {0xc000400000, 0x7d0, 0x7d0})
-	/srv/reprocess/main.go:71 +0x178
+	/build/go-crucible/internal/worker/pool.go:59 +0x165
+main.reprocessBatch({0xc000400000?, 0x7d0?, 0x7d0?}, 0xc000130018?)
+	/srv/reprocess/main.go:71 +0x1bf
 main.main()
-	/srv/reprocess/main.go:38 +0x2ec
+	/srv/reprocess/main.go:38 +0x38e
 exit status 2
 
 [Attached by the reporting engineer:]

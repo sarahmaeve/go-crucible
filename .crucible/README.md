@@ -77,4 +77,9 @@ and `verify` before anything that touches `.go` files or patches.
    **same commit**: an artifact pointing at the wrong line teaches the
    wrong lesson, which is worse than no exercise at all. Each
    `diagnosis_exercises` entry in `exercises.yaml` lists the files (and
-   lines) its artifact embeds under `references`.
+   lines) its artifact embeds under `references`. Capture recipes for
+   regenerating and format-validating artifacts — including the
+   gotchas (GC-dependent wait durations, gowrap frames, no runtime
+   panic frame in modern tracebacks) — live in
+   `notes/diagnosis-artifacts.md`. Capture first, then fictionalise;
+   never write tool output from memory.

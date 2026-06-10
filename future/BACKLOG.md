@@ -341,6 +341,22 @@ Move entries here when the exercise lands on `main`.
 - **Exercise 22 — The Hollow Recovery.** Commit `df3862b`. Inspired
   by John Doak's §15 (defer/panic/recover) deck; recovery helper
   mis-framed across the defer boundary so recover() returns nil.
+- **Diagnosis-artifact format validation + capture recipes.** Shipped
+  2026-06-09. All three ARTIFACT.txt files diffed against real tool
+  output (go 1.26.3) and corrected: D02 gained the real
+  Read/Previous-write first pair, gowrap1 frames, four-frame
+  created-at stacks, and real testing.go lines; D03 lost the
+  nonexistent runtime panic frame and gained expanded-struct argument
+  rendering; D01's offsets aligned (its structure was right — and the
+  GC-dependent waitsince behaviour behind wait durations is now
+  documented). Capture recipes + gotchas live in
+  .crucible/notes/diagnosis-artifacts.md; rule 4 points there.
+- **Topic lanes in the exercise index.** Shipped 2026-06-09. Seven
+  themed reading paths (errors / data shapes / goroutine lifecycle /
+  resources / races / type-system traps / HTTP handler trio) in
+  exercises/README.md, difficulty-ordered within each lane, each
+  ending in pointers to the review and diagnosis exercises that
+  echo it.
 - **Review Exercise R10 (Capstone).** Shipped 2026-06-09. The Watch
   Mode PR — kube-patrol --watch daemon mode, feature-branch-sized
   diff, one planted bug per tier (02 / 13 / 22), with a detonation

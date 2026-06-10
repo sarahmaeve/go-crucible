@@ -5,7 +5,7 @@ Binary embeds: github.com/go-crucible/go-crucible (ingest package)
 $ curl -s http://localhost:6060/debug/pprof/goroutine?debug=1
 goroutine profile: total 3871
 3848 @ 0x43e96e 0x40764d 0x4071b8 0x4cf3a5 0x46c041
-#	0x4cf3a4	github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1+0x84	/build/go-crucible/internal/ingest/reader.go:18
+#	0x4cf3a4	github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1+0x52	/build/go-crucible/internal/ingest/reader.go:18
 
 8 @ 0x43e96e 0x437a17 0x46f9c5 0x4e58e7 0x4e6bcd 0x4e6bbb 0x57a4ce 0x58c3e5 0x46c041
 #	0x46f9c4	internal/poll.runtime_pollWait+0x84		/usr/local/go/src/runtime/netpoll.go:351
@@ -33,21 +33,21 @@ goroutine profile: total 3871
 $ curl -s 'http://localhost:6060/debug/pprof/goroutine?debug=2' | head -60
 goroutine 81442 [chan send, 1129 minutes]:
 github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
-	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+	/build/go-crucible/internal/ingest/reader.go:18 +0x53
 created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
 
 goroutine 81519 [chan send, 1127 minutes]:
 github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
-	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+	/build/go-crucible/internal/ingest/reader.go:18 +0x53
 created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
 
 goroutine 82201 [chan send, 1102 minutes]:
 github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
-	/build/go-crucible/internal/ingest/reader.go:18 +0x84
+	/build/go-crucible/internal/ingest/reader.go:18 +0x53
 created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
 
 [snip: 3,845 further goroutines with this exact stack, wait durations
  ranging from 2 minutes to 9,841 minutes. Oldest entries date to the

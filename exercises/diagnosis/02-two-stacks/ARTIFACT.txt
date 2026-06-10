@@ -1,42 +1,58 @@
 Source: nightly CI, job "test-race", run #1882, 2026-06-05 03:42 UTC
 Command: go test -race -count=5 ./...
-Excerpt: the failing package's output. Earlier packages all passed.
+Excerpt: the failing package's output — first WARNING block of four.
+Earlier packages all passed.
 
 === RUN   TestExercise12_RaceReport
 ==================
 WARNING: DATA RACE
-Write at 0x00c0001c4018 by goroutine 27:
+Read at 0x00c0001c4018 by goroutine 27:
   github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit.func1()
-      /home/ci/work/go-crucible/internal/audit/report.go:55 +0x144
+      /home/ci/work/go-crucible/internal/audit/report.go:55 +0x1ec
+  github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit.gowrap1()
+      /home/ci/work/go-crucible/internal/audit/report.go:56 +0x38
 
 Previous write at 0x00c0001c4018 by goroutine 25:
   github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit.func1()
-      /home/ci/work/go-crucible/internal/audit/report.go:55 +0x144
+      /home/ci/work/go-crucible/internal/audit/report.go:55 +0x284
+  github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit.gowrap1()
+      /home/ci/work/go-crucible/internal/audit/report.go:56 +0x38
 
 Goroutine 27 (running) created at:
   github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit()
-      /home/ci/work/go-crucible/internal/audit/report.go:44 +0x238
+      /home/ci/work/go-crucible/internal/audit/report.go:44 +0x15a
   github.com/go-crucible/go-crucible/internal/audit_test.TestExercise12_RaceReport()
-      /home/ci/work/go-crucible/internal/audit/report_test.go:75 +0x2b1
+      /home/ci/work/go-crucible/internal/audit/report_test.go:75 +0x284
   testing.tRunner()
-      /usr/local/go/src/testing/testing.go:1792 +0xf4
+      /usr/local/go/src/testing/testing.go:2036 +0x21c
+  testing.(*T).Run.gowrap1()
+      /usr/local/go/src/testing/testing.go:2101 +0x38
 
 Goroutine 25 (finished) created at:
   github.com/go-crucible/go-crucible/internal/audit.ConcurrentAudit()
-      /home/ci/work/go-crucible/internal/audit/report.go:44 +0x238
+      /home/ci/work/go-crucible/internal/audit/report.go:44 +0x15a
   github.com/go-crucible/go-crucible/internal/audit_test.TestExercise12_RaceReport()
-      /home/ci/work/go-crucible/internal/audit/report_test.go:75 +0x2b1
+      /home/ci/work/go-crucible/internal/audit/report_test.go:75 +0x284
   testing.tRunner()
-      /usr/local/go/src/testing/testing.go:1792 +0xf4
+      /usr/local/go/src/testing/testing.go:2036 +0x21c
+  testing.(*T).Run.gowrap1()
+      /usr/local/go/src/testing/testing.go:2101 +0x38
 ==================
-    report_test.go:81: expected 50 total findings from 10 auditors × 5 findings each, got 35
-    testing.go:1490: race detected during execution of test
---- FAIL: TestExercise12_RaceReport (0.01s)
-=== RUN   TestExercise13_LostGoroutine
---- PASS: TestExercise13_LostGoroutine (0.02s)
-FAIL
-FAIL	github.com/go-crucible/go-crucible/internal/audit	1.847s
 
-[CI annotation: the same WARNING block appeared in runs #1858, #1861,
- #1874 with different goroutine numbers and addresses; runs in between
- passed clean. Finding counts on failing runs: 35, 40, 45, 35.]
+[snip: three further WARNING blocks in the same run — same two
+ creation sites, different goroutine pairs; in one pair the top
+ frames are runtime.growslice / runtime.slicecopy. Full log archived
+ with the CI run.]
+
+    report_test.go:81: expected 50 total findings from 10 auditors × 5 findings each, got 35
+    testing.go:1712: race detected during execution of test
+--- FAIL: TestExercise12_RaceReport (1.04s)
+=== RUN   TestExercise13_LostGoroutine
+--- PASS: TestExercise13_LostGoroutine (0.31s)
+FAIL
+FAIL	github.com/go-crucible/go-crucible/internal/audit	2.780s
+
+[CI annotation: the same WARNING appeared in runs #1858, #1861,
+ #1874 with different goroutine numbers and addresses; runs in
+ between passed clean. Finding counts on failing runs: 35, 40, 45,
+ 35.]
