@@ -34,3 +34,10 @@ go test ./internal/health/ -run TestExercise10 -v
 ```
 
 See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.
+
+## Extension
+
+See [EXTENSION.md](./EXTENSION.md) for a `testing/synctest` rewrite of this
+exercise's test that uses a fake clock to assert the deadline behaviour exactly
+and instantly — replacing the real 0.5–1 s wall-clock wait and the "returned
+within a second" proxy assertion.

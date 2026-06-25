@@ -34,3 +34,10 @@ go test ./internal/ingest/ -run TestExercise06 -v
 ```
 
 See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.
+
+## Extension
+
+Once you have fixed the bug, see [EXTENSION.md](./EXTENSION.md) for a
+`testing/synctest` rewrite of this exercise's test that catches the leak
+deterministically — no `time.Sleep`, no goroutine counting, and a failure
+message that names the blocked line.
