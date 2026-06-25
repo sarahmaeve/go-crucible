@@ -89,6 +89,17 @@ Two further entry paths to the same 22 bugs:
   the on-call skill: most production bugs arrive as an artifact, not
   as a failing test.
 
+## Extensions
+
+A few exercises carry an optional **extension** that revisits the *testing*
+technique rather than the fix. Exercises 06 and 10 each have an `EXTENSION.md`
+showing a [`testing/synctest`](./docs/synctest.md) rewrite of their test:
+synctest turns the goroutine-leak check (06) into a deterministic deadlock that
+names the blocked line, and the context-deadline check (10) into an exact
+assertion that runs in fake time. See [docs/synctest.md](./docs/synctest.md) for
+the model, a fit map of where the technique helps (and where it does not), and
+how to run the extension tests.
+
 ## Repository Layout
 
 ```
@@ -109,6 +120,7 @@ exercises/      One subdirectory per exercise — README.md and HINTS.md
   review/       Review track — simulated PRs to review (R01, R02, ...)
   diagnosis/    Diagnosis track — artifact-first debugging (D01, D02, ...)
 solutions/      Reference solutions (consult only after you have tried)
+docs/           Supporting docs (Go style précis, testing/synctest guide)
 testdata/       Sample YAML files used by tests
 .crucible/      Maintainer registry — contains spoilers; do not read until
                 after attempting an exercise
