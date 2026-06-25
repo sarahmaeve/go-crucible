@@ -43,6 +43,11 @@ the sentinel.
 - A string-match classifier tends to pass a happy-path test and fail
   only when the second store, the driver upgrade, or the library rewrite
   arrives — which is exactly when you least want to debug it.
+- The test for this exercise uses a table-driven structure — a `cases`
+  slice with `t.Run` — so both store implementations get an independent
+  subtest even when one fails. Notice that each case runs in its own
+  goroutine: a `t.Fatal` inside `t.Run` exits only that subtest, not the
+  whole test function. See [go.dev/wiki/TableDrivenTests](https://go.dev/wiki/TableDrivenTests).
 
 ## Related Exercises
 

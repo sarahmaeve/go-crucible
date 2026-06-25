@@ -64,3 +64,4 @@ them inside a diff.
 | [08](./08-workflow-sync/README.md) | The Workflow Sync PR | Advanced | 15, 16 |
 | [09](./09-replay-throttle/README.md) | The Replay Throttle PR | Advanced | 18, 19 |
 | [10](./10-watch-mode/README.md) | Capstone: The Watch Mode PR | Capstone | 02, 13, 22 |
+| [11](./11-test-quality-pr/README.md) | The Test Refactor PR | Intermediate | 20 |

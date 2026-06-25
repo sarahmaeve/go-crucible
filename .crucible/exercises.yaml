@@ -1329,8 +1329,58 @@ review_exercises:
       intentionally beyond ex 22, continuing R09's pattern-library-
       runs-out theme. kube-patrol hosts it to balance app coverage
       (only R01 before this). Numbered exercises still never echoed
-      in the review track — 08, 12, 20, 21 — noted as future
-      material.
+      in the review track — 08, 12, 21 — noted as future material.
+      Ex 20 is now echoed in R11.
+
+  - number: "R11"
+    title: The Test Refactor PR
+    tier: intermediate
+    draws_on: ["20"]
+    directory: exercises/review/11-test-quality-pr/
+    scenario: >
+      Simulated PR against gh-forge that collapses seven separate
+      TestValidateWorkflow_* functions in internal/validate/validator_test.go
+      into a single table-driven test with descriptive case names. The
+      structural improvement is genuine but the loop uses t.Fatalf without
+      t.Run, silently discarding all cases after the first failure.
+    planted:
+      - kind: correctness
+        echoes: "20"
+        summary: >
+          The table loop uses t.Fatalf without t.Run. t.Fatal calls
+          runtime.Goexit on the current goroutine; in a bare loop that
+          goroutine is the test goroutine, so the first failing case
+          exits TestValidateWorkflow entirely and all subsequent cases
+          produce no output. The original seven separate functions each
+          ran in their own goroutine and could not silence each other.
+          Fix: wrap the loop body in t.Run(tc.name, func(t *testing.T){}).
+      - kind: red-herring
+        summary: >
+          Package-level var validWF = &types.Workflow{...} is shared by
+          the "valid workflow" table entry. Looks like mutable shared
+          state across cases, but ValidateWorkflow is read-only (returns
+          errors, does not modify its argument), so the shared pointer
+          is safe.
+    teaches:
+      - t.Fatal calls runtime.Goexit on the current goroutine; in a bare
+        loop that exits the whole test function, not just the current
+        iteration
+      - t.Run gives each table entry its own subtest goroutine so t.Fatal
+        is safely scoped to that entry
+      - A structural improvement (table vs copy-paste) can be a behavioural
+        regression if the loop mechanism breaks independent failure reporting
+      - Shared pointers in table fixtures require checking the function
+        under test's contract, not just the test code
+    notes: >
+      First review exercise echoing ex 20. The lesson is not about
+      errors.Is (ex 20's source code lesson) but about t.Run's role in
+      table-driven tests, which is orthogonal. The red herring (shared
+      *Workflow pointer) is a natural consequence of pulling repeated
+      fixture setup into a package-level variable — the pattern is
+      idiomatic and safe when the function under test is read-only.
+      Tier: intermediate because the blocker requires understanding
+      t.Fatal's goroutine semantics, not just recognising t.Fatal as
+      "suspicious in a loop."
 
 # -----------------------------------------------------------------------------
 # Diagnosis Track
