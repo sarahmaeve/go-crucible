@@ -70,7 +70,7 @@ func TestAuditDeploymentLabels_DetectsMissingLabels(t *testing.T) {
 	fc := client.NewFakeClient(dep)
 
 	// Wrap in recover so the test doesn't crash.
-	var findings []interface{}
+	var findings []any
 	panicked := false
 	func() {
 		defer func() {
@@ -94,6 +94,6 @@ func TestAuditDeploymentLabels_DetectsMissingLabels(t *testing.T) {
 
 	// Expect 2 findings: missing "version" and "team".
 	if len(findings) != 2 {
-		t.Errorf("expected 2 findings for 2 missing labels, got %d", len(findings))
+		t.Errorf("findings count = %d, want 2", len(findings))
 	}
 }

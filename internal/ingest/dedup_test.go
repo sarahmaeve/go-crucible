@@ -65,7 +65,7 @@ func (s *modernStore) Put(_ context.Context, key string, _ types.Metric) error {
 // duplicate-key error from any CacheStore implementation as idempotent
 // success regardless of which conforming store produced the error.
 func TestExercise20_BrittleMatch(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	metric := types.Metric{
 		Name:      "cpu_usage",
 		Value:     87.0,

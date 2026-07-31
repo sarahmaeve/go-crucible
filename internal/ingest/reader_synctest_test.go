@@ -26,7 +26,7 @@ import (
 // real-time timeout with deterministic coordination.
 func TestExercise06_Synctest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		out := make(chan types.Metric)
 
 		// Use a predictable source that always has another value available.

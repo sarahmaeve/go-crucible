@@ -13,7 +13,7 @@ import (
 // TestExercise06_StuckPipeline verifies that ReadMetrics returns the caller's
 // cancellation after its consumer stops accepting values.
 func TestExercise06_StuckPipeline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	out := make(chan types.Metric) // unbuffered — consumer controls flow
 
 	// InfiniteSource always has a metric ready, keeping the fixture focused on
@@ -76,7 +76,7 @@ func TestExercise14_ForeverForwarder(t *testing.T) {
 	})
 
 	t.Run("cancellation interrupts blocked output", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		in := make(chan types.Metric)
 		out := make(chan types.Metric) // deliberately has no receiver
 		done := make(chan error, 1)

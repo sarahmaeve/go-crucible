@@ -106,7 +106,7 @@ jobs:
 		}
 	}
 	if !found {
-		t.Errorf("expected 'workflow-name-required' finding for nameless workflow, got findings: %v", findings)
+		t.Errorf("findings = %v, want rule %q", findings, "workflow-name-required")
 	}
 }
 
@@ -118,7 +118,7 @@ func TestLintWorkflows_EmptyDir(t *testing.T) {
 		t.Fatalf("LintWorkflows on empty dir returned error: %v", err)
 	}
 	if len(findings) != 0 {
-		t.Errorf("expected no findings for empty dir, got %d", len(findings))
+		t.Errorf("findings for empty dir = %d, want 0", len(findings))
 	}
 }
 
@@ -157,5 +157,5 @@ jobs:
 			return
 		}
 	}
-	t.Fatalf("expected pin-actions-version finding, got %v", findings)
+	t.Fatalf("findings = %v, want rule %q", findings, "pin-actions-version")
 }

@@ -28,7 +28,7 @@ func TestExercise07_PhantomMatrix(t *testing.T) {
 	}
 
 	// Build a set of expected combinations.
-	type pair struct{ os, go_ string }
+	type pair struct{ os, goVersion string }
 	want := map[pair]bool{
 		{"ubuntu-latest", "1.21"}: true,
 		{"ubuntu-latest", "1.22"}: true,
@@ -60,12 +60,12 @@ func TestExercise07_PhantomMatrix(t *testing.T) {
 
 	// Every expected combination must appear exactly once.
 	for p := range want {
-		key := fmt.Sprintf("os=%s go=%s", p.os, p.go_)
+		key := fmt.Sprintf("os=%s go=%s", p.os, p.goVersion)
 		count := seen[key]
 		if count == 0 {
-			t.Errorf("combination os=%q go=%q is missing from results", p.os, p.go_)
+			t.Errorf("combination os=%q go=%q is missing from results", p.os, p.goVersion)
 		} else if count > 1 {
-			t.Errorf("combination os=%q go=%q appears %d times; want 1", p.os, p.go_, count)
+			t.Errorf("combination os=%q go=%q appears %d times; want 1", p.os, p.goVersion, count)
 		}
 	}
 

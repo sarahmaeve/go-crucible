@@ -27,7 +27,7 @@ func TestExercise10_HangingHealthCheck(t *testing.T) {
 		}
 
 		checker := health.NewHealthChecker([]health.CheckFunc{slowCheck})
-		ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 		defer cancel()
 
 		start := time.Now()

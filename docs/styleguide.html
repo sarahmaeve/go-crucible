@@ -1,0 +1,1683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An expanded, example-rich guide to readable, production-minded Go for the go-crucible project.">
+  <title>Go Style &amp; Readability — go-crucible</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06070b;
+      --surface: #f7f4ea;
+      --surface-solid: #fbf9f2;
+      --ink: #101216;
+      --text: #f2efe6;
+      --muted: #aeb4bd;
+      --accent: #4c8fd8;
+      --accent-2: #aad24a;
+      --accent-soft: #16283c;
+      --warning: #d0a24a;
+      --error: #b84a55;
+      --chrome: linear-gradient(90deg, #242930 0%, #e9e9e4 17%, #707781 38%, #f8f7f0 55%, #4f5660 78%, #d8d9d5 100%);
+      --display: "Arial Narrow", "Aptos Narrow", "Roboto Condensed", Impact, sans-serif;
+      --body: Inter, Aptos, "Segoe UI", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      --shadow-sm: 0 1px 0 rgba(255,255,255,.3) inset, 0 8px 20px rgba(0,0,0,.35);
+      --shadow-md: 0 1px 0 rgba(255,255,255,.42) inset, 0 22px 60px rgba(0,0,0,.46);
+      --shadow-lg: 0 0 0 1px rgba(255,255,255,.06), 0 40px 110px rgba(0,0,0,.62);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 81% 7%, rgba(76,143,216,.14), transparent 28rem),
+        linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, 48px 48px, 48px 48px, auto;
+      color: var(--text);
+      font: 17px/1.58 var(--body);
+      letter-spacing: -.012em;
+    }
+
+    a { color: inherit; }
+    a:hover { color: var(--accent); }
+    a:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 4px;
+    }
+    code, pre, .mono { font-family: var(--mono); }
+    code { font-size: .92em; }
+    p, li { max-width: 76ch; }
+    img, svg { max-width: 100%; }
+
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      top: 12px;
+      left: 12px;
+      padding: 10px 16px;
+      border-radius: 9999px;
+      background: var(--accent);
+      color: var(--bg);
+      transform: translateY(-180%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell {
+      width: min(1320px, calc(100% - 48px));
+      margin-inline: auto;
+    }
+
+    .micro {
+      margin: 0;
+      color: var(--muted);
+      font: 700 .72rem/1.2 var(--mono);
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-block: 24px;
+    }
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .signal {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(76,143,216,.12), 0 0 18px rgba(76,143,216,.55);
+    }
+    .header-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 40px;
+      padding: 8px 15px;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.055));
+      box-shadow: 0 1px 0 rgba(255,255,255,.28) inset, 0 -1px 0 rgba(0,0,0,.8) inset;
+      color: var(--text);
+      font: 700 .72rem/1 var(--mono);
+      letter-spacing: .06em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .capsule::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr);
+      gap: 32px;
+      align-items: stretch;
+      padding: 52px 0 96px;
+    }
+    .hero-copy {
+      min-height: 550px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      overflow: hidden;
+      position: relative;
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow-lg);
+    }
+    .hero-copy::before, .rail::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 13px;
+      background: var(--chrome);
+      box-shadow: 0 2px 0 #08090b;
+    }
+    .hero-copy::after {
+      content: "READABILITY / 01";
+      position: absolute;
+      right: 13px;
+      top: 46px;
+      writing-mode: vertical-rl;
+      color: rgba(16,18,22,.42);
+      font: 700 .64rem/1 var(--mono);
+      letter-spacing: .18em;
+    }
+    h1, h2, h3 {
+      font-family: var(--display);
+      line-height: 1.05;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+    h1 {
+      max-width: 8ch;
+      margin: 26px 0 28px;
+      font-size: clamp(4.3rem, 9vw, 8.4rem);
+      text-transform: uppercase;
+    }
+    .dek {
+      max-width: 36rem;
+      margin: 0;
+      font-size: clamp(1.12rem, 2vw, 1.42rem);
+      line-height: 1.45;
+      letter-spacing: -.025em;
+    }
+    .priority {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 40px;
+      padding: 0;
+      list-style: none;
+    }
+    .priority li {
+      padding: 8px 12px;
+      border-radius: 9999px;
+      background: var(--ink);
+      color: var(--text);
+      font: 700 .68rem/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .priority li:first-child { background: var(--accent); color: var(--bg); }
+
+    .terminal {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 550px;
+      padding: 48px 32px 32px;
+      background: #0b0e13;
+      box-shadow: var(--shadow-lg);
+    }
+    .terminal::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 13px;
+      background: var(--chrome);
+      box-shadow: 0 2px 0 #000;
+    }
+    .terminal-log {
+      display: grid;
+      gap: 10px;
+      margin: 34px 0;
+      padding: 0;
+      color: #d8dce1;
+      font: .79rem/1.55 var(--mono);
+      letter-spacing: .025em;
+      list-style: none;
+    }
+    .terminal-log li { display: grid; grid-template-columns: 3.8rem 1fr; gap: 12px; }
+    .terminal-log .key { color: var(--accent); }
+    .terminal-log .ok { color: var(--accent-2); }
+    .terminal-callout {
+      padding: 24px;
+      background: var(--accent-soft);
+      box-shadow: var(--shadow-sm);
+    }
+    .terminal-callout strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-family: var(--display);
+      font-size: 1.55rem;
+      letter-spacing: -.02em;
+    }
+    .terminal-callout p { margin: 0; color: #c4ccd6; font-size: .94rem; }
+
+    .contents-wrap { padding-bottom: 96px; }
+    .contents {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 48px;
+      padding: 40px;
+      background: var(--surface-solid);
+      color: var(--ink);
+      box-shadow: var(--shadow-md);
+    }
+    .contents::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 9px;
+      background: var(--chrome);
+    }
+    .contents h2 { margin: 12px 0 20px; font-size: clamp(2.1rem, 4vw, 3.2rem); }
+    .chapter-links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0;
+      list-style: none;
+    }
+    .chapter-links a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #e9e6dd;
+      color: var(--ink);
+      font-size: .92rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .chapter-links span { color: #527eac; font-family: var(--mono); font-size: .72rem; }
+    .contents-note {
+      align-self: end;
+      padding: 24px;
+      background: var(--ink);
+      color: var(--text);
+    }
+    .contents-note p { margin: 8px 0 0; color: #c7ccd3; }
+
+    .chapter { padding: 96px 0; scroll-margin-top: 24px; }
+    .chapter-head {
+      display: grid;
+      grid-template-columns: minmax(130px, 2fr) minmax(0, 7fr);
+      gap: 48px;
+      align-items: start;
+      margin-bottom: 48px;
+    }
+    .chapter-number {
+      color: var(--accent);
+      font: 700 clamp(4rem, 9vw, 7rem)/.8 var(--display);
+      letter-spacing: -.06em;
+    }
+    .chapter h2 { margin: 0 0 16px; font-size: clamp(2.8rem, 6vw, 5.5rem); text-transform: uppercase; }
+    .chapter-intro { margin: 0; color: #c6cbd2; font-size: 1.18rem; }
+
+    .paper {
+      position: relative;
+      margin: 0 0 48px;
+      padding: 48px;
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow-md);
+    }
+    .paper::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 9px;
+      background: var(--chrome);
+      box-shadow: 0 2px 0 #111;
+    }
+    .paper h3 { margin: 14px 0 18px; font-size: clamp(1.9rem, 4vw, 3.1rem); }
+    .paper h4 {
+      margin: 32px 0 10px;
+      font: 800 .76rem/1 var(--mono);
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .paper p:first-of-type { font-size: 1.08rem; }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr);
+      gap: 40px;
+      align-items: start;
+    }
+    .rule-list { margin: 18px 0; padding-left: 1.2rem; }
+    .rule-list li { margin-block: 9px; }
+    .aside {
+      padding: 24px;
+      background: #e6e3da;
+      box-shadow: 5px 5px 0 #1b1d21;
+    }
+    .aside p:last-child { margin-bottom: 0; }
+    .aside .micro { color: #54769a; }
+
+    .code-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 28px 0;
+    }
+    .code-panel { min-width: 0; background: #0a0d12; color: #edf0e9; }
+    .code-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 9px 14px;
+      background: #20242b;
+      color: #bfc5cd;
+      font: 700 .66rem/1 var(--mono);
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .code-label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--error); }
+    .code-panel.good .code-label::before { background: var(--accent-2); }
+    pre {
+      margin: 0;
+      padding: 20px;
+      overflow-x: auto;
+      font-size: .82rem;
+      line-height: 1.62;
+      tab-size: 4;
+    }
+    .inline-code {
+      display: block;
+      margin: 24px 0;
+      padding: 20px;
+      overflow-x: auto;
+      background: #0a0d12;
+      color: #edf0e9;
+      font: .82rem/1.62 var(--mono);
+    }
+
+    .tier-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 2px;
+      margin-top: 30px;
+    }
+    .tier {
+      min-height: 165px;
+      padding: 19px;
+      background: #e9e6dd;
+    }
+    .tier strong { display: block; margin: 7px 0 8px; font-family: var(--display); font-size: 1.28rem; }
+    .tier p { margin: 0; font-size: .86rem; line-height: 1.42; }
+    .tier:first-child { background: var(--accent); color: var(--bg); }
+    .tier:last-child { background: var(--ink); color: var(--text); }
+
+    .refs {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(16,18,22,.18);
+    }
+    .refs ul { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .refs a { color: #315f91; font-weight: 700; overflow-wrap: anywhere; }
+    .ref-url {
+      display: block;
+      margin-top: 2px;
+      color: #555d66;
+      font: .7rem/1.4 var(--mono);
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .production-band {
+      padding: 80px 0;
+      background: var(--accent-soft);
+      box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 -1px 0 rgba(255,255,255,.08) inset;
+    }
+    .production-grid {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 56px;
+      align-items: start;
+    }
+    .production-grid h2 { margin: 8px 0 18px; font-size: clamp(3rem, 6vw, 5.6rem); text-transform: uppercase; }
+    .production-grid > div > p { color: #cbd2da; }
+    .sre-list { display: grid; gap: 2px; }
+    .sre-item { padding: 24px; background: var(--surface); color: var(--ink); }
+    .sre-item strong { display: block; margin-bottom: 6px; font-family: var(--display); font-size: 1.45rem; }
+    .sre-item p { margin: 0; font-size: .94rem; }
+
+    .worked-example {
+      margin-bottom: 64px;
+    }
+    .worked-example:last-child { margin-bottom: 0; }
+    .worked-example .code-pair { grid-template-columns: 1fr; }
+    .worked-example pre { font-size: .8rem; }
+    .review-notes {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr);
+      gap: 28px;
+      margin-top: 28px;
+    }
+    .review-notes h4 { margin-top: 0; }
+    .verdict {
+      padding: 24px;
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+    .verdict strong {
+      display: block;
+      margin: 7px 0 10px;
+      font-family: var(--display);
+      font-size: 1.55rem;
+      letter-spacing: -.02em;
+    }
+    .verdict p { margin: 0; color: #c8d0d9; font-size: .9rem; }
+
+    .quick-reference { padding: 96px 0; }
+    .quick-reference h2 { margin: 8px 0 18px; font-size: clamp(3rem, 6vw, 5.5rem); text-transform: uppercase; }
+    .table-wrap { margin-top: 40px; overflow-x: auto; background: var(--surface); box-shadow: var(--shadow-md); }
+    table { width: 100%; border-collapse: collapse; color: var(--ink); font-size: .9rem; }
+    th, td { padding: 13px 16px; border-bottom: 1px solid #d9d5cb; text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; background: #11141a; color: var(--text); font: 700 .7rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    tbody tr:nth-child(even) { background: #efede5; }
+    td:first-child { width: 4rem; color: #426e9d; font: 700 .78rem/1.5 var(--mono); }
+
+    .source-library { padding: 96px 0; }
+    .source-library h2 { margin: 8px 0 20px; font-size: clamp(3rem, 6vw, 5.5rem); text-transform: uppercase; }
+    .source-group {
+      position: relative;
+      margin-top: 36px;
+      padding: 36px;
+      background: var(--surface-solid);
+      color: var(--ink);
+      box-shadow: var(--shadow-md);
+    }
+    .source-group::before { content: ""; position: absolute; inset: 0 0 auto; height: 8px; background: var(--chrome); }
+    .source-group h3 { margin: 10px 0 20px; font-size: 2rem; }
+    .source-group ol { display: grid; gap: 16px; margin: 0; padding-left: 1.4rem; }
+    .source-group a { color: #315f91; font-weight: 750; }
+    .source-group .ref-url { color: #555d66; }
+
+    .page-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 38px 0 64px;
+      border-top: 8px solid transparent;
+      border-image: var(--chrome) 1;
+      color: var(--muted);
+      font: .72rem/1.5 var(--mono);
+      letter-spacing: .04em;
+    }
+
+    @media (max-width: 980px) {
+      .hero, .contents, .production-grid { grid-template-columns: 1fr; }
+      .hero-copy { min-height: 500px; }
+      .terminal { min-height: 430px; }
+      .tier-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tier:last-child { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 720px) {
+      body { font-size: 16px; }
+      .shell { width: min(100% - 24px, 1320px); }
+      .site-header { align-items: flex-start; }
+      .header-links .capsule:first-child { display: none; }
+      .hero { padding: 28px 0 68px; }
+      .hero-copy, .terminal, .paper, .contents, .source-group { padding: 32px 22px; }
+      .hero-copy { min-height: 470px; }
+      h1 { font-size: clamp(3.8rem, 19vw, 6rem); }
+      .chapter { padding: 72px 0; }
+      .chapter-head { grid-template-columns: 1fr; gap: 16px; }
+      .chapter-number { font-size: 4rem; }
+      .rule-grid, .code-pair { grid-template-columns: 1fr; }
+      .review-notes { grid-template-columns: 1fr; }
+      .chapter-links, .tier-strip { grid-template-columns: 1fr; }
+      .tier:last-child { grid-column: auto; }
+      .page-footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+
+    @media print {
+      :root { color-scheme: light; }
+      body { background: #fff; color: #111; font-size: 11pt; }
+      .shell { width: 100%; }
+      .site-header, .contents-wrap { display: none; }
+      .hero { display: block; padding: 0 0 28pt; }
+      .hero-copy, .terminal, .paper, .source-group, .table-wrap { box-shadow: none; break-inside: avoid; }
+      .hero-copy { min-height: 0; padding: 24pt; }
+      .terminal { min-height: 0; margin-top: 12pt; }
+      .chapter, .quick-reference, .source-library { padding: 32pt 0; }
+      .chapter h2, .quick-reference h2, .source-library h2 { color: #111; }
+      .chapter-intro, .production-grid > div > p { color: #333; }
+      a { color: #111; text-decoration: underline; }
+      .production-band { background: #eee; color: #111; }
+      .page-footer { color: #333; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+
+  <header class="site-header shell">
+    <a class="wordmark" href="../README.md" aria-label="go-crucible home">
+      <span class="signal" aria-hidden="true"></span>
+      <span class="micro">go-crucible / field manual</span>
+    </a>
+    <nav class="header-links" aria-label="Document links">
+      <a class="capsule" href="production-go.html">Production Go</a>
+      <a class="capsule" href="styleguide.md">Concise Markdown</a>
+      <a class="capsule" href="#sources">Sources</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <div>
+          <p class="micro">Go / production readability / revision 01</p>
+          <h1 id="page-title">Style &amp; Readability</h1>
+          <p class="dek">A practical field guide to Go that another engineer can understand, change safely, and operate under pressure.</p>
+        </div>
+        <ol class="priority" aria-label="Readability priorities, in order">
+          <li>Clarity</li>
+          <li>Simplicity</li>
+          <li>Concision</li>
+          <li>Maintainability</li>
+          <li>Consistency</li>
+        </ol>
+      </div>
+
+      <aside class="terminal" aria-label="How to use this guide">
+        <div>
+          <p class="micro">[ guide.status ]</p>
+          <ul class="terminal-log">
+            <li><span class="key">SOURCE</span><span>GO + GOOGLE GO STYLE</span></li>
+            <li><span class="key">LENS</span><span>PRODUCTION CONSEQUENCES</span></li>
+            <li><span class="key">MODE</span><span>JUDGMENT OVER CHECKLISTS</span></li>
+            <li><span class="ok">STATE</span><span>READY / HUMAN REVIEW</span></li>
+          </ul>
+        </div>
+        <div class="terminal-callout">
+          <strong>The governing question</strong>
+          <p>Will this choice help the next person form the correct working understanding—and detect when reality no longer matches it?</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="contents-wrap shell" aria-labelledby="contents-title">
+      <div class="contents">
+        <div>
+          <p class="micro">Navigation / nine modules</p>
+          <h2 id="contents-title">Read by problem, not by rule number.</h2>
+          <nav aria-label="Guide chapters">
+            <ol class="chapter-links">
+              <li><a href="#judgment"><span>01</span> Judgment &amp; scope</a></li>
+              <li><a href="#shape"><span>02</span> Shape of the code</a></li>
+              <li><a href="#names"><span>03</span> Names &amp; contracts</a></li>
+              <li><a href="#errors"><span>04</span> Errors &amp; failure</a></li>
+              <li><a href="#apis"><span>05</span> APIs &amp; data</a></li>
+              <li><a href="#concurrency"><span>06</span> Context &amp; concurrency</a></li>
+              <li><a href="#tests"><span>07</span> Tests as evidence</a></li>
+              <li><a href="#teaching"><span>08</span> Teaching exceptions</a></li>
+              <li><a href="#worked"><span>09</span> Worked reviews</a></li>
+            </ol>
+          </nav>
+        </div>
+        <aside class="contents-note">
+          <p class="micro">Important</p>
+          <p>This is project guidance, not a claim that every useful guideline is a universal Go law. The concise Markdown guide remains the review checklist; this page supplies the reasoning and examples.</p>
+          <p>In this guide, a <em>contract</em> is simply behavior that callers are allowed to rely on: accepted inputs, returned values and errors, which code is responsible for each resource, and when work ends.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="chapter shell" id="judgment" aria-labelledby="judgment-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">01</div>
+        <div>
+          <h2 id="judgment-title">Judgment &amp; scope</h2>
+          <p class="chapter-intro">Style is not cosmetic polish. It helps code show what must remain true, which part owns each task, and how failures are returned or reported.</p>
+        </div>
+      </header>
+
+      <article class="paper rail">
+        <p class="micro">Protocol / interpret the language</p>
+        <h3>Not every sentence has the same force.</h3>
+        <p>A compiler constraint, a repository convention, and a useful testing technique are different kinds of advice. Treating all three as “must” creates churn and can make code worse. Use these five levels when applying the guide:</p>
+        <div class="tier-strip">
+          <div class="tier"><span class="micro">01</span><strong>Requirement</strong><p>Enforced by Go, tooling, or documented behavior that callers rely on.</p></div>
+          <div class="tier"><span class="micro">02</span><strong>Strong convention</strong><p>The normal choice; depart when local facts make another choice safer or clearer.</p></div>
+          <div class="tier"><span class="micro">03</span><strong>Project convention</strong><p>A consistency choice for go-crucible, not a universal law.</p></div>
+          <div class="tier"><span class="micro">04</span><strong>Technique</strong><p>A tool for a named problem, not a dependency to add by default.</p></div>
+          <div class="tier"><span class="micro">05</span><strong>Teaching exception</strong><p>Starter code may contain the defect it teaches without endorsing that defect.</p></div>
+        </div>
+        <p>The label before each rule group states its dominant level. When a group combines levels, the source trail distinguishes documented Go or package behavior from project choices and techniques for particular problems.</p>
+      </article>
+
+      <article class="paper">
+        <p class="micro">How to choose / five priorities</p>
+        <h3>When advice conflicts, clarity wins first.</h3>
+        <div class="rule-grid">
+          <div>
+            <p>Readable Go makes its purpose and reasons obvious, uses the simplest tool that works, removes distractions, remains safe to change, and fits the surrounding code. That order matters. Consistency is valuable, but it does not rescue a locally confusing pattern.</p>
+            <ol class="rule-list">
+              <li><strong>Clarity:</strong> can a reader explain what the code promises and why?</li>
+              <li><strong>Simplicity:</strong> is there a smaller solution with the same behavior and performance?</li>
+              <li><strong>Concision:</strong> can any code or explanation be removed without losing useful information?</li>
+              <li><strong>Maintainability:</strong> will a plausible change fail visibly rather than silently?</li>
+              <li><strong>Consistency:</strong> does the choice match the nearest healthy pattern?</li>
+            </ol>
+          </div>
+          <aside class="aside">
+            <p class="micro">Review prompt</p>
+            <p>Ask “what could a reasonable maintainer misunderstand?” before asking “which rule number applies?”</p>
+          </aside>
+        </div>
+        <div class="refs">
+          <p class="micro">Primary references</p>
+          <ul>
+            <li><a href="https://google.github.io/styleguide/go/guide" rel="noreferrer">Google Go Style Guide — style principles<span class="ref-url">https://google.github.io/styleguide/go/guide</span></a></li>
+            <li><a href="https://sre.google/sre-book/simplicity/" rel="noreferrer">Google SRE Book — Simplicity<span class="ref-url">https://sre.google/sre-book/simplicity/</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="shape" aria-labelledby="shape-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">02</div>
+        <div>
+          <h2 id="shape-title">Shape of the code</h2>
+          <p class="chapter-intro">Formatting is automated. Structure is still a human decision: make control flow visible, reduce nesting, and let complexity announce itself.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Strong conventions / Rules 01 · 08–15 · 30 · 37–38</p>
+        <h3>Let tools settle whitespace; arrange code to show meaning.</h3>
+        <div class="rule-grid">
+          <div>
+            <p>All hand-written Go must match <code>gofmt</code>. Beyond that, Go has no official maximum line length. If a line feels too long, first ask whether the operation itself has too many responsibilities or arguments. Break a line where its meaning changes, and only when the result is easier to read.</p>
+            <ul class="rule-list">
+              <li>Handle errors and edge cases first so the successful path stays flat.</li>
+              <li>Use a <code>switch</code> when cases describe the same subject.</li>
+              <li>If complexity is necessary, name it, explain why it exists, test it, and benchmark it when performance is the reason.</li>
+              <li>Name fields in struct literals for types from another package. Positional literals couple callers to the type’s field order and complete field set.</li>
+              <li>Group imports as standard library, other packages, protocol buffers, then side effects. Avoid dot imports.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Match nearby clear code</p>
+            <p>When two choices are equally clear, match the file, then the package, then the project. Do not repeat a confusing pattern merely because it already exists.</p>
+          </aside>
+        </div>
+
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Nested / hard to scan</div>
+            <pre><code>result, err := load(ctx, id)
+if err != nil {
+    return err
+} else {
+    if result.Enabled {
+        publish(result)
+    }
+}
+return nil</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Flat / intent visible</div>
+            <pre><code>result, err := load(ctx, id)
+if err != nil {
+    return fmt.Errorf("load %q: %w", id, err)
+}
+if !result.Enabled {
+    return nil
+}
+publish(result)
+return nil</code></pre>
+          </div>
+        </div>
+
+        <h4>Variable declarations communicate starting state</h4>
+        <p>Use <code>:=</code> when a value is known and <code>var</code> when the useful zero value—the default Go assigns to an uninitialized variable—is the point. This is a readability guideline; it does not change what the declaration means.</p>
+        <pre class="inline-code"><code>attempts := 3        // the value matters now
+var report Report   // zero-value target for decoding
+var findings []Finding // nil is a useful internal zero value</code></pre>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://go.dev/doc/effective_go#formatting" rel="noreferrer">Effective Go — Formatting<span class="ref-url">https://go.dev/doc/effective_go#formatting</span></a></li>
+            <li><a href="https://google.github.io/styleguide/go/guide#line-length" rel="noreferrer">Google Go Style Guide — Line length<span class="ref-url">https://google.github.io/styleguide/go/guide#line-length</span></a></li>
+            <li><a href="https://google.github.io/styleguide/go/decisions#import-grouping" rel="noreferrer">Google Go Style Decisions — Import grouping<span class="ref-url">https://google.github.io/styleguide/go/decisions#import-grouping</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-code-style/SKILL.md" rel="noreferrer">cc-skills-golang — Code style (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-code-style/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="names" aria-labelledby="names-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">03</div>
+        <div>
+          <h2 id="names-title">Names &amp; contracts</h2>
+          <p class="chapter-intro">A name is read where the code is called, not in isolation. Give the reader the missing context; do not repeat context they already have.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Strong conventions / Rules 02–07 · 16–20 · 34–35</p>
+        <h3>Names should become shorter as their context becomes stronger.</h3>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Noise or ambiguity</div>
+            <pre><code>const MAX_RETRIES = 3
+
+type UserManager struct {
+    running bool
+}
+
+func (u *UserManager) GetUserName() string
+func (u *UserManager) FetchData() error</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Context carries meaning</div>
+            <pre><code>const MaxRetries = 3
+
+type UserStore struct {
+    isRunning bool
+}
+
+func (s *UserStore) Name() string
+func (s *UserStore) FetchUser() error</code></pre>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <div>
+            <ul class="rule-list">
+              <li>Use <code>MixedCaps</code> or <code>mixedCaps</code>, including for constants. Keep initialisms in one case: <code>XMLParser</code>, <code>xmlAPI</code>.</li>
+              <li>Use short local names where the scope is tiny; use descriptive parameters on public functions and methods.</li>
+              <li>Avoid repeating package or type context: <code>log.Info</code>, not <code>log.LogInfo</code>.</li>
+              <li>Boolean prefixes such as <code>is</code>, <code>has</code>, and <code>can</code> are aids, not mandatory decoration. Established terms such as <code>Enabled</code> can be clearer.</li>
+              <li>Use receiver abbreviations consistently; avoid <code>this</code>, <code>self</code>, and long receiver names.</li>
+              <li>Avoid vague package names such as <code>util</code>, <code>helper</code>, or <code>common</code>. Name the capability.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Zero-value design</p>
+            <p>If a numeric enum has no natural zero state, reserve zero for <code>Unknown</code> or <code>Invalid</code>. If the domain really has a correct default, use it—do not manufacture a special placeholder value.</p>
+          </aside>
+        </div>
+
+        <h4>Comments state promises and explain why</h4>
+        <p>A useful comment says which code is responsible, records constraints and reasons, or explains surprising behavior. It does not translate the next line into English.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Restates the operation</div>
+            <pre><code>// Increment the retry count.
+retries++</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Preserves the reason</div>
+            <pre><code>// Count the initial request as an attempt so the
+// limit matches the value reported to operators.
+retries++</code></pre>
+          </div>
+        </div>
+        <p>Exported declarations need doc comments that stand alone in generated documentation. Error text normally starts lowercase and omits terminal punctuation because callers often compose it into a larger message. Use <code>%q</code> when whitespace or where a string begins and ends matters; use <code>%s</code> for ordinary prose. Prefer <code>any</code> to the legacy spelling <code>interface{}</code>.</p>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://go.dev/doc/comment" rel="noreferrer">Go Doc Comments<span class="ref-url">https://go.dev/doc/comment</span></a></li>
+            <li><a href="https://google.github.io/styleguide/go/decisions#naming" rel="noreferrer">Google Go Style Decisions — Naming<span class="ref-url">https://google.github.io/styleguide/go/decisions#naming</span></a></li>
+            <li><a href="https://go.dev/wiki/CodeReviewComments#initialisms" rel="noreferrer">Go Wiki — Initialisms<span class="ref-url">https://go.dev/wiki/CodeReviewComments#initialisms</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-naming/SKILL.md" rel="noreferrer">cc-skills-golang — Naming (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-naming/SKILL.md</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-documentation/SKILL.md" rel="noreferrer">cc-skills-golang — Documentation (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-documentation/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="errors" aria-labelledby="errors-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">04</div>
+        <div>
+          <h2 id="errors-title">Errors &amp; failure</h2>
+          <p class="chapter-intro">Errors are part of the API. Preserve information callers may need, say what operation failed, and choose where the program will log the error or show it to a user.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Strong conventions / Rules 20–24 · 29 · 34</p>
+        <h3>Keep the cause available, and report the failure once.</h3>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Duplicate logging, cause hidden</div>
+            <pre><code>data, err := store.Load(key)
+if err != nil {
+    slog.Error("Load failed", "err", err)
+    return fmt.Errorf("Request failed: %v.", err)
+}
+return use(data)</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Context once, chain intact</div>
+            <pre><code>data, err := store.Load(key)
+if err != nil {
+    return fmt.Errorf("load %q: %w", key, err)
+}
+return use(data)</code></pre>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <div>
+            <ul class="rule-list">
+              <li>Return <code>(T, error)</code> or <code>(T, bool)</code>; do not use an unexplained <code>-1</code>, empty string, or nil value to hide failure.</li>
+              <li>Handle the error first, return, and keep the successful path unindented.</li>
+              <li>Use <code>%w</code> when the underlying error should remain part of the API’s error chain, including when callers may need <code>errors.Is</code> or <code>errors.As</code>. Use <code>%v</code> when adding text without exposing that relationship; doing so deliberately ends the chain.</li>
+              <li>Normally either return an error with useful detail or report it to a user or operator. Logging and returning the same failure often produces duplicate messages.</li>
+              <li>Do not panic for expected input, network, storage, or request-time failures. A <code>MustX</code> helper is for a condition controlled by the programmer, usually at startup or in tests.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Where should an error be reported?</p>
+            <p>Helper packages should usually return errors and add useful detail. Report the error where the program must decide what happens next—for example, an HTTP handler that writes a response, a command that sets its exit status, or a supervisor that decides whether work can continue. Crossing into another package is not, by itself, a reason to log the error or hide its underlying cause.</p>
+          </aside>
+        </div>
+
+        <h4>Errors should carry the operation</h4>
+        <pre class="inline-code"><code>return fmt.Errorf("decode deployment %q: %w", name, err)
+
+if errors.Is(err, context.DeadlineExceeded) {
+    // The caller can still decide what to do.
+}</code></pre>
+        <p><code>panic</code> runs deferred calls while Go returns through the active function calls, a process often called stack unwinding. <code>os.Exit</code> and helpers such as <code>log.Fatal</code> do not. That distinction matters for cleanup, but neither is a substitute for an ordinary error path.</p>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://go.dev/blog/go1.13-errors" rel="noreferrer">Go Blog — Working with Errors in Go 1.13<span class="ref-url">https://go.dev/blog/go1.13-errors</span></a></li>
+            <li><a href="https://pkg.go.dev/errors" rel="noreferrer">Go package documentation — errors<span class="ref-url">https://pkg.go.dev/errors</span></a></li>
+            <li><a href="https://go.dev/ref/spec#Handling_panics" rel="noreferrer">Go specification — Handling panics<span class="ref-url">https://go.dev/ref/spec#Handling_panics</span></a></li>
+            <li><a href="https://google.github.io/styleguide/go/decisions#errors" rel="noreferrer">Google Go Style Decisions — Errors<span class="ref-url">https://google.github.io/styleguide/go/decisions#errors</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-error-handling/SKILL.md" rel="noreferrer">cc-skills-golang — Error handling (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-error-handling/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="apis" aria-labelledby="apis-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">05</div>
+        <div>
+          <h2 id="apis-title">APIs &amp; data</h2>
+          <p class="chapter-intro">A good API makes correct use obvious, lets zero values work where practical, and exposes no more capability than the caller needs.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Strong conventions / Rules 25–27 · 30–33 · 35 · 38</p>
+        <h3>Give callers only the operations they need.</h3>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">A large interface defined by the implementation</div>
+            <pre><code>type StorageClientInterface interface {
+    Load(string) ([]byte, error)
+    Store(string, []byte) error
+    Delete(string) error
+    Close() error
+}
+
+func NewClient() StorageClientInterface</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">A small interface defined beside its caller</div>
+            <pre><code>// Defined beside the consumer that only reads.
+type Loader interface {
+    Load(string) ([]byte, error)
+}
+
+func NewClient() *Client</code></pre>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <div>
+            <ul class="rule-list">
+              <li>Keep interfaces small and usually define them where substitution is needed. Constructors normally return concrete types.</li>
+              <li>These are guidelines, not laws: a shared interface or interface-returning constructor can be correct when callers should not know which implementation is used.</li>
+              <li>Prefer an options struct for a long or ambiguous argument list. Functional options—functions passed to a constructor to adjust settings—can be useful when many settings are optional or likely to grow, but they add types, closures, and documentation.</li>
+              <li>Use channel direction in signatures so the compiler can enforce whether the function may send or receive.</li>
+              <li>Use <code>any</code> only when the operation truly accepts any type; prefer a concrete type or type parameter when it communicates more.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Do not copy locks</p>
+            <p>Do not copy synchronization values such as <code>sync.Mutex</code> or <code>sync.WaitGroup</code> after first use. Pass synchronization-bearing values by pointer.</p>
+          </aside>
+        </div>
+
+        <h4>Choose nil or empty slices according to the external format</h4>
+        <p>Internally, a nil slice is a useful zero value: <code>len</code>, <code>range</code>, and <code>append</code> work. When data leaves the program, test the required representation. With <code>encoding/json</code> v1, nil becomes <code>null</code> and a non-nil empty slice becomes <code>[]</code>.</p>
+        <pre class="inline-code"><code>var findings []Finding       // idiomatic internal zero value
+results := []Result{}        // use when the JSON output must be []
+
+func produce(out chan&lt;- Event)
+func consume(in &lt;-chan Event)</code></pre>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://google.github.io/styleguide/go/decisions#interfaces" rel="noreferrer">Google Go Style Decisions — Interfaces<span class="ref-url">https://google.github.io/styleguide/go/decisions#interfaces</span></a></li>
+            <li><a href="https://pkg.go.dev/encoding/json#Marshal" rel="noreferrer">Go package documentation — encoding/json Marshal<span class="ref-url">https://pkg.go.dev/encoding/json#Marshal</span></a></li>
+            <li><a href="https://pkg.go.dev/sync#Mutex" rel="noreferrer">Go package documentation — sync.Mutex<span class="ref-url">https://pkg.go.dev/sync#Mutex</span></a></li>
+            <li><a href="https://pkg.go.dev/bytes#Buffer" rel="noreferrer">Go package documentation — bytes.Buffer<span class="ref-url">https://pkg.go.dev/bytes#Buffer</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-structs-interfaces/SKILL.md" rel="noreferrer">cc-skills-golang — Structs and interfaces (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-structs-interfaces/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="concurrency" aria-labelledby="concurrency-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">06</div>
+        <div>
+          <h2 id="concurrency-title">Context &amp; concurrency</h2>
+          <p class="chapter-intro">Concurrent code is easier to maintain when its API shows who starts the work, who stops it, and how callers know it has finished.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Project convention / Rules 26–28 · 32 · 36 · 40–42</p>
+        <h3>Every goroutine needs an evident end; work that affects correctness or shutdown also needs an explicit wait path.</h3>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Lifetime hidden</div>
+            <pre><code>type Worker struct {
+    ctx context.Context
+}
+
+func (w *Worker) Start() {
+    go w.loop()
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Lifetime in the call</div>
+            <pre><code>func (w *Worker) Run(ctx context.Context) error {
+    for {
+        select {
+        case &lt;-ctx.Done():
+            return ctx.Err()
+        case job, ok := &lt;-w.jobs:
+            if !ok {
+                return nil
+            }
+            w.process(job)
+        }
+    }
+}</code></pre>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <div>
+            <ul class="rule-list">
+              <li>Put <code>context.Context</code> first. Pass it through the call chain; do not replace a caller’s context with <code>context.Background()</code>.</li>
+              <li>Normally do not store a context in a struct because that hides lifetime. Compatibility adapters and operation-lifetime objects can justify an explicitly documented exception.</li>
+              <li>Document who closes channels, who waits for goroutines, and what cancellation means.</li>
+              <li>Avoid nested <code>:=</code> when it accidentally shadows an outer value. Use <code>=</code> when replacing the existing context is the intent.</li>
+              <li>Prefer direct completion signals, cancellation assertions, or a <code>WaitGroup</code> over sleeping and hoping background work has finished.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Where a context begins</p>
+            <p>HTTP work starts from <code>req.Context()</code>; tests normally start from <code>t.Context()</code>; process entrypoints may begin with <code>context.Background()</code>.</p>
+          </aside>
+        </div>
+
+        <h4>Avoid accidental shadowing</h4>
+        <pre class="inline-code"><code>if needsTimeout {
+    var cancel context.CancelFunc
+    ctx, cancel = context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+}</code></pre>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://go.dev/blog/context" rel="noreferrer">Go Blog — Go Concurrency Patterns: Context<span class="ref-url">https://go.dev/blog/context</span></a></li>
+            <li><a href="https://go.dev/blog/context-and-structs" rel="noreferrer">Go Blog — Contexts and structs<span class="ref-url">https://go.dev/blog/context-and-structs</span></a></li>
+            <li><a href="https://go.dev/doc/database/cancel-operations" rel="noreferrer">Go documentation — Canceling in-progress operations<span class="ref-url">https://go.dev/doc/database/cancel-operations</span></a></li>
+            <li><a href="https://go.dev/ref/spec#Short_variable_declarations" rel="noreferrer">Go specification — Short variable declarations<span class="ref-url">https://go.dev/ref/spec#Short_variable_declarations</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-context/SKILL.md" rel="noreferrer">cc-skills-golang — Context (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-context/SKILL.md</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-concurrency/SKILL.md" rel="noreferrer">cc-skills-golang — Concurrency (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-concurrency/SKILL.md</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-safety/SKILL.md" rel="noreferrer">cc-skills-golang — Safety (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-safety/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="tests" aria-labelledby="tests-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">07</div>
+        <div>
+          <h2 id="tests-title">Tests as evidence</h2>
+          <p class="chapter-intro">A good test does more than turn green. It states the behavior callers rely on, isolates the relevant cause, and fails with enough information to guide the repair.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Requirements and techniques / Rules 39–42</p>
+        <h3>Make failures explain themselves, and check that work finishes.</h3>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Low-information failure</div>
+            <pre><code>if got != want {
+    t.Fatal("wrong result")
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Failure includes the information needed to investigate</div>
+            <pre><code>if got != want {
+    t.Errorf(
+        "Normalize(%q) = %q, want %q",
+        input, got, want,
+    )
+}</code></pre>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <div>
+            <ul class="rule-list">
+              <li>Identify the operation and input; report <code>got</code> before <code>want</code>. For structured values, a readable diff is often better.</li>
+              <li>Use <code>t.Fatal</code> only when continuing the current test would be meaningless or unsafe. Otherwise collect independent evidence with <code>t.Error</code>.</li>
+              <li>Test helpers call <code>t.Helper()</code> so the reported line points to the caller.</li>
+              <li>Never call <code>t.Fatal</code> or <code>t.FailNow</code> from a worker goroutine; those stop only the current goroutine. Report with <code>t.Error</code> and return, or send an error to the test goroutine.</li>
+              <li>Use <code>t.Context()</code> as the test’s normal root context.</li>
+              <li>Use <code>t.Parallel()</code> only after proving the test does not share process state, ports, signals, mutable test data, or timing assumptions. Parallelism is an optimization.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Check that work really stops</p>
+            <p>Wait for an explicit completion signal where possible. <code>testing/synctest</code> is useful when code waits on timers or when a test must know that every goroutine in an isolated group is blocked. The optional <a href="https://pkg.go.dev/go.uber.org/goleak" rel="noreferrer"><code>goleak</code> testing tool</a> can find unexpected live goroutines when a direct completion check is impractical.</p>
+          </aside>
+        </div>
+
+        <h4>Choose a test that can reveal the particular bug</h4>
+        <pre class="inline-code"><code>// Exact completion: wait for a completion signal or WaitGroup.
+// Code that waits on time: consider testing/synctest.
+// Data race: run the race detector.
+// Allocation limit: use testing.AllocsPerRun.
+// Busy-spin: use a fixed real timeout; the loop never blocks.</code></pre>
+
+        <div class="refs">
+          <p class="micro">Primary &amp; comparative references</p>
+          <ul>
+            <li><a href="https://pkg.go.dev/testing#T.FailNow" rel="noreferrer">Go package documentation — testing.T.FailNow<span class="ref-url">https://pkg.go.dev/testing#T.FailNow</span></a></li>
+            <li><a href="https://pkg.go.dev/testing#T.Context" rel="noreferrer">Go package documentation — testing.T.Context<span class="ref-url">https://pkg.go.dev/testing#T.Context</span></a></li>
+            <li><a href="https://pkg.go.dev/testing/synctest" rel="noreferrer">Go package documentation — testing/synctest<span class="ref-url">https://pkg.go.dev/testing/synctest</span></a></li>
+            <li><a href="https://pkg.go.dev/go.uber.org/goleak" rel="noreferrer">goleak package documentation<span class="ref-url">https://pkg.go.dev/go.uber.org/goleak</span></a></li>
+            <li><a href="https://go.dev/doc/articles/race_detector" rel="noreferrer">Go documentation — Data Race Detector<span class="ref-url">https://go.dev/doc/articles/race_detector</span></a></li>
+            <li><a href="https://sre.google/sre-book/testing-reliability/" rel="noreferrer">Google SRE Book — Testing for Reliability<span class="ref-url">https://sre.google/sre-book/testing-reliability/</span></a></li>
+            <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-testing/SKILL.md" rel="noreferrer">cc-skills-golang — Testing (secondary)<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-testing/SKILL.md</span></a></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="teaching" aria-labelledby="teaching-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">08</div>
+        <div>
+          <h2 id="teaching-title">Teaching exceptions</h2>
+          <p class="chapter-intro">go-crucible contains planted defects by design. The exception is narrow: preserve the mystery without teaching the wrong general lesson.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Exercise-authoring protocol</p>
+        <h3>Describe the promised behavior; do not annotate the answer.</h3>
+        <div class="rule-grid">
+          <div>
+            <p>Starter code may violate the style or safety rule that the exercise teaches. Comments should still tell the learner what the component promises, who owns resources, and what external behavior matters—but should not name the planted violation, the faulty line, or the exact repair.</p>
+            <ul class="rule-list">
+              <li><strong>Starter implementation:</strong> one limited, realistic defect; no repair labels or comments that describe the solution.</li>
+              <li><strong>Exercise README:</strong> enough background and symptoms to investigate without turning the task into transcription.</li>
+              <li><strong>Hints:</strong> add evidence gradually, moving from the overall behavior to the responsible component and then the faulty operation.</li>
+              <li><strong>Tests:</strong> idiomatic supporting code and a failure that demonstrates the broken behavior.</li>
+              <li><strong>Solution:</strong> the repaired form follows this guide and explains why the limited change is sufficient.</li>
+            </ul>
+          </div>
+          <aside class="aside">
+            <p class="micro">Comment test</p>
+            <p>Would this comment let a learner identify the defect before observing or reasoning about it? If yes, move that information to a later hint or the solution explanation.</p>
+          </aside>
+        </div>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Leaks the repair</div>
+            <pre><code>// Sort Findings by severity and name before encoding
+// so JSON reports do not change order between runs.
+return enc.Encode(report)</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">States only the promised behavior</div>
+            <pre><code>// Findings use a stable order so stored reports
+// remain useful in human and automated diffs.
+return enc.Encode(report)</code></pre>
+          </div>
+        </div>
+        <p>The second comment deliberately leaves a discrepancy between the promised behavior and the implementation for the learner to discover. In production code, once repaired, the comment may remain useful because it records the stable-order requirement without describing the old faulty line.</p>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="worked" aria-labelledby="worked-title">
+      <header class="chapter-head">
+        <div class="chapter-number" aria-hidden="true">09</div>
+        <div>
+          <h2 id="worked-title">Worked reviews</h2>
+          <p class="chapter-intro">Longer examples show how several small style decisions combine into code that is easier to operate and change. The domains resemble go-crucible, but the examples are independent illustrations—not copies of exercise implementations or solution patches.</p>
+        </div>
+      </header>
+
+      <article class="paper worked-example">
+        <p class="micro">Worked review A / alert configuration</p>
+        <h3>Replace an ambiguous argument list with named configuration.</h3>
+        <p>The anti-pattern compiles and may even look concise at its declaration. The cost appears everywhere it is called: three booleans and two durations cannot explain themselves, and adding one setting changes every caller.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / arguments encode a memory test</div>
+            <pre><code>type Evaluator struct {
+    threshold    float64
+    sendRecovery bool
+    failOpen     bool
+    repeat       bool
+    window       time.Duration
+    cooldown     time.Duration
+}
+
+func NewEvaluator(
+    threshold float64,
+    sendRecovery bool,
+    failOpen bool,
+    repeat bool,
+    window time.Duration,
+    cooldown time.Duration,
+) *Evaluator {
+    return &amp;Evaluator{
+        threshold:    threshold,
+        sendRecovery: sendRecovery,
+        failOpen:     failOpen,
+        repeat:       repeat,
+        window:       window,
+        cooldown:     cooldown,
+    }
+}
+
+e := NewEvaluator(0.95, true, false, true, 5*time.Minute, time.Hour)</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / names make the call reviewable</div>
+            <pre><code>type EvaluatorConfig struct {
+    Threshold       float64
+    SendRecovery    bool
+    FailOpen        bool
+    RepeatAlerts    bool
+    EvaluationWindow time.Duration
+    Cooldown         time.Duration
+}
+
+func NewEvaluator(cfg EvaluatorConfig) (*Evaluator, error) {
+    if cfg.Threshold &lt; 0 || cfg.Threshold &gt; 1 {
+        return nil, fmt.Errorf(
+            "threshold %v is outside [0, 1]",
+            cfg.Threshold,
+        )
+    }
+    if cfg.EvaluationWindow &lt;= 0 {
+        return nil, errors.New("evaluation window must be positive")
+    }
+
+    return &amp;Evaluator{cfg: cfg}, nil
+}
+
+e, err := NewEvaluator(EvaluatorConfig{
+    Threshold:        0.95,
+    SendRecovery:     true,
+    RepeatAlerts:     true,
+    EvaluationWindow: 5 * time.Minute,
+    Cooldown:         time.Hour,
+})</code></pre>
+          </div>
+        </div>
+        <div class="review-notes">
+          <div>
+            <h4>How a reviewer reasons about it</h4>
+            <ul class="rule-list">
+              <li>The configuration groups values that change for the same reason.</li>
+              <li>Field names expose the meaning of booleans where the constructor is called.</li>
+              <li>The constructor validates the configuration, so an invalid evaluator cannot enter the system.</li>
+              <li>The constructor returns an error because configuration can be invalid; a <code>MustNewEvaluator</code> wrapper would only be appropriate for programmer-owned static configuration.</li>
+            </ul>
+          </div>
+          <aside class="verdict"><p class="micro">Do not overapply</p><strong>Two obvious arguments do not need a struct.</strong><p>An options type has its own documentation and maintenance cost. Introduce one when it makes calls safer or future changes less disruptive.</p></aside>
+        </div>
+      </article>
+
+      <article class="paper worked-example">
+        <p class="micro">Worked review B / audit report construction</p>
+        <h3>Give business rules names so reviewers can check them.</h3>
+        <p>The condensed version hides three business decisions inside a loop: which findings count, how severity is mapped, and when the report becomes unhealthy. The revision makes those decisions separately testable without inventing a framework.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / business rules hidden inside the loop</div>
+            <pre><code>func summarize(fs []Finding) Report {
+    r := Report{}
+    for _, f := range fs {
+        if !f.Suppressed &amp;&amp; f.Namespace != "dev" {
+            r.Findings = append(r.Findings, f)
+            if f.Severity == "critical" || f.Severity == "high" {
+                r.Failed = true
+            }
+            r.Counts[strings.ToLower(f.Severity)]++
+        }
+    }
+    return r
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / business rules have names and types</div>
+            <pre><code>type Severity string
+
+const (
+    SeverityUnknown  Severity = "unknown"
+    SeverityLow      Severity = "low"
+    SeverityHigh     Severity = "high"
+    SeverityCritical Severity = "critical"
+)
+
+func summarize(findings []Finding) Report {
+    report := Report{
+        Counts: make(map[Severity]int),
+    }
+
+    for _, finding := range findings {
+        if excludedFromReport(finding) {
+            continue
+        }
+
+        report.Findings = append(report.Findings, finding)
+        report.Counts[finding.Severity]++
+        report.Failed = report.Failed || failsAudit(finding.Severity)
+    }
+    return report
+}
+
+func excludedFromReport(f Finding) bool {
+    return f.Suppressed || f.Namespace == "dev"
+}
+
+func failsAudit(severity Severity) bool {
+    return severity == SeverityHigh || severity == SeverityCritical
+}</code></pre>
+          </div>
+        </div>
+        <div class="review-notes">
+          <div>
+            <h4>What changed—and what did not</h4>
+            <ul class="rule-list">
+              <li>A dedicated <code>Severity</code> type reduces accidental mixing with ordinary strings and centralizes the recognized values. External input still needs validation because Go permits other values through conversions and untyped string literals.</li>
+              <li>The helper names state the business rules and let tests address each rule directly.</li>
+              <li>The loop still reads top to bottom and uses ordinary language features.</li>
+              <li>The map is explicitly initialized because this function writes to it; the nil-slice zero value remains fine for <code>Findings</code>.</li>
+            </ul>
+          </div>
+          <aside class="verdict"><p class="micro">When to add a helper</p><strong>Extract a rule when its name explains the decision.</strong><p>Do not extract every comparison. A helper that merely renames an expression makes the reader jump elsewhere without learning anything.</p></aside>
+        </div>
+      </article>
+
+      <article class="paper worked-example">
+        <p class="micro">Worked review C / reporting errors once</p>
+        <h3>Return detailed errors; log once where the program decides the outcome.</h3>
+        <p>When every function logs the same error, operators see several messages for one failure. Helper functions should return errors that say what they were doing. The HTTP handler, command entrypoint, or worker supervisor should decide how to report the failure and whether the program can continue.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / every function logs the same failure</div>
+            <pre><code>func loadRules(path string) ([]Rule, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        slog.Error("read failed", "path", path, "err", err)
+        return nil, err
+    }
+
+    var rules []Rule
+    if err := yaml.Unmarshal(data, &amp;rules); err != nil {
+        slog.Error("parse failed", "path", path, "err", err)
+        return nil, err
+    }
+    return rules, nil
+}
+
+func run(path string) error {
+    rules, err := loadRules(path)
+    if err != nil {
+        slog.Error("startup failed", "err", err)
+        return err
+    }
+    return serve(rules)
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / context travels, reporting happens once</div>
+            <pre><code>func loadRules(path string) ([]Rule, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, fmt.Errorf("read rules %q: %w", path, err)
+    }
+
+    var rules []Rule
+    if err := yaml.Unmarshal(data, &amp;rules); err != nil {
+        return nil, fmt.Errorf("parse rules %q: %w", path, err)
+    }
+    return rules, nil
+}
+
+func run(ctx context.Context, path string) error {
+    rules, err := loadRules(path)
+    if err != nil {
+        return fmt.Errorf("initialize rule service: %w", err)
+    }
+    return serve(ctx, rules)
+}
+
+func execute(ctx context.Context, args []string) error {
+    if len(args) != 1 {
+        return errors.New("usage: rules-service RULES_FILE")
+    }
+    return run(ctx, args[0])
+}
+
+func main() {
+    if err := execute(context.Background(), os.Args[1:]); err != nil {
+        slog.Error("command failed", "err", err)
+        os.Exit(1)
+    }
+}</code></pre>
+          </div>
+        </div>
+        <div class="review-notes">
+          <div>
+            <h4>Trace the resulting message</h4>
+            <p><code>main</code> receives one useful message: <code>initialize rule service: parse rules "alerts.yaml": …</code>. Because each function wrapped rather than replaced the error, callers can still use <code>errors.Is</code> and <code>errors.As</code>. Only <code>main</code> logs it, because only <code>main</code> decides the process exit status.</p>
+          </div>
+          <aside class="verdict"><p class="micro">Result</p><strong>One failure, one log entry, full detail.</strong><p>The final log can still have structured fields. Do not repeat the same fact in both the message and a field unless a log query needs the field.</p></aside>
+        </div>
+      </article>
+
+      <article class="paper worked-example">
+        <p class="micro">Worked review D / worker responsibility</p>
+        <h3>Make responsibility for concurrency explicit.</h3>
+        <p>A fire-and-forget method hides whether work can be cancelled, whether it is safe to call twice, and how shutdown knows completion occurred. A synchronous <code>Run</code> method lets the caller decide whether to place it in a goroutine and how to join it.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / hidden goroutine and hidden stop path</div>
+            <pre><code>type Refresher struct {
+    interval time.Duration
+    cache    *Cache
+}
+
+func (r *Refresher) Start() {
+    go func() {
+        ticker := time.NewTicker(r.interval)
+        for range ticker.C {
+            if err := r.cache.Refresh(); err != nil {
+                slog.Error("refresh failed", "err", err)
+            }
+        }
+    }()
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / caller controls start and stop</div>
+            <pre><code>type Refresher struct {
+    interval time.Duration
+    cache    *Cache
+}
+
+// Run refreshes the cache until ctx is cancelled.
+// It returns only after releasing its timer.
+func (r *Refresher) Run(ctx context.Context) error {
+    ticker := time.NewTicker(r.interval)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case &lt;-ctx.Done():
+            return ctx.Err()
+        case &lt;-ticker.C:
+            if err := r.cache.Refresh(ctx); err != nil {
+                return fmt.Errorf("refresh cache: %w", err)
+            }
+        }
+    }
+}
+
+// The supervisor owns concurrency and waits for Run to return.
+group.Go(func() error {
+    return refresher.Run(ctx)
+})</code></pre>
+          </div>
+        </div>
+        <div class="review-notes">
+          <div>
+            <h4>The API now answers four questions</h4>
+            <ul class="rule-list">
+              <li><strong>Who starts concurrency?</strong> The supervisor.</li>
+              <li><strong>Who requests stop?</strong> The code that created and controls <code>ctx</code>.</li>
+              <li><strong>Who releases the timer?</strong> <code>Run</code>, in the same frame that created it.</li>
+              <li><strong>Who reports failure?</strong> <code>Run</code> returns it; the supervisor decides whether to retry, stop, or report it.</li>
+            </ul>
+          </div>
+          <aside class="verdict"><p class="micro">Design principle</p><strong>Let the caller decide when to start a goroutine.</strong><p>A lower-level <code>Run</code> method that blocks until it finishes is usually easier to combine, test, and stop cleanly.</p></aside>
+        </div>
+      </article>
+
+      <article class="paper worked-example">
+        <p class="micro">Worked review E / behavior-focused tests</p>
+        <h3>Test behavior with cases that explain each threshold.</h3>
+        <p>The first test checks several facts but tells a future reader little about the input range. The table-driven revision names the thresholds and reports enough information to reproduce a failure.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / assertions without a model</div>
+            <pre><code>func TestSeverity(t *testing.T) {
+    if classify(0.2) != SeverityLow {
+        t.Fatal("bad")
+    }
+    if classify(0.8) != SeverityHigh {
+        t.Fatal("bad")
+    }
+    if classify(1.0) != SeverityCritical {
+        t.Fatal("bad")
+    }
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / named thresholds and useful failures</div>
+            <pre><code>func TestClassify(t *testing.T) {
+    tests := []struct {
+        name  string
+        value float64
+        want  Severity
+    }{
+        {name: "below high threshold", value: 0.79, want: SeverityLow},
+        {name: "at high threshold", value: 0.80, want: SeverityHigh},
+        {name: "below critical threshold", value: 0.99, want: SeverityHigh},
+        {name: "at critical threshold", value: 1.00, want: SeverityCritical},
+    }
+
+    for _, test := range tests {
+        t.Run(test.name, func(t *testing.T) {
+            got := classify(test.value)
+            if got != test.want {
+                t.Errorf(
+                    "classify(%v) = %q, want %q",
+                    test.value, got, test.want,
+                )
+            }
+        })
+    }
+}</code></pre>
+          </div>
+        </div>
+        <div class="review-notes">
+          <div>
+            <h4>Why the extra lines earn their place</h4>
+            <ul class="rule-list">
+              <li>Case names document the thresholds as behavior, not implementation.</li>
+              <li>Values immediately below and at each threshold catch off-by-one errors.</li>
+              <li><code>got</code> and <code>want</code> appear with the input, making CI output self-contained.</li>
+              <li>The subtests are not marked parallel: there is no demonstrated suite-time benefit, so parallelism would add no value here.</li>
+            </ul>
+          </div>
+          <aside class="verdict"><p class="micro">Test design</p><strong>Together, the cases should explain the rule.</strong><p>A table is useful when its rows show related parts of the input range. It is not automatically better than one focused test.</p></aside>
+        </div>
+      </article>
+    </section>
+
+    <section class="production-band" aria-labelledby="production-title">
+      <div class="production-grid shell">
+        <div>
+          <p class="micro">Production lens / readability during incidents</p>
+          <h2 id="production-title">Code is read during incidents.</h2>
+          <p>Production-minded style is not about predicting every outage. It is about making expensive questions easier to answer: who owns this work, how does it stop, what happens after partial failure, which resources must be released, what can operators inspect, and how much code a repair must change.</p>
+          <p><a class="capsule" href="production-go.html">Read the production chapter</a></p>
+        </div>
+        <div class="sre-list">
+          <div class="sre-item"><strong>Keep production behavior simple.</strong><p>Every extra moving part gives an operator more possible states to rule out. Add complexity only for a specific, measured benefit.</p></div>
+          <div class="sre-item"><strong>Show whether important promises are being kept.</strong><p>If a timeout, retry, shutdown, or queue limit matters, expose enough information to check it and write a test that fails when the rule is broken.</p></div>
+          <div class="sre-item"><strong>Report each failure once.</strong><p>Return errors until code must report them to a user or operator. Add searchable fields there and preserve the underlying error when callers can act on it.</p></div>
+          <div class="sre-item"><strong>Make repairs easy to limit.</strong><p>Clear responsibilities let maintainers repair one component without first understanding the entire system.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-reference shell" aria-labelledby="quick-title">
+      <p class="micro">All rules / scan mode</p>
+      <h2 id="quick-title">42-point quick reference</h2>
+      <p>The concise rule set, preserved here so this HTML companion covers the full Markdown guide.</p>
+      <div class="table-wrap" role="region" aria-label="Quick reference table" tabindex="0">
+        <table>
+          <thead><tr><th scope="col">No.</th><th scope="col">Topic</th><th scope="col">Project guidance</th></tr></thead>
+          <tbody>
+            <tr><td>01</td><td>Formatting</td><td>Run <code>gofmt</code> on hand-written Go; format output in owned generators.</td></tr>
+            <tr><td>02</td><td>MixedCaps</td><td>Use <code>mixedCaps</code>/<code>MixedCaps</code>; allow conventional test names and names required by external protocols.</td></tr>
+            <tr><td>03</td><td>Name repetition</td><td>Do not repeat package or type context in the identifier.</td></tr>
+            <tr><td>04</td><td>Name length</td><td>Use short locals and descriptive parameters or returns.</td></tr>
+            <tr><td>05</td><td>Boolean names</td><td>Use <code>is</code>/<code>has</code>/<code>can</code> when they clarify; preserve clear terms already used for the problem.</td></tr>
+            <tr><td>06</td><td>Enum zero</td><td>Make zero safe; use <code>Unknown</code> when no natural default exists.</td></tr>
+            <tr><td>07</td><td>Comments</td><td>State promised behavior; explain reasons and non-obvious constraints.</td></tr>
+            <tr><td>08</td><td>Clarity</td><td>Prefer readable over clever; split complex expressions.</td></tr>
+            <tr><td>09</td><td>Switch</td><td>For cases about the same subject, prefer a <code>switch</code>.</td></tr>
+            <tr><td>10</td><td>Simplest tool</td><td>Prefer language features, then the standard library, then existing libraries.</td></tr>
+            <tr><td>11</td><td>Deliberate complexity</td><td>Document, test, and—when performance motivates it—benchmark complexity.</td></tr>
+            <tr><td>12</td><td>Concision</td><td>Remove noise; use tables and helpers when they improve reading.</td></tr>
+            <tr><td>13</td><td>Maintainability</td><td>Name important intermediate values and write rules so reviewers can check them.</td></tr>
+            <tr><td>14</td><td>Line length</td><td>Use no hard limit; break on meaning, not columns.</td></tr>
+            <tr><td>15</td><td>Consistency</td><td>When two choices are equally clear, match the nearest clear code; do not copy a confusing pattern.</td></tr>
+            <tr><td>16</td><td>Initialisms</td><td>Keep each initialism in one case: <code>XMLAPI</code>, <code>xmlAPI</code>.</td></tr>
+            <tr><td>17</td><td>Receivers</td><td>Use a consistent one- or two-letter abbreviation; avoid <code>this</code>/<code>self</code>.</td></tr>
+            <tr><td>18</td><td>Getters</td><td>Use <code>Name()</code>, not <code>GetName()</code>; reserve verbs for real work.</td></tr>
+            <tr><td>19</td><td>Package names</td><td>Name what a package provides; avoid <code>util</code>, <code>helper</code>, and <code>common</code>.</td></tr>
+            <tr><td>20</td><td>Error strings</td><td>Normally use lowercase text with no trailing period.</td></tr>
+            <tr><td>21</td><td>Hidden errors</td><td>Return <code>(T, error)</code> or <code>(T, bool)</code>, not a magic value.</td></tr>
+            <tr><td>22</td><td>Error flow</td><td>Handle the error first; omit <code>else</code> after an early exit.</td></tr>
+            <tr><td>23</td><td><code>%w</code> / <code>%v</code></td><td>Use <code>%w</code> to expose the underlying error relationship; use <code>%v</code> to add text without exposing it.</td></tr>
+            <tr><td>24</td><td>Report once</td><td>Normally log or return an error, not both; explain any deliberate duplicate reporting.</td></tr>
+            <tr><td>25</td><td>Interfaces</td><td>Keep them small; normally consumer-defined with concrete constructor returns.</td></tr>
+            <tr><td>26</td><td>Synchronization</td><td>Do not copy synchronization values after first use.</td></tr>
+            <tr><td>27</td><td>Context</td><td>Put it first; store it only for a documented lifetime exception.</td></tr>
+            <tr><td>28</td><td>Goroutine lifetime</td><td>Make exit clear and testable with cancellation or explicit joining.</td></tr>
+            <tr><td>29</td><td>Panic / Must</td><td>Do not panic for expected failure; <code>Must</code> means the programmer controls the required condition.</td></tr>
+            <tr><td>30</td><td>Declarations</td><td>Prefer <code>:=</code> for known values and <code>var</code> for zero targets when clearer.</td></tr>
+            <tr><td>31</td><td>Nil slices</td><td>Nil is a useful internal default; JSON and other external formats follow their documented requirements.</td></tr>
+            <tr><td>32</td><td>Channel direction</td><td>Use <code>chan&lt;-</code> and <code>&lt;-chan</code> when a function should only send or receive.</td></tr>
+            <tr><td>33</td><td>Long arguments</td><td>Prefer option structs; use constructor configuration functions when their flexibility pays.</td></tr>
+            <tr><td>34</td><td><code>%q</code></td><td>Use it when readers must see where a string begins and ends; do not manually quote <code>%s</code>.</td></tr>
+            <tr><td>35</td><td><code>any</code></td><td>Use <code>any</code>, not the legacy spelling <code>interface{}</code>.</td></tr>
+            <tr><td>36</td><td>Shadowing</td><td>Inside a nested block, <code>:=</code> can shadow an outer variable; use <code>=</code> when replacement is intended.</td></tr>
+            <tr><td>37</td><td>Imports</td><td>Group standard / other / proto / side effect; avoid dot imports.</td></tr>
+            <tr><td>38</td><td>Struct literals</td><td>Name fields for external types; omit redundant element type names.</td></tr>
+            <tr><td>39</td><td>Test failures</td><td>Show got before want; stop only when continuing is meaningless.</td></tr>
+            <tr><td>40</td><td>Test goroutines</td><td>Do not call <code>t.Fatal</code> from a worker goroutine.</td></tr>
+            <tr><td>41</td><td>Goroutine leaks</td><td>Assert exit directly; use <code>synctest</code> or <code>goleak</code> when they fit.</td></tr>
+            <tr><td>42</td><td>Test cleanup</td><td>Prefer <code>t.Context()</code>; parallelize only safe tests when useful.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="source-library shell" id="sources" aria-labelledby="sources-title">
+      <p class="micro">Sources / complete URLs</p>
+      <h2 id="sources-title">Source library</h2>
+      <p>Go and Google sources are primary. The cc-skills-golang material is a useful comparative source whose prescriptions have been adapted and softened where context matters.</p>
+
+      <section class="source-group" aria-labelledby="go-sources-title">
+        <h3 id="go-sources-title">The Go project</h3>
+        <ol>
+          <li><a href="https://go.dev/doc/effective_go" rel="noreferrer">Effective Go<span class="ref-url">https://go.dev/doc/effective_go</span></a></li>
+          <li><a href="https://go.dev/doc/comment" rel="noreferrer">Go Doc Comments<span class="ref-url">https://go.dev/doc/comment</span></a></li>
+          <li><a href="https://go.dev/wiki/CodeReviewComments" rel="noreferrer">Go Code Review Comments<span class="ref-url">https://go.dev/wiki/CodeReviewComments</span></a></li>
+          <li><a href="https://go.dev/ref/spec" rel="noreferrer">The Go Programming Language Specification<span class="ref-url">https://go.dev/ref/spec</span></a></li>
+          <li><a href="https://go.dev/blog/go1.13-errors" rel="noreferrer">Working with Errors in Go 1.13<span class="ref-url">https://go.dev/blog/go1.13-errors</span></a></li>
+          <li><a href="https://go.dev/blog/context" rel="noreferrer">Go Concurrency Patterns: Context<span class="ref-url">https://go.dev/blog/context</span></a></li>
+          <li><a href="https://go.dev/blog/context-and-structs" rel="noreferrer">Contexts and structs<span class="ref-url">https://go.dev/blog/context-and-structs</span></a></li>
+          <li><a href="https://pkg.go.dev/testing" rel="noreferrer">Package testing<span class="ref-url">https://pkg.go.dev/testing</span></a></li>
+          <li><a href="https://pkg.go.dev/testing/synctest" rel="noreferrer">Package testing/synctest<span class="ref-url">https://pkg.go.dev/testing/synctest</span></a></li>
+          <li><a href="https://go.dev/doc/articles/race_detector" rel="noreferrer">Data Race Detector<span class="ref-url">https://go.dev/doc/articles/race_detector</span></a></li>
+        </ol>
+      </section>
+
+      <section class="source-group" aria-labelledby="google-sources-title">
+        <h3 id="google-sources-title">Google Go style &amp; Site Reliability Engineering</h3>
+        <ol>
+          <li><a href="https://google.github.io/styleguide/go/" rel="noreferrer">Google Go Style overview<span class="ref-url">https://google.github.io/styleguide/go/</span></a></li>
+          <li><a href="https://google.github.io/styleguide/go/guide" rel="noreferrer">Google Go Style Guide<span class="ref-url">https://google.github.io/styleguide/go/guide</span></a></li>
+          <li><a href="https://google.github.io/styleguide/go/decisions" rel="noreferrer">Google Go Style Decisions<span class="ref-url">https://google.github.io/styleguide/go/decisions</span></a></li>
+          <li><a href="https://google.github.io/styleguide/go/best-practices" rel="noreferrer">Google Go Best Practices<span class="ref-url">https://google.github.io/styleguide/go/best-practices</span></a></li>
+          <li><a href="https://sre.google/sre-book/simplicity/" rel="noreferrer">SRE Book — Simplicity<span class="ref-url">https://sre.google/sre-book/simplicity/</span></a></li>
+          <li><a href="https://sre.google/sre-book/testing-reliability/" rel="noreferrer">SRE Book — Testing for Reliability<span class="ref-url">https://sre.google/sre-book/testing-reliability/</span></a></li>
+          <li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noreferrer">SRE Book — Monitoring Distributed Systems<span class="ref-url">https://sre.google/sre-book/monitoring-distributed-systems/</span></a></li>
+          <li><a href="https://sre.google/workbook/simplicity/" rel="noreferrer">SRE Workbook — Simplicity<span class="ref-url">https://sre.google/workbook/simplicity/</span></a></li>
+        </ol>
+      </section>
+
+      <section class="source-group" aria-labelledby="tool-sources-title">
+        <h3 id="tool-sources-title">Supporting testing tools</h3>
+        <ol>
+          <li><a href="https://pkg.go.dev/go.uber.org/goleak" rel="noreferrer">goleak package documentation<span class="ref-url">https://pkg.go.dev/go.uber.org/goleak</span></a></li>
+        </ol>
+      </section>
+
+      <section class="source-group" aria-labelledby="skill-sources-title">
+        <h3 id="skill-sources-title">cc-skills-golang comparative material</h3>
+        <ol>
+          <li><a href="https://github.com/samber/cc-skills-golang" rel="noreferrer">Repository<span class="ref-url">https://github.com/samber/cc-skills-golang</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-code-style/SKILL.md" rel="noreferrer">Go code style skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-code-style/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-naming/SKILL.md" rel="noreferrer">Go naming skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-naming/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-error-handling/SKILL.md" rel="noreferrer">Go error handling skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-error-handling/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-structs-interfaces/SKILL.md" rel="noreferrer">Go structs and interfaces skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-structs-interfaces/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-context/SKILL.md" rel="noreferrer">Go context skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-context/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-concurrency/SKILL.md" rel="noreferrer">Go concurrency skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-concurrency/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-safety/SKILL.md" rel="noreferrer">Go safety skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-safety/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-testing/SKILL.md" rel="noreferrer">Go testing skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-testing/SKILL.md</span></a></li>
+          <li><a href="https://github.com/samber/cc-skills-golang/blob/main/skills/golang-documentation/SKILL.md" rel="noreferrer">Go documentation skill<span class="ref-url">https://github.com/samber/cc-skills-golang/blob/main/skills/golang-documentation/SKILL.md</span></a></li>
+        </ol>
+      </section>
+    </section>
+  </main>
+
+  <footer class="page-footer shell">
+    <span>GO-CRUCIBLE / STYLE &amp; READABILITY / HTML COMPANION</span>
+    <span>SELF-CONTAINED · NO REMOTE ASSETS · PRINT-SAFE</span>
+  </footer>
+</body>
+</html>

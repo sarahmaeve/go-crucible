@@ -79,8 +79,8 @@ func TestExercise12_RaceReport(t *testing.T) {
 
 	if report.Summary.Total != wantTotal {
 		t.Errorf(
-			"expected %d total findings from %d auditors × %d findings each, got %d",
-			wantTotal, numAuditors, findingsEach, report.Summary.Total,
+			"total findings from %d auditors × %d findings each = %d, want %d",
+			numAuditors, findingsEach, report.Summary.Total, wantTotal,
 		)
 	}
 }
@@ -112,8 +112,8 @@ func TestExercise13_LostGoroutine(t *testing.T) {
 		}
 		if report.Summary.Total != wantTotal {
 			t.Errorf(
-				"iteration %d: expected %d total findings from all goroutines, got %d",
-				i, wantTotal, report.Summary.Total,
+				"iteration %d: total findings from all goroutines = %d, want %d",
+				i, report.Summary.Total, wantTotal,
 			)
 			// Report first failure and stop to avoid log spam.
 			return

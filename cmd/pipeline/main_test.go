@@ -23,7 +23,7 @@ const exercise19SignalHelper = "GO_CRUCIBLE_EXERCISE19_SIGNAL_HELPER"
 func TestExercise19_GracelessShutdown(t *testing.T) {
 	t.Run("sigterm_starts_graceful_shutdown", func(t *testing.T) {
 		if os.Getenv(exercise19SignalHelper) == "1" {
-			ctx, stop := shutdownContext(context.Background())
+			ctx, stop := shutdownContext(t.Context())
 			defer stop()
 
 			process, err := os.FindProcess(os.Getpid())
@@ -54,7 +54,7 @@ func TestExercise19_GracelessShutdown(t *testing.T) {
 
 	t.Run("workers_receive_pipeline_context", func(t *testing.T) {
 		source := newContextSource()
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		result := make(chan error, 1)
 		go func() {
 			result <- RunPipeline(ctx, []ingest.MetricSource{source})
@@ -68,7 +68,7 @@ func TestExercise19_GracelessShutdown(t *testing.T) {
 
 	t.Run("run_waits_for_owned_workers", func(t *testing.T) {
 		source := newDelayedSource()
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		result := make(chan error, 1)
 		go func() {
 			result <- RunPipeline(ctx, []ingest.MetricSource{source})

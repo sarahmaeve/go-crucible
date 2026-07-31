@@ -76,7 +76,7 @@ func TestAuditSecretExpiry(t *testing.T) {
 
 	// Sanity-check: only db-password is expired; api-token is in the future.
 	if len(findings) != 1 {
-		t.Errorf("expected 1 finding (expired db-password), got %d", len(findings))
+		t.Errorf("finding count = %d, want 1 (expired db-password)", len(findings))
 	}
 
 }

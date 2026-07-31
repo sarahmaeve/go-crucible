@@ -33,7 +33,7 @@ func TestExercise03_LostAlert(t *testing.T) {
 
 	alerts, err := evaluator.Evaluate(metric, rules)
 	if err == nil {
-		t.Fatal("exercise 03: expected an error when threshold is exceeded, got nil")
+		t.Fatal("exercise 03: Evaluate error = nil, want a threshold-exceeded error")
 	}
 
 	if len(alerts) == 0 {
@@ -41,6 +41,6 @@ func TestExercise03_LostAlert(t *testing.T) {
 	}
 
 	if !errors.Is(err, types.ErrThresholdExceeded) {
-		t.Errorf("errors.Is(err, ErrThresholdExceeded) = false, want true (got: %v)", err)
+		t.Errorf("errors.Is(%v, ErrThresholdExceeded) = false, want true", err)
 	}
 }

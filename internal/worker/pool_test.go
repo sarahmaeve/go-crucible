@@ -50,7 +50,7 @@ func TestExercise22_HollowRecovery(t *testing.T) {
 	}()
 
 	if len(results) != len(input) {
-		t.Fatalf("exercise 22: expected %d results, got %d", len(input), len(results))
+		t.Fatalf("exercise 22: result count = %d, want %d", len(results), len(input))
 	}
 
 	if results[0].Err != nil {
@@ -96,7 +96,7 @@ func TestPoolHappyPath(t *testing.T) {
 	})
 
 	if len(results) != 3 {
-		t.Fatalf("expected 3 results, got %d", len(results))
+		t.Fatalf("result count = %d, want 3", len(results))
 	}
 	wantValues := []float64{2, 4, 6}
 	for i, r := range results {
@@ -123,7 +123,7 @@ func TestPoolProcessorErrorPath(t *testing.T) {
 	results := p.Process([]types.Metric{{Name: "x"}})
 
 	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+		t.Fatalf("result count = %d, want 1", len(results))
 	}
 	if results[0].Err != errSentinel {
 		t.Errorf("results[0].Err = %v, want %v", results[0].Err, errSentinel)

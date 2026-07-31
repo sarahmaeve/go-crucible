@@ -48,7 +48,7 @@ func TestExercise08_ZombieMetric(t *testing.T) {
 	total := len(result["cpu"])
 	expected := goroutines * addsPerGoroutine
 	if total != expected {
-		t.Errorf("exercise 08: expected %d samples, got %d — data race likely caused lost writes",
-			expected, total)
+		t.Errorf("exercise 08: sample count = %d, want %d — data race likely caused lost writes",
+			total, expected)
 	}
 }

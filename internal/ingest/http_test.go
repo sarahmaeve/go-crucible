@@ -59,7 +59,7 @@ func TestPushHandlerHappyPath(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+		t.Fatalf("response status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
 	}
 	if got, want := sink.count(), 2; got != want {
 		t.Errorf("sink received %d metrics, want %d", got, want)
@@ -125,8 +125,8 @@ func TestExercise21_UnboundedRequest(t *testing.T) {
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != http.StatusRequestEntityTooLarge {
-				t.Errorf("handler accepted a %d-byte body with a %d-byte limit; want 413, got %d",
-					len(tc.body), limit, rec.Code)
+				t.Errorf("response status for a %d-byte body with a %d-byte limit = %d, want %d",
+					len(tc.body), limit, rec.Code, http.StatusRequestEntityTooLarge)
 			}
 			if sink.count() != 0 {
 				t.Errorf("sink received %d metrics; want 0 when the request body exceeds the limit", sink.count())

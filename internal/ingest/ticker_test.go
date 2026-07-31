@@ -37,7 +37,7 @@ func TestExercise18_TickingAllocation(t *testing.T) {
 	allocs := testing.AllocsPerRun(5, func() {
 		src := &finiteMetricSource{remaining: iterations}
 		out := make(chan types.Metric, iterations)
-		err := tf.Run(context.Background(), time.Nanosecond, src, out)
+		err := tf.Run(t.Context(), time.Nanosecond, src, out)
 		if !errors.Is(err, types.ErrSourceDrained) {
 			panic("TickerForwarder returned an unexpected error")
 		}

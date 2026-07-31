@@ -1,7 +1,6 @@
 package alert_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -100,7 +99,7 @@ func TestExercise09_ImmortalConnection(t *testing.T) {
 		"https://rules.example/cluster-c.json",
 	}
 
-	rules, err := alert.FetchRules(context.Background(), client, urls)
+	rules, err := alert.FetchRules(t.Context(), client, urls)
 	if err != nil {
 		t.Fatalf("FetchRules returned unexpected error: %v", err)
 	}

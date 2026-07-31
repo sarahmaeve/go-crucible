@@ -19,7 +19,7 @@ func TestHealthzAlwaysOK(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Errorf("/healthz: want 200, got %d", rec.Code)
+		t.Errorf("/healthz status = %d, want %d", rec.Code, http.StatusOK)
 	}
 }
 
@@ -36,7 +36,7 @@ func TestReadyzPassingChecks(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Errorf("/readyz with passing checks: want 200, got %d", rec.Code)
+		t.Errorf("/readyz status with passing checks = %d, want %d", rec.Code, http.StatusOK)
 	}
 }
 
@@ -53,14 +53,14 @@ func TestReadyzFailingChecks(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
-		t.Errorf("/readyz with failing checks: want 503, got %d", rec.Code)
+		t.Errorf("/readyz status with failing checks = %d, want %d", rec.Code, http.StatusServiceUnavailable)
 	}
 
-	var resp map[string]interface{}
+	var resp map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("could not decode response body: %v", err)
 	}
 	if resp["status"] != "not ready" {
-		t.Errorf("want status 'not ready', got %q", resp["status"])
+		t.Errorf("response status = %q, want %q", resp["status"], "not ready")
 	}
 }
