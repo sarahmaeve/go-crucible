@@ -23,7 +23,9 @@ Find the `defer f.Close()` statement. Consider the scope of `defer` in Go.
 - `defer` is bound to the enclosing function's return, not to the enclosing block or loop iteration
 - `defer` inside a `for` loop accumulates deferred calls for the entire duration of the function
 - The fix: extract the per-file logic into a helper function so that each file's `defer f.Close()` runs when the helper returns, which is at the end of each iteration
-- Alternatively, close explicitly (`f.Close()`) at the end of the loop body without using `defer`
+- An explicit-close implementation is safe only if every success and error
+  path closes the file and the close error is handled appropriately; a single
+  close at the bottom of the loop misses early returns
 
 ## Fixing It
 

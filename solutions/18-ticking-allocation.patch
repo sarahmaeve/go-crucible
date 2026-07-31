@@ -1,4 +1,4 @@
-# Exercise 18: The Ticking Leak
+# Exercise 18: The Ticking Allocation
 # App: pipeline | Difficulty: advanced
 # File: internal/ingest/ticker.go
 # Function: TickerForwarder.Run

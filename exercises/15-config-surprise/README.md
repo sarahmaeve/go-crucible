@@ -4,7 +4,15 @@
 
 ## Symptoms
 
-A workflow is configured with `concurrency.cancel-in-progress: false` — a deliberate choice meaning "queue runs in order, do not cancel the in-progress one". After a round-trip through `RoundTripWorkflow` (parse → re-serialize), the output YAML no longer contains the `cancel-in-progress` field at all. Downstream consumers treat the absent field as the default (which may be `true`), silently changing the workflow's behaviour.
+A workflow explicitly contains `concurrency.cancel-in-progress: false`. After
+a round-trip through `RoundTripWorkflow` (parse → re-serialize), the output
+YAML no longer contains the field. [GitHub Actions currently requires an
+explicit `true` to cancel an in-progress
+run](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency),
+so omission has the same runtime behavior as `false`; nevertheless, the
+serializer has failed its stated job because an explicit configuration choice
+disappeared. That loss matters to tools that audit, diff, or enforce the
+written form.
 
 ## Reproduce
 
@@ -22,8 +30,10 @@ Examine the JSON struct tag on that field carefully.
 
 - `omitempty` in JSON/YAML tags omits the field when it equals the Go zero value for its type
 - For `bool`, the zero value is `false` — so `omitempty` silently drops `false` values even when they are semantically meaningful
-- This is a common footgun when the zero value of a type carries a distinct meaning (disabled, off, queue-mode)
+- This is a common footgun when explicit presence matters to configuration
+  provenance, or when another schema gives absence and the zero value different meanings
 - The fix: remove `omitempty` from fields where the zero value is a valid, meaningful configuration choice
+- Removing `omitempty` makes this simplified model emit an explicit value whenever a concurrency block exists; a genuinely tri-state model requires a pointer or another presence-tracking representation throughout the parse pipeline
 
 ## Fixing It
 

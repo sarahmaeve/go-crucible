@@ -56,13 +56,11 @@ var builtinRules = []lintRule{
 						val := n.Content[i+1]
 						if key.Value == "uses" && val.Kind == yaml.ScalarNode {
 							ref := val.Value
-							at := strings.LastIndex(ref, "@")
-							if at < 0 {
-								return
+							if strings.HasPrefix(ref, "./") || strings.HasPrefix(ref, "docker://") {
+								continue
 							}
-							pin := ref[at+1:]
-							// A SHA pin is 40 hex chars; anything shorter is mutable.
-							if len(pin) < 40 {
+							at := strings.LastIndex(ref, "@")
+							if at < 1 || !isFullCommitSHA(ref[at+1:]) {
 								findings = append(findings, newFinding(
 									file, "pin-actions-version", SeverityWarning,
 									fmt.Sprintf("action %q is not pinned to a full SHA commit; use a 40-char SHA for reproducibility", ref),
@@ -119,6 +117,18 @@ func walkNode(n *yaml.Node, fn func(*yaml.Node)) {
 	}
 }
 
+func isFullCommitSHA(s string) bool {
+	if len(s) != 40 {
+		return false
+	}
+	for _, r := range s {
+		if !('0' <= r && r <= '9') && !('a' <= r && r <= 'f') && !('A' <= r && r <= 'F') {
+			return false
+		}
+	}
+	return true
+}
+
 // LintWorkflows walks dir, lints every *.yml and *.yaml file it finds, and
 // returns the aggregated findings.
 func LintWorkflows(dir string) ([]types.LintFinding, error) {
@@ -149,8 +159,7 @@ func LintWorkflows(dir string) ([]types.LintFinding, error) {
 		var doc yaml.Node
 		dec := yaml.NewDecoder(f)
 		if err := dec.Decode(&doc); err != nil {
-			// Skip files that aren't valid YAML.
-			continue
+			return nil, fmt.Errorf("lint: decoding %q: %w", path, err)
 		}
 
 		for _, rule := range builtinRules {

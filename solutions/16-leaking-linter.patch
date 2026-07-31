@@ -7,7 +7,7 @@ diff --git a/internal/lint/linter.go b/internal/lint/linter.go
 index 8008ad8..b7431ad 100644
 --- a/internal/lint/linter.go
 +++ b/internal/lint/linter.go
-@@ -140,24 +140,37 @@ func LintWorkflows(dir string) ([]types.LintFinding, error) {
+@@ -140,23 +140,36 @@ func LintWorkflows(dir string) ([]types.LintFinding, error) {
 
  		path := filepath.Join(dir, name)
 
@@ -24,8 +24,7 @@ index 8008ad8..b7431ad 100644
 -		var doc yaml.Node
 -		dec := yaml.NewDecoder(f)
 -		if err := dec.Decode(&doc); err != nil {
--			// Skip files that aren't valid YAML.
--			continue
+-			return nil, fmt.Errorf("lint: decoding %q: %w", path, err)
 -		}
 +	return findings, nil
 +}
@@ -48,8 +47,7 @@ index 8008ad8..b7431ad 100644
 +	var doc yaml.Node
 +	dec := yaml.NewDecoder(f)
 +	if err := dec.Decode(&doc); err != nil {
-+		// Skip files that aren't valid YAML.
-+		return nil, nil
++		return nil, fmt.Errorf("lint: decoding %q: %w", path, err)
  	}
 
 +	var findings []types.LintFinding

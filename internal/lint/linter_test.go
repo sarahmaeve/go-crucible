@@ -124,3 +124,41 @@ func TestLintWorkflows_EmptyDir(t *testing.T) {
 		t.Errorf("expected no findings for empty dir, got %d", len(findings))
 	}
 }
+
+func TestLintWorkflows_MalformedYAMLReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "broken.yml"), []byte("jobs: [\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := lint.LintWorkflows(dir); err == nil {
+		t.Fatal("LintWorkflows returned nil error for malformed YAML")
+	}
+}
+
+func TestLintWorkflows_PinRequiresHexSHA(t *testing.T) {
+	dir := t.TempDir()
+	const workflow = `name: Invalid Pin
+on:
+  push:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+`
+	if err := os.WriteFile(filepath.Join(dir, "invalid-pin.yml"), []byte(workflow), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings, err := lint.LintWorkflows(dir)
+	if err != nil {
+		t.Fatalf("LintWorkflows returned unexpected error: %v", err)
+	}
+	for _, finding := range findings {
+		if finding.Rule == "pin-actions-version" {
+			return
+		}
+	}
+	t.Fatalf("expected pin-actions-version finding, got %v", findings)
+}

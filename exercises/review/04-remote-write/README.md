@@ -232,7 +232,7 @@ index 7e8f9a0..b1c2d3e 100644
  		if !errors.Is(err, context.Canceled) {
  			slog.Error("pipeline error", "err", err)
  			os.Exit(1)
-@@ -38,11 +56,13 @@ var doneCh = make(chan struct{})
+@@ -34,8 +52,10 @@ func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
  
 -// RunPipeline starts the ingestion pipeline and blocks until ctx is cancelled
 -// or an unrecoverable error occurs.
@@ -245,8 +245,6 @@ index 7e8f9a0..b1c2d3e 100644
 +func RunPipeline(ctx context.Context, sources []ingest.MetricSource, sink ingest.MetricSink) error {
  	slog.Info("pipeline starting", "sources", len(sources))
  
- 	doneCh = make(chan struct{})
- 	defer close(doneCh)
 @@ -60,6 +80,9 @@ func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
  	out := make(chan types.Metric, 64)
 +	if sink != nil {

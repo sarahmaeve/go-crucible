@@ -4,7 +4,11 @@
 
 ## Symptoms
 
-`AuditSecretExpiry` processes a batch of secrets. Each secret that carries an expiry annotation opens an `io.ReadCloser`. The test verifies that each opened reader is eventually closed. It never is. In production this would manifest as file descriptor exhaustion or goroutine leaks proportional to the number of secrets audited.
+`AuditSecretExpiry` processes a batch of secrets. Each secret that carries an
+expiry annotation opens an `io.ReadCloser`. Readers are never closed, so the
+number of live resources grows with the batch. In production this would
+manifest as file-descriptor exhaustion proportional to the number of secrets
+audited.
 
 ## Reproduce
 
@@ -21,8 +25,10 @@ Find the call to `newSecretReader` and look for the matching `Close()` call. The
 ## What You Will Learn
 
 - Any type implementing `io.ReadCloser` (HTTP response bodies, file handles, database cursors, gRPC streams) must be explicitly closed
-- The idiomatic Go pattern: `defer reader.Close()` immediately after the resource is opened
-- Why a `defer` inside a loop iteration still accumulates — and when a helper function is the right fix for that
+- The idiomatic Go pattern: acquire and defer cleanup in the same function
+- Why a `defer` directly inside a long loop still accumulates resources until
+  the outer function returns
+- How a small per-iteration helper gives `defer` the correct lifetime
 - This exercise intentionally uses a simple in-process closer; the same pattern applies to network connections and OS resources
 
 ## Fixing It

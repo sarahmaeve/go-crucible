@@ -214,19 +214,20 @@ similar symptoms, same package, different bugs.
 `make test-exercise N=17`
 
 ### 18 — pipeline *(pre-solved — `git apply -R solutions/18-*.patch` first)*
-> A forwarder daemon on a 100-millisecond interval grows memory
-> steadily over days — restart it and the climb starts over. Heap
-> profiles show runtime timer allocations dominating, and the count
-> never goes down between samples.
+> A high-throughput forwarder spends a surprising amount of CPU in
+> garbage collection. Allocation profiles are dominated by timer
+> objects, and the allocation count grows by several objects for every
+> metric forwarded even though only one recurring schedule is needed.
 
 `make test-exercise N=18`
 
 ### 19 — pipeline *(pre-solved — `git apply -R solutions/19-*.patch` first)*
 > Three complaints from ops about the same daemon, filed separately:
-> SIGTERM does nothing (only SIGKILL works); the supervisor that
-> restarts the pipeline in-process panics on the second start; and
-> during shutdown something keeps reading from the source after the
-> context is cancelled. They may not be one bug.
+> Ctrl-C shuts down cleanly on a developer laptop, but the production
+> supervisor's SIGTERM exits before cleanup. During API-triggered restarts,
+> one source keeps reading after cancellation, and RunPipeline reports that
+> it has stopped while another source operation is still finishing. They may
+> not be one bug.
 
 `make test-exercise N=19`
 

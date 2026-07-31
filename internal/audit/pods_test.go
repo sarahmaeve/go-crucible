@@ -49,8 +49,8 @@ func TestAuditPodLimits_FindsMissingLimits(t *testing.T) {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  "app",
-					Image: "nginx",
+					Name:      "app",
+					Image:     "nginx",
 					Resources: corev1.ResourceRequirements{
 						// No limits set
 					},

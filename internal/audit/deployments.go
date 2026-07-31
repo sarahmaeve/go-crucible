@@ -16,7 +16,7 @@ type DeploymentAuditor struct {
 	missingLabels map[string]bool
 }
 
-// NewDeploymentAuditor creates a DeploymentAuditor with an initialised label map.
+// NewDeploymentAuditor creates a DeploymentAuditor for requiredLabels.
 func NewDeploymentAuditor(requiredLabels []string) *DeploymentAuditor {
 	return &DeploymentAuditor{
 		requiredLabels: requiredLabels,
@@ -24,8 +24,7 @@ func NewDeploymentAuditor(requiredLabels []string) *DeploymentAuditor {
 	}
 }
 
-// Audit is a method on DeploymentAuditor that uses the pre-allocated map — this
-// path works correctly.
+// Audit checks every deployment using the auditor's accumulated state.
 func (da *DeploymentAuditor) Audit(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
 	deployments, err := c.ListDeployments(ctx, namespace)
 	if err != nil {

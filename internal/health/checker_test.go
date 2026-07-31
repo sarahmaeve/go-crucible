@@ -2,6 +2,7 @@ package health_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -31,15 +32,22 @@ func TestExercise10_HangingHealthCheck(t *testing.T) {
 	defer cancel()
 
 	done := make(chan error, 1)
+	start := time.Now()
 	go func() {
 		done <- checker.Check(ctx)
 	}()
 
 	select {
 	case err := <-done:
-		// Any error (including context.DeadlineExceeded) is acceptable here —
-		// what matters is that it returned within the deadline.
-		t.Logf("exercise 10: Check returned with: %v", err)
+		elapsed := time.Since(start)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("Check error = %v, want context.DeadlineExceeded", err)
+		}
+		// Guard against an implementation that returns a fabricated error
+		// immediately without running the dependency until the deadline.
+		if elapsed < 400*time.Millisecond {
+			t.Errorf("Check returned after %v, before the 500ms caller deadline", elapsed)
+		}
 	case <-time.After(1 * time.Second):
 		t.Error("exercise 10: Check did not return within the context deadline — health check ignored cancellation")
 	}

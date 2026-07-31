@@ -7,7 +7,7 @@ import (
 
 // Registry holds named Template factories.
 type Registry struct {
-	mu       sync.RWMutex
+	mu        sync.RWMutex
 	factories map[string]func() Template
 }
 

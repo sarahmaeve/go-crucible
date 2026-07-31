@@ -246,9 +246,9 @@ This exercise's planted bugs draw on:
   a receive loop. Here the author *did* check the comma-ok flag; ask
   yourself what the statement they wrote actually does.
 - **Exercise 19: The Graceless Shutdown** — compound, independent
-  bugs in one shutdown path: signal registration that isn't, and a
-  channel close that can run twice. Also recall Exercise 22's lesson
-  about `defer` and function frames — it applies to more than
+  bugs in one shutdown path. Transfer its questions about the production
+  signal boundary and ownership of shutdown completion. Also recall Exercise
+  22's lesson about `defer` and function frames — it applies to more than
   `recover()`.
 
 ## One note before you start

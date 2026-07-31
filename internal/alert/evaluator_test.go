@@ -9,8 +9,8 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// TestExercise03_LostAlert verifies that Evaluate wraps ErrThresholdExceeded
-// properly so that errors.Is can unwrap it.
+// TestExercise03_LostAlert verifies that callers can classify a threshold
+// violation using the package's sentinel error.
 func TestExercise03_LostAlert(t *testing.T) {
 	evaluator := &alert.AlertEvaluator{}
 

@@ -85,7 +85,7 @@ The Crucible teaches debugging existing tests. Stage 2 should teach writing them
 - **Metric label cardinality explosion** — A Prometheus metric with an unbounded label
   (e.g., user ID) that causes memory exhaustion. Exercise: fix the label strategy.
 
-- **Structured logging pitfalls** �� A service that logs sensitive data (tokens, PII) in
+- **Structured logging pitfalls** — A service that logs sensitive data (tokens, PII) in
   error messages. Exercise: sanitize the logging.
 
 ---
@@ -121,12 +121,12 @@ These are open-ended and don't have a single correct answer.
 
 ## Interview Preparation Gaps
 
-The Crucible covers "What's wrong with this code?" well. These interview patterns
-are NOT covered and would need separate materials:
+The Crucible covers "What's wrong with this code?" and simulated code review
+well. These remaining interview patterns need separate materials:
 
 - **"Explain the output"** — Given a goroutine ordering problem, predict what prints.
   Conceptual, not hands-on.
 - **"How would you improve this?"** — Refactoring for clarity/performance, not bug fixing.
 - **"Design a system"** — Whiteboard-style architecture using Go concurrency primitives.
-- **"Code review"** — Evaluate a PR for correctness, style, and performance. Different
-  from finding a planted bug because the code may be correct but suboptimal.
+The review track now covers evaluating PRs for correctness, style, performance,
+red herrings, and test quality (R01–R11).

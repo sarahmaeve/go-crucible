@@ -13,9 +13,8 @@ deadline; the test spawns a goroutine and races `<-done` against a real
 `time.After(1 * time.Second)`. Two compromises fall out of this:
 
 - It spends **0.5–1 s of real wall-clock time** every run.
-- It can only assert a *proxy*: "Check returned within a second." It never checks
-  *why* it returned. A `Check` that ignored the deadline but happened to be fast
-  would pass; the assertion is blind to the actual property the exercise teaches.
+- It checks the exact error, but the elapsed-time assertion needs a broad
+  400 ms–1 s scheduler-tolerant window around the 500 ms deadline.
 
 ## The synctest version
 
@@ -51,9 +50,9 @@ instantly.
 | | Canonical test | synctest extension |
 |---|---|---|
 | Real time spent | ~0.5–1 s per run | ~0 s (fake clock) |
-| Assertion | "returned within 1 s" (proxy) | exact `DeadlineExceeded` at fake t=500ms |
+| Assertion | `DeadlineExceeded` within 400 ms–1 s | exact `DeadlineExceeded` at fake t=500ms |
 | Plumbing | goroutine + `done` channel + outer timeout | a plain synchronous call |
-| Catches a fast-but-wrong `Check`? | no | yes |
+| Catches a fast fabricated error? | yes | yes |
 
 The lesson: deadline and timeout behaviour is a *timing contract*. With a fake
 clock you can test the contract directly and exactly, instead of approximating it

@@ -30,8 +30,8 @@ func (d *directSecretsClient) ListSecrets(_ context.Context, _ string) ([]corev1
 	return result, nil
 }
 
-// TestExercise09_ImmortalConnection verifies that AuditSecretExpiry closes
-// every io.ReadCloser it opens while processing secret data.
+// TestExercise09_ImmortalConnection verifies that AuditSecretExpiry bounds the
+// number of simultaneously open readers while processing a batch.
 func TestExercise09_ImmortalConnection(t *testing.T) {
 	audit.InstallTestCloseHook()
 	defer audit.UninstallTestCloseHook()
@@ -82,15 +82,19 @@ func TestExercise09_ImmortalConnection(t *testing.T) {
 		t.Errorf("expected 1 finding (expired db-password), got %d", len(findings))
 	}
 
-	// The exercise assertion: both annotated secrets (db-password + api-token)
-	// opened a reader. Both readers must have been closed.
-	// "no-expiry" has no annotation so no reader was opened for it.
+	// Both annotated secrets open a reader, but their lifetimes must not overlap.
 	const wantCloses = 2
-	gotCloses := audit.TestHookCloseCount()
+	current, peak, gotCloses := audit.TestHookReaderCounts()
 	if gotCloses != wantCloses {
 		t.Errorf(
 			"expected %d reader Close() calls for %d annotated secrets, got %d",
 			wantCloses, wantCloses, gotCloses,
 		)
+	}
+	if current != 0 {
+		t.Errorf("expected no readers left open after audit, got %d", current)
+	}
+	if peak > 1 {
+		t.Errorf("expected each reader to close before the next opened; peak open readers = %d, want <= 1", peak)
 	}
 }

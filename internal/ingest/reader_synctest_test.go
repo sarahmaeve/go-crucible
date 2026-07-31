@@ -28,22 +28,15 @@ import (
 //
 // This version runs the code inside a synctest bubble. There is no sleep and no
 // goroutine counting. After cancellation, synctest.Wait blocks until every
-// other goroutine in the bubble is durably blocked or has exited:
-//
-//   - on the FIXED ReadMetrics (send wrapped in a select with ctx.Done()), the
-//     reader goroutine observes the cancellation and returns; the bubble drains
-//     and the test passes.
-//   - on the BUGGY ReadMetrics (bare `out <- m`), the reader goroutine is parked
-//     forever on the send. When the bubble ends with a goroutine that can never
-//     make progress, synctest fails the test with a deadlock report that names
-//     the exact blocked line — reader.go:18, "[chan send (durable)]".
+// other goroutine in the bubble is durably blocked or has exited. A
+// cancellation-aware reader drains the bubble; one that remains blocked after
+// cancellation produces a deterministic deadlock report with the blocked frame.
 func TestExercise06_Synctest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		out := make(chan types.Metric) // unbuffered — the consumer controls flow
 
-		// InfiniteSource never blocks on Read, so the goroutine's only blocking
-		// point is the send on out — exactly the leak we want to observe.
+		// InfiniteSource keeps the fixture focused on downstream backpressure.
 		src := ingest.NewInfiniteSource("cpu")
 		if err := ingest.ReadMetrics(ctx, src, out); err != nil {
 			t.Fatalf("ReadMetrics returned unexpected error: %v", err)
@@ -52,9 +45,7 @@ func TestExercise06_Synctest(t *testing.T) {
 		<-out    // consume one metric so the goroutine is running
 		cancel() // cancel and stop consuming
 
-		// Let every other bubble goroutine reach a durable block or exit. On the
-		// fixed code the reader has already returned; on the buggy code it is
-		// stuck on `out <- m`, which surfaces as a deadlock when the bubble ends.
+		// Let every other bubble goroutine reach a durable block or exit.
 		synctest.Wait()
 	})
 }

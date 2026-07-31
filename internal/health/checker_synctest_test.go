@@ -25,22 +25,15 @@ import (
 // TestExercise10_Synctest is the testing/synctest rewrite of the context-deadline
 // check. Compare it against TestExercise10_HangingHealthCheck in checker_test.go,
 // which spawns a goroutine, races a real 500ms deadline against a real 1s
-// wall-clock timeout, and can only assert the weak proxy "Check returned within
-// a second" — taking ~0.5-1s of real time to do so.
+// wall-clock timeout, and asserts within a broad scheduler-tolerant window —
+// taking ~0.5-1s of real time to do so.
 //
 // Inside a synctest bubble the clock is fake. The 500ms deadline and the
 // dependency's 10s timer both resolve in zero real time, and time.Since reports
-// fake-elapsed duration. That lets the test assert the EXACT property exercise 10
-// teaches — Check honored the caller's deadline — instead of a timing proxy:
-//
-//   - on the FIXED Check (passes ctx), the dependency's select observes
-//     ctx.Done() at fake t=500ms and returns context.DeadlineExceeded.
-//   - on the BUGGY Check (context.Background()), the deadline never reaches the
-//     dependency; it returns nil only when its own 10s timer fires at fake
-//     t=10s. Both assertions below then fail — instantly and deterministically.
-//
-// Exercise 10 is pre-solved on main, so this passes as-is. To watch it fail,
-// reintroduce the bug first: git apply -R solutions/10-hanging-health-check.patch
+// fake-elapsed duration. That lets the test assert the contract directly:
+// Check must return the caller's deadline error at fake t=500ms, rather than
+// completing on the dependency's own fake t=10s schedule. Both outcomes are
+// observed instantly and deterministically.
 func TestExercise10_Synctest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// A slow dependency that only returns when its context is cancelled, or

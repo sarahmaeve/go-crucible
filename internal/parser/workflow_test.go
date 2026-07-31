@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/go-crucible/go-crucible/internal/parser"
 )
 
@@ -57,8 +59,7 @@ jobs:
 		t.Errorf("Jobs is empty; expected at least one job")
 	}
 
-	// The 'on' triggers map must be non-nil — the source YAML has push and
-	// pull_request triggers. FAILS because rawWorkflow.on is unexported.
+	// The source YAML defines both triggers, so both must survive parsing.
 	if wf.On == nil {
 		t.Errorf("On (triggers) is nil; YAML contains 'on: push/pull_request' but the intermediate struct field is unexported and the YAML decoder skips it")
 	} else {
@@ -70,7 +71,7 @@ jobs:
 		}
 	}
 
-	// The top-level env map must be non-nil. FAILS because rawWorkflow.env is unexported.
+	// The source YAML also defines two top-level environment variables.
 	if wf.Env == nil {
 		t.Errorf("Env is nil; YAML contains top-level env vars but the intermediate struct field is unexported and the YAML decoder skips it")
 	} else {
@@ -106,14 +107,10 @@ func mapKeys(m map[string]any) []string {
 }
 
 // TestExercise15_ConfigSurprise round-trips a workflow YAML that has
-// cancel-in-progress: false and asserts the value is preserved.
-//
-// The test FAILS because concurrencyIntermediate.CancelInProgress has
-// json:"cancel-in-progress,omitempty" — a false bool is its zero value and
-// omitempty silently drops it, changing the semantic meaning of the workflow.
+// cancel-in-progress: false and asserts that the explicit field is preserved.
 func TestExercise15_ConfigSurprise(t *testing.T) {
-	// This workflow deliberately sets cancel-in-progress: false to ensure
-	// deployments are serialized rather than cancelled.
+	// This workflow deliberately spells out the false value so round-trip
+	// fidelity can be tested independently of a consumer's default.
 	const workflowYAML = `
 name: Deploy
 
@@ -138,19 +135,16 @@ jobs:
 		t.Fatalf("RoundTripWorkflow returned unexpected error: %v", err)
 	}
 
-	outStr := string(out)
-
-	// The round-tripped YAML must still contain the cancel-in-progress key.
-	// FAILS because JSON omitempty drops the false bool during marshaling.
-	if !strings.Contains(outStr, "cancel-in-progress") {
-		t.Errorf("Round-tripped YAML is missing 'cancel-in-progress' key entirely.\n"+
-			"This means a deliberate 'false' value was silently dropped by omitempty.\n"+
-			"Output:\n%s", outStr)
-	} else if strings.Contains(outStr, "cancel-in-progress: false") || strings.Contains(outStr, "cancel-in-progress: \"false\"") {
-		// Value is present and correct.
-		t.Logf("cancel-in-progress: false correctly preserved in output")
-	} else {
-		// Key is present but value might be wrong.
-		t.Logf("Output contains 'cancel-in-progress' but value may be incorrect:\n%s", outStr)
+	var decoded struct {
+		Concurrency map[string]any `yaml:"concurrency"`
+	}
+	if err := yaml.Unmarshal(out, &decoded); err != nil {
+		t.Fatalf("round-tripped output is not valid YAML: %v\n%s", err, out)
+	}
+	value, ok := decoded.Concurrency["cancel-in-progress"]
+	if !ok {
+		t.Errorf("round-tripped YAML is missing cancel-in-progress; want explicit false\n%s", out)
+	} else if got, ok := value.(bool); !ok || got {
+		t.Errorf("round-tripped cancel-in-progress = %#v, want boolean false\n%s", value, out)
 	}
 }

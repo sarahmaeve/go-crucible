@@ -24,7 +24,7 @@ into `json.NewDecoder`. Currently, the decoder reads directly from
 
 ## Hint 3: Almost There
 
-Two changes, in order:
+Three changes, in order:
 
 1. **Before** decoding, wrap the body:
 
@@ -47,9 +47,24 @@ Two changes, in order:
    http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
    ```
 
-Add `"errors"` to the import block. Both the 413 and the 400 response
-paths must exist — clients deserve the right error code for each
-failure mode.
+   Add `"errors"` to the import block. Both the 413 and the 400 response
+   paths must exist — clients deserve the right error code for each failure mode.
+
+3. Keep the decoder and require EOF after the first JSON value before
+   publishing:
+
+   ```go
+   dec := json.NewDecoder(r.Body)
+   // ...decode req with dec...
+   if err := dec.Decode(&struct{}{}); err != io.EOF {
+       // Classify *http.MaxBytesError as above; other results are a 400.
+   }
+   ```
+
+   `Decode` is allowed to stop after one value and may already have buffered
+   bytes beyond it, so continue through the same decoder rather than reading
+   `r.Body` separately. Requiring `io.EOF` both consumes the complete capped
+   stream and rejects a second JSON value. Add `"io"` to the imports.
 
 Note: apply the wrap **before** decoding, not after. A "fix" that
 decodes into memory and then checks the resulting size would still let a

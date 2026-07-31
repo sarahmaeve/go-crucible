@@ -1,17 +1,34 @@
 # Exercise 09: The Immortal Connection
-# App: kube-patrol | Difficulty: intermediate
+# App: kube-patrol | Difficulty: beginner
 # File: internal/audit/secrets.go
 # Function: AuditSecretExpiry
 #
 diff --git a/internal/audit/secrets.go b/internal/audit/secrets.go
-index 91f6010..09a8e31 100644
 --- a/internal/audit/secrets.go
 +++ b/internal/audit/secrets.go
-@@ -84,6 +84,7 @@ func AuditSecretExpiry(c client.AuditClient, namespace string) ([]types.Finding,
-
- 		// Open a reader over the secret data.
- 		reader := newSecretReader(secret.Data["value"])
-+		defer reader.Close()
-
- 		expiry, err := parseExpiryFromReader(reader, expiryStr)
+@@ -113,10 +113,7 @@ func AuditSecretExpiry(ctx context.Context, c client.AuditClient, namespace stri
+ 			continue
+ 		}
+ 
+-		// Open a reader over the secret data.
+-		reader := newSecretReader(secret.Data["value"])
+-
+-		expiry, err := parseExpiryFromReader(reader, expiryStr)
++		expiry, err := readSecretExpiry(secret.Data["value"], expiryStr)
  		if err != nil {
+ 			continue
+ 		}
+@@ -138,6 +134,13 @@ func AuditSecretExpiry(ctx context.Context, c client.AuditClient, namespace stri
+ 	return findings, nil
+ }
+ 
++func readSecretExpiry(data []byte, expiryStr string) (time.Time, error) {
++	reader := newSecretReader(data)
++	defer reader.Close()
++
++	return parseExpiryFromReader(reader, expiryStr)
++}
++
+ // parseExpiryFromReader reads from r and parses the expiry date string.
+ func parseExpiryFromReader(r io.Reader, expiryStr string) (time.Time, error) {
+ 	buf := &bytes.Buffer{}

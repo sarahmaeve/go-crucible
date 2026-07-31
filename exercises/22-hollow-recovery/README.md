@@ -82,9 +82,9 @@ has to be called to take effect.
   because `defer` is function-scoped rather than loop-scoped. Together
   with this exercise it forms a pair on subtle defer misuse.
 - [Exercise 19: The Graceless Shutdown](../19-graceless-shutdown/README.md)
-  — one of its three bugs is a panic on closing a closed channel.
-  Reasoning about who recovers from process-level panics overlaps with
-  the worker pattern here.
+  — another advanced lifecycle exercise, focused on signal cancellation,
+  context propagation, and joining owned goroutines rather than containing
+  panics within them.
 
 ## Fixing It
 

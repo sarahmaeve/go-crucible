@@ -22,7 +22,9 @@ test-race:
 
 test-exercise:
 	@if [ -z "$(N)" ]; then echo "Usage: make test-exercise N=01"; exit 1; fi
-	go test ./... -run "TestExercise$(N)" -v
+	@raceflag=""; \
+	case " $(RACE_EXERCISES) " in *" $(N) "*) raceflag="-race";; esac; \
+	go test $$raceflag ./... -run "^TestExercise$(N)" -count=1 -v
 
 vet:
 	go vet ./...
@@ -58,13 +60,24 @@ status-race:
 
 verify-solution:
 	@if [ -z "$(N)" ]; then echo "Usage: make verify-solution N=01"; exit 1; fi
-	@tmpdir=$$(mktemp -d) && \
-	cp -r . "$$tmpdir/go-crucible" && \
-	cd "$$tmpdir/go-crucible" && \
-	git apply solutions/$(N)-*.patch && \
-	go test ./... -run "TestExercise$(N)" -v && \
-	echo "Solution $(N) verified successfully" && \
-	rm -rf "$$tmpdir"
+	@tmpdir=$$(mktemp -d); \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	cp -R . "$$tmpdir/go-crucible" || exit 1; \
+	cd "$$tmpdir/go-crucible" || exit 1; \
+	patch=$$(ls solutions/$(N)-*.patch); \
+	raceflag=""; \
+	case " $(RACE_EXERCISES) " in *" $(N) "*) raceflag="-race";; esac; \
+	case " $(PRESOLVED) " in \
+	*" $(N) "*) \
+		git apply -R "$$patch" \
+		&& ! go test $$raceflag ./... -run "^TestExercise$(N)" -count=1 \
+		&& git apply "$$patch" \
+		&& go test $$raceflag ./... -run "^TestExercise$(N)" -count=1;; \
+	*) \
+		git apply "$$patch" \
+		&& go test $$raceflag ./... -run "^TestExercise$(N)" -count=1;; \
+	esac || exit 1; \
+	echo "Solution $(N) verified successfully"
 
 # ---------------------------------------------------------------------------
 # Local verification harness. Remote CI is not available to this repo, so
@@ -137,7 +150,7 @@ verify-patches:
 				echo "  exercise $$n: OK (pre-solved round-trip)"; \
 			else \
 				echo "  exercise $$n: FAIL (pre-solved round-trip broken)"; fail=1; \
-				git checkout -- . 2>/dev/null; \
+				git apply "$$patch" 2>/dev/null || true; \
 			fi;; \
 		*) \
 			if git apply "$$patch" \
@@ -147,7 +160,7 @@ verify-patches:
 				echo "  exercise $$n: OK (solution round-trip)"; \
 			else \
 				echo "  exercise $$n: FAIL (solution round-trip broken)"; fail=1; \
-				git checkout -- . 2>/dev/null; \
+				git apply -R "$$patch" 2>/dev/null || true; \
 			fi;; \
 		esac; \
 	done; \

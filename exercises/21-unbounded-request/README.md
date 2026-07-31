@@ -17,11 +17,11 @@ payload; the handler reads it all into memory before even noticing.
 go test ./internal/ingest/ -run TestExercise21 -v
 ```
 
-The exercise test configures the handler with a 512-byte limit and posts
-a well-formed JSON body of roughly 4 KB. The body is valid JSON — the
-oversize is the issue, not malformed content. The handler should reject
-the request with 413 Request Entity Too Large; it currently returns 200
-and publishes the metric anyway.
+The exercise test configures the handler with a 512-byte limit and checks two
+well-formed oversized shapes: a roughly 4 KB JSON value, and a small valid JSON
+value followed by enough whitespace to take the complete body over the cap.
+It runs both with known and unknown content lengths. All four requests should
+receive 413 Request Entity Too Large without publishing a metric.
 
 A companion happy-path test (`TestPushHandlerHappyPath`) confirms the
 handler continues to work correctly for requests below the limit. That
@@ -42,6 +42,10 @@ where it is read inside `ServeHTTP`.
   `n` return `*http.MaxBytesError`. Assigning the wrapped reader back to
   `r.Body` is the canonical pattern, so any subsequent `io.Reader` user
   (the JSON decoder, a streaming parser, `io.Copy`) inherits the cap.
+- A single `json.Decoder.Decode` reads one JSON value; it is not a promise that
+  the entire request body was consumed. If the contract caps the whole body,
+  the handler must require EOF from the same decoder before publishing; using
+  the same decoder also accounts for bytes it may already have buffered.
 - When the decoder returns an error, classify it: a `*http.MaxBytesError`
   deserves a `413 Request Entity Too Large`, while malformed JSON
   deserves a `400 Bad Request`. Collapsing both into one response hides
@@ -53,7 +57,7 @@ where it is read inside `ServeHTTP`.
 ## Related Exercises
 
 - [Exercise 09: The Immortal Connection](../09-immortal-connection/README.md)
-  — the other side of defensive HTTP handling: always close what you open.
+  — the general resource-lifetime rule: always close what you open.
 - [Exercise 10: The Hanging Health Check](../10-hanging-health-check/README.md)
   — context propagation inside an HTTP handler. Together these three
   exercises form the core of "what a Go HTTP handler must get right."

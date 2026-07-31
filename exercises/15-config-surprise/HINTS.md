@@ -23,3 +23,9 @@ CancelInProgress bool `json:"cancel-in-progress"`
 ```
 
 Now `false` is always written to the JSON output, preserved through the round-trip, and marshaled back into the output YAML. The field is only absent when the entire `Concurrency` block is absent (which is still handled by `omitempty` on the outer `Concurrency` pointer field).
+
+This is the canonical fix for the repository's simplified model. If a format
+requires all three states—absent, explicit false, and explicit true—the public
+`WorkflowConcurrency` field must also track presence (commonly with `*bool`).
+Changing only the intermediate struct cannot recover presence information that
+was already collapsed during the initial YAML decode.

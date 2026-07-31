@@ -93,15 +93,13 @@ surface is currently one handler; these would round it out.
 
 ### Concurrency and lifecycle
 
-#### `time.Tick` goroutine leak
+#### Retired: `time.Tick` resource-leak exercise
 - **Source:** Book ch 16 `workflow/es/es.go:157` — `for _ = range time.Tick(10*time.Second)`.
-- **Tier:** Advanced.
-- **Sketch:** Sibling to ex 18 (`time.After` in loops). `time.Tick`
-  never stops its ticker — the internal goroutine lives forever even
-  after the caller loses interest. Fix: `ticker := time.NewTicker(...)`
-  with `defer ticker.Stop()`.
-- **Teaches:** Same lesson as ex 18 with a distinct surface — worth
-  planting because both forms show up in real code.
+- **Decision:** Do not build this as a leak exercise. Since Go 1.23,
+  unreachable unstopped tickers are garbage collectable. `time.Tick` can
+  still be the wrong API when the caller needs an explicit stop or reset,
+  but the old “internal goroutine lives forever” premise does not match
+  this repository's Go 1.26 floor.
 
 #### Mutex held across a blocking `Serve()` call → `Stop()` deadlock
 - **Source:** Book ch 6 `grpc/server/server.go:53-56`.
@@ -198,8 +196,8 @@ summaries), and R06 (07+11, org defaults). See the Shipped section.
 **Shipped in full on 2026-06-09** as R07 (14+19, drain-on-shutdown:
 three compound bugs in one shutdown path), R08 (15+16, workflow sync:
 both bugs latent until fleet scale), and R09 (18 + a novel
-Shutdown-with-cancelled-ctx bug, replay throttle: the two bugs
-interact). See the Shipped section. R09 is the track's first exercise
+Shutdown-with-cancelled-ctx bug, replay throttle). See the Shipped
+section. R09 is the track's first exercise
 with a planted bug that has no numbered-exercise ancestor — by
 design, and announced to the learner up front.
 
@@ -208,10 +206,11 @@ design, and announced to the learner up front.
 **Shipped 2026-06-09** as R10 — Capstone: The Watch Mode PR
 (kube-patrol, ~200-line diff, one bug per tier: ex 02 nil map on the
 --diff path, ex 13 wg.Add inside the goroutine, ex 22 hollow recovery
-extended with the per-goroutine axis). The review track is complete:
-R01–R03 basic, R04–R06 intermediate, R07–R09 advanced, R10 capstone.
-Numbered exercises never echoed in the track — 08, 12, 20, 21 — are
-candidate material if the track ever grows a second lap.
+extended with the per-goroutine axis). R11 later added an intermediate
+test-quality review drawing on exercise 20. The review track is complete:
+R01–R03 basic, R04–R06 and R11 intermediate, R07–R09 advanced, R10
+capstone. Numbered exercises never echoed in the track — 08, 12, 21 —
+are candidate material if the track ever grows a second lap.
 
 ---
 
@@ -321,7 +320,7 @@ on-ramp: "here's a diff; instead of reviewing it, finish it."
 
 The book-reading guide points learners at `Go for DevOps` chapters
 after the crucible. If specific crucible exercises are directly
-inspired by book bugs (time.Tick leak, mutex-over-Serve), the
+inspired by book bugs (timer allocation churn, mutex-over-Serve), the
 exercise README could cite the book chapter as "see this pattern
 in a larger setting at Go for DevOps ch X" — a bidirectional link
 between the two.
@@ -368,14 +367,17 @@ Move entries here when the exercise lands on `main`.
 - **Review Exercises R07 / R08 / R09.** Shipped 2026-06-09.
   Advanced-tier review-track coverage complete: R07 pairs ex 14+19
   (break-in-select on a closed channel, frame-scoped defer
-  deregistering signal handlers, double close on the error path),
+  deregistering signal handlers, and double close on the error path),
   R08 pairs ex 15+16 (flattened *bool + omitempty deleting
   fail-fast: false org-wide, defer-in-loop FD exhaustion with
   provenance pointing at the real linter.go), R09 pairs ex 18 with a
   novel http.Server.Shutdown(already-cancelled-ctx) bug — the
   track's first planted issue with no numbered ancestor. In-universe
-  continuity: R07's spill file is what R09 replays. Remaining
-  review-track item: the R10 capstone.
+  continuity: R07's spill file is what R09 replays.
+- **Review Exercise R11.** Shipped as The Test Refactor PR. Adds an
+  intermediate test-quality review drawing on exercise 20: a
+  table-driven refactor accidentally lets the first `t.Fatalf` abort
+  all remaining cases because it omits `t.Run`.
 - **Local verification harness.** Shipped 2026-06-09. `tools/verify`
   (structural checks: registry ↔ tree, artifact pins, spoiler lint,
   Makefile drift) plus Makefile targets verify-quick / verify-vet /
@@ -391,7 +393,7 @@ Move entries here when the exercise lands on `main`.
   README/ARTIFACT/DIAGNOSIS_TEMPLATE/HINTS/DIAGNOSIS_NOTES.
   Artifacts embed real file:line references — see source-of-truth
   rule 4 in .crucible/README.md and the `references` fields in the
-  registry. Candidate future artifacts: heap profile (ex 18,
+  registry. Candidate future artifacts: allocation profile (ex 18,
   pre-solved), vet output (ex 13), fatal "concurrent map writes"
   dump (ex 08), pprof CPU profile of the spin loop (ex 14).
 - **Review Exercises R04 / R05 / R06.** Shipped 2026-06-09.

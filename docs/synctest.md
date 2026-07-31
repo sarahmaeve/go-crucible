@@ -4,7 +4,8 @@
 > [blog: Testing concurrent code](https://go.dev/blog/synctest) ·
 > [blog: Testing Time](https://go.dev/blog/testing-time) ·
 > [pkg.go.dev/testing/synctest](https://pkg.go.dev/testing/synctest) ·
-> [Go 1.25 release notes](https://go.dev/doc/go1.25)
+> [Go 1.25 release notes](https://go.dev/doc/go1.25) ·
+> [Go 1.26 release notes](https://go.dev/doc/go1.26)
 
 `testing/synctest` is a standard-library package for writing **fast and
 deterministic** tests of concurrent, time-dependent code. This page explains the
@@ -21,7 +22,7 @@ help.
 | **1.25** | **Graduated to the standard library.** No flag. API is `synctest.Test` + `synctest.Wait` |
 | 1.26 | The old `GOEXPERIMENT` API is removed; only `Test`/`Wait` remain |
 
-This repo builds with `go 1.25` (see `go.mod`), so the package is available with
+This repo builds with `go 1.26` (see `go.mod`), so the package is available with
 no build flags or experiments. The extension tests use an ordinary `synctest`
 **build tag** purely to keep themselves out of the canonical suite — that is not
 related to the old `GOEXPERIMENT`.
@@ -74,11 +75,11 @@ straight at `reader.go:18` — no sleep, no counting, no flake. Walkthrough:
 ### Exercise 10 — deadline proxy → exact assertion in zero time
 
 The canonical `TestExercise10_HangingHealthCheck` races a real 500 ms deadline
-against a real 1 s timeout and can only assert "returned within a second" — a
-proxy that a fast-but-wrong `Check` would pass, costing ~0.5–1 s per run. The
-synctest version (`internal/health/checker_synctest_test.go`) runs in fake time
-and asserts the real property: `Check` returned at fake `t=500ms` with
-`context.DeadlineExceeded`. It finishes in ~0.00 s and catches the bug exactly.
+against a real 1 s timeout. It asserts `context.DeadlineExceeded` and a broad
+400 ms–1 s timing window, costing ~0.5–1 s per run and retaining some scheduler
+tolerance. The synctest version (`internal/health/checker_synctest_test.go`) runs
+in fake time and asserts the exact property: `Check` returned at fake `t=500ms`
+with `context.DeadlineExceeded`. It finishes in ~0.00 s.
 Walkthrough:
 [exercises/10-hanging-health-check/EXTENSION.md](../exercises/10-hanging-health-check/EXTENSION.md).
 
@@ -110,9 +111,8 @@ where it helps.
 - **Busy-spins / live-locks (exercise 14).** A goroutine spinning on a closed
   channel stays *runnable*, never durably blocks, so synctest can't flag it — it
   would hang instead. The existing explicit 2 s timeout is the better signal.
-- **Allocation / memory growth (exercise 18).** synctest has a fake clock but
-  exposes no way to count live timers, and it doesn't measure allocations. Use
-  `testing.AllocsPerRun` or `runtime.MemStats` (as the canonical test does).
+- **Allocation behavior (exercise 18).** synctest has a fake clock but does not
+  measure allocations. Use `testing.AllocsPerRun`, as the canonical test does.
 - **Data races (exercises 08, 12).** That's the `-race` detector's job. synctest
   serializes execution within a bubble and can *mask* a race rather than expose
   it.

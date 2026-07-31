@@ -35,7 +35,13 @@ func TestExercise02_UnwrittenLabels(t *testing.T) {
 				panicVal = r
 			}
 		}()
-		_, _ = audit.AuditDeploymentLabels(t.Context(), fc, "default", []string{"app", "version", "team"})
+		findings, err := audit.AuditDeploymentLabels(t.Context(), fc, "default", []string{"app", "version", "team"})
+		if err != nil {
+			t.Errorf("AuditDeploymentLabels returned unexpected error: %v", err)
+		}
+		if len(findings) != 3 {
+			t.Errorf("AuditDeploymentLabels returned %d findings, want 3 missing-label findings", len(findings))
+		}
 	}()
 
 	if panicked {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -15,30 +16,52 @@ const (
 	expiryDateFormat     = "2006-01-02"
 )
 
-// readerCloseHook is called by the tracking wrapper's Close method, if set.
-// It is nil in production and set only by tests.
-var readerCloseHook func()
+var (
+	readerOpenHook  func()
+	readerCloseHook func()
+	readerStats     struct {
+		sync.Mutex
+		current int
+		peak    int
+		closes  int
+	}
+)
 
-// TestHookCloseCount installs a close hook and returns a function that returns
-// the number of times Close was called since installation. Calling it again
-// resets the counter. It is exported for use in external (_test) packages.
-func TestHookCloseCount() int {
-	return testCloseCounter
+// TestHookReaderCounts returns the current, peak, and closed reader counts
+// recorded since InstallTestCloseHook was called.
+func TestHookReaderCounts() (current, peak, closes int) {
+	readerStats.Lock()
+	defer readerStats.Unlock()
+	return readerStats.current, readerStats.peak, readerStats.closes
 }
 
-var testCloseCounter int
-
-// InstallTestCloseHook sets up the close counter for tests.
+// InstallTestCloseHook sets up reader lifecycle counters for tests.
 // Call this before running AuditSecretExpiry in a test.
 func InstallTestCloseHook() {
-	testCloseCounter = 0
+	readerStats.Lock()
+	readerStats.current = 0
+	readerStats.peak = 0
+	readerStats.closes = 0
+	readerStats.Unlock()
+	readerOpenHook = func() {
+		readerStats.Lock()
+		defer readerStats.Unlock()
+		readerStats.current++
+		if readerStats.current > readerStats.peak {
+			readerStats.peak = readerStats.current
+		}
+	}
 	readerCloseHook = func() {
-		testCloseCounter++
+		readerStats.Lock()
+		defer readerStats.Unlock()
+		readerStats.current--
+		readerStats.closes++
 	}
 }
 
-// UninstallTestCloseHook removes the test hook.
+// UninstallTestCloseHook removes the test hooks.
 func UninstallTestCloseHook() {
+	readerOpenHook = nil
 	readerCloseHook = nil
 }
 
@@ -61,6 +84,9 @@ func (t *trackingReadCloser) Close() error {
 // newSecretReader returns an io.ReadCloser over the raw bytes of a secret value.
 // The returned closer invokes readerCloseHook (if set) when closed.
 func newSecretReader(data []byte) io.ReadCloser {
+	if readerOpenHook != nil {
+		readerOpenHook()
+	}
 	return &trackingReadCloser{
 		inner: io.NopCloser(bytes.NewReader(data)),
 	}
@@ -115,4 +141,3 @@ func parseExpiryFromReader(r io.Reader, expiryStr string) (time.Time, error) {
 	}
 	return time.Parse(expiryDateFormat, expiryStr)
 }
-
