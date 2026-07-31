@@ -24,18 +24,15 @@ jobs:
       - uses: actions/checkout@v4
 `
 
-// TestExercise16_LeakingLinter creates 550 YAML files in a temp directory,
-// lowers the open-file-descriptor limit to 256, runs LintWorkflows, and
-// asserts no "too many open files" error is returned. The test verifies that
-// LintWorkflows closes file descriptors promptly during iteration rather than
-// accumulating them all until the function returns.
+// TestExercise16_LeakingLinter runs a large workflow batch with a constrained
+// descriptor limit and requires LintWorkflows to complete successfully.
 func TestExercise16_LeakingLinter(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("fd-limit test not applicable on Windows")
 	}
 
 	// --- Lower the open-file descriptor limit ---
-	// We set both soft and hard limits to a modest value so the test is
+	// We set the soft limit to a modest value so the test is
 	// self-contained. Any value comfortably below 550 (our file count) but
 	// comfortably above what the test process itself needs (stdin/stdout/stderr
 	// + a handful of runtime fds) works.

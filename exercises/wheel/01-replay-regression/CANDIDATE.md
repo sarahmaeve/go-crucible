@@ -50,6 +50,9 @@ go test ./internal/ingest/ -run TestExercise20 -count=1 -v
 
 Make the smallest repair justified by the evidence. Do not change either store
 implementation or couple the deduplicator to Atlas-specific wording.
+Your focused verification must also demonstrate that an unrelated store
+failure still reaches the caller; duplicate handling is not permission to
+discard every error.
 
 Verify the focused behavior, then the package:
 

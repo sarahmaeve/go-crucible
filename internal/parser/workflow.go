@@ -110,9 +110,13 @@ func RoundTripWorkflow(data []byte) ([]byte, error) {
 		Permissions: wf.Permissions,
 	}
 	if wf.Concurrency != nil {
+		var cancelInProgress bool
+		if wf.Concurrency.CancelInProgress != nil {
+			cancelInProgress = *wf.Concurrency.CancelInProgress
+		}
 		inter.Concurrency = &concurrencyIntermediate{
 			Group:            wf.Concurrency.Group,
-			CancelInProgress: wf.Concurrency.CancelInProgress,
+			CancelInProgress: cancelInProgress,
 		}
 	}
 

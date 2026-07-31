@@ -45,6 +45,14 @@ local:
   spoiler lint over production and test `.go` comments, and Makefile
   `EXERCISES`/`PRESOLVED` drift against the registry, plus gofmt
   compliance for all Go source.
+
+The spoiler lint scans comments in both production and test Go files. Tests may
+name an exercise and state its observable contract, while production comments
+may document API obligations. Neither may prescribe the planted repair or
+explain the hidden mechanism. The checker includes semantic patterns for common
+leaks such as `%w`/`errors.Is` prescriptions, fixture comments that name an
+exact blocking operation, and descriptions of loop-scoped resource
+accumulation. Its regression cases live in `tools/verify/main_test.go`.
 - **`make verify`** — minutes. Everything above plus: `go vet` emits
   exactly the one expected warning, all non-exercise tests pass on the
   buggy tree, every exercise test FAILS on the buggy tree (pre-solved

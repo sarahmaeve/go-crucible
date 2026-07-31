@@ -3,7 +3,6 @@ package ingest_test
 import (
 	"context"
 	"errors"
-	"runtime"
 	"testing"
 	"time"
 
@@ -11,35 +10,31 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// TestExercise06_StuckPipeline verifies that ReadMetrics does not leak
-// goroutines after the context is cancelled.
+// TestExercise06_StuckPipeline verifies that ReadMetrics returns the caller's
+// cancellation after its consumer stops accepting values.
 func TestExercise06_StuckPipeline(t *testing.T) {
-	baseline := runtime.NumGoroutine()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	out := make(chan types.Metric) // unbuffered — consumer controls flow
 
 	// InfiniteSource always has a metric ready, keeping the fixture focused on
 	// whether downstream backpressure remains cancellable.
 	src := ingest.NewInfiniteSource("cpu")
-	if err := ingest.ReadMetrics(ctx, src, out); err != nil {
-		t.Fatalf("ReadMetrics returned unexpected error: %v", err)
-	}
+	done := make(chan error, 1)
+	go func() {
+		done <- ingest.ReadMetrics(ctx, src, out)
+	}()
 
-	// Consume one metric to let the goroutine start, then cancel and abandon
-	// the channel.
+	// Establish that the stream is active, then exercise its cancellation path.
 	<-out
 	cancel()
 
-	// Give the goroutine time to exit (if it respects ctx.Done).
-	time.Sleep(200 * time.Millisecond)
-
-	after := runtime.NumGoroutine()
-	// After cancellation the ReadMetrics goroutine should have exited. Allow
-	// only the baseline runtime goroutines.
-	if after > baseline {
-		t.Errorf("goroutine leak detected — baseline %d, after cancel %d (want <= %d)",
-			baseline, after, baseline)
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("ReadMetrics returned %v; want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ReadMetrics remained blocked on output after cancellation")
 	}
 }
 

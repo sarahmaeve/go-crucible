@@ -23,7 +23,8 @@ go test ./internal/worker/ -run TestExercise22 -v
 The exercise test passes a three-element batch through the pool. The
 middle element triggers a `panic` inside the supplied processor. The
 test asserts that all three `Result`s come back, with `Err` populated on
-the middle one and `nil` on the other two.
+the middle one and `nil` on the other two. It also captures the structured
+logger and requires the recovery record to contain a stack trace.
 
 The test wraps the call to `Pool.Process` in an inner closure with its
 own `recover`, so when the bug fires you get a clean assertion failure

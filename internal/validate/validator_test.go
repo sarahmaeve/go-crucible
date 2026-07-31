@@ -120,11 +120,12 @@ func TestValidateWorkflow_StepMissingAction(t *testing.T) {
 }
 
 func TestValidateWorkflow_ConcurrencyMissingGroup(t *testing.T) {
+	cancelInProgress := true
 	wf := &types.Workflow{
 		Name: "CI",
 		Concurrency: &types.WorkflowConcurrency{
 			Group:            "",
-			CancelInProgress: true,
+			CancelInProgress: &cancelInProgress,
 		},
 		Jobs: map[string]types.Job{
 			"test": {

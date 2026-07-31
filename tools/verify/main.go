@@ -401,6 +401,10 @@ var commonSpoilerPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\b(BUGGY|FIXED)\b`),
 	regexp.MustCompile(`(?i)\bFAILS?\s+because\b`),
 	regexp.MustCompile(`(?i)\b(the\s+fix\s+is|fix\s+is|replace\s+.+\s+with|change\s+.+\s+to)\b`),
+	regexp.MustCompile(`(?i)\bprefer\s+\[?errors\.Is\]?\s+over\s+string\s+comparison\b`),
+	regexp.MustCompile(`(?i)\bwrap(?:ped|ping|s)?\b[^\n]*%w\b`),
+	regexp.MustCompile(`(?i)\bblocked\s+trying\s+to\s+(?:send|receive)\b`),
+	regexp.MustCompile(`(?i)\baccumulat\w*\b[^\n]*\buntil\b[^\n]*\b(?:function|returns?)\b`),
 }
 
 var productionSpoilerPatterns = []*regexp.Regexp{

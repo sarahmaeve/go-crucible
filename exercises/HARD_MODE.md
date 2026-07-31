@@ -14,12 +14,12 @@ behaviour only. Pick a card, reproduce it, and find the line yourself.
 Hard mode is not blind debugging — there is no such thing. The moment
 you reproduce, the harness shows you the failing package, the test's
 name, its failure message, and (if you read it, and you should) the
-test's source. Some of those leak more than others — a few test names
-verge on naming the mechanism. All of it is fair game: that is the
-evidence a real incident hands you, the way a pager alert arrives
-with a title and a service name attached. What hard mode withholds is
-exactly what the exercise README would have handed you: the file, the
-function, and the mechanism.
+test's source. Test comments are limited to observable contracts, though
+some test names and assertions still provide useful localization evidence.
+All of it is fair game: that is the evidence a real incident hands you, the
+way a pager alert arrives with a title and a service name attached. What hard
+mode withholds is exactly what the exercise README would have handed you: the
+file, the function, and the mechanism.
 
 Hard mode is for two audiences: experienced Go developers who want the
 crucible without scaffolding, and returning learners replaying
@@ -142,11 +142,11 @@ similar symptoms, same package, different bugs.
 
 `make test-exercise N=08` (with `-race`)
 
-### 09 — kube-patrol
-> Auditing a namespace with a few thousand annotated secrets fails
-> partway through with "too many open files". Small namespaces are
-> fine. The process's descriptor count climbs linearly with the
-> number of secrets scanned and never comes back down.
+### 09 — pipeline
+> A rule reload from a handful of remote documents works, but large
+> source lists and repeated reloads eventually exhaust the client's
+> available connections. Every endpoint returns valid JSON and the
+> combined rule set is correct before the process begins failing.
 
 `make test-exercise N=09`
 

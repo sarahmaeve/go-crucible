@@ -43,8 +43,8 @@ adapter and fail again when another implementation chose different prose.
 
 ## Verification
 
-The focused table must pass for both stores, followed by the non-exercise
-package tests:
+The focused table must pass for both stores and its unrelated-failure case must
+still propagate the original cause. Then run the non-exercise package tests:
 
 ```bash
 go test ./internal/ingest/ -run TestExercise20 -count=1 -v

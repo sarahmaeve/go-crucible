@@ -2,21 +2,17 @@ package types
 
 import "errors"
 
-// Sentinel errors used across the applications. Callers should prefer
-// [errors.Is] over string comparison when checking for these.
+// Sentinel errors used across the applications.
 var (
 	// ErrClientNotReady is returned when a call is made against an
 	// uninitialised or disconnected Kubernetes client. (kube-patrol)
 	ErrClientNotReady = errors.New("kubernetes client is not ready")
 
-	// ErrAuditFailed indicates an audit could not complete. The wrapped error
-	// (via %w) carries the underlying cause. (kube-patrol)
+	// ErrAuditFailed indicates an audit could not complete. (kube-patrol)
 	ErrAuditFailed = errors.New("audit operation failed")
 
 	// ErrThresholdExceeded signals that a metric value crossed its alert rule
-	// threshold. Alert evaluators wrap this with %w so that callers can use
-	// [errors.Is] to distinguish threshold crossings from other errors.
-	// (pipeline)
+	// threshold. (pipeline)
 	ErrThresholdExceeded = errors.New("metric threshold exceeded")
 
 	// ErrSourceDrained is returned by a [MetricSource] once no further
@@ -28,11 +24,9 @@ var (
 	// terminating because the pipeline's context was cancelled. (pipeline)
 	ErrPipelineShutdown = errors.New("pipeline is shutting down")
 
-	// ErrDuplicate is returned by [CacheStore] implementations when a key has
-	// already been written. Deduplicating callers treat this as an idempotent
-	// success. Implementations should wrap this sentinel with %w so that
-	// callers can use [errors.Is] to recognise it regardless of the
-	// surrounding message. (pipeline)
+	// ErrDuplicate identifies a write rejected because its key was already
+	// recorded. Deduplicating callers treat this condition as an idempotent
+	// success. (pipeline)
 	ErrDuplicate = errors.New("duplicate write rejected")
 
 	// ErrInvalidWorkflow indicates a workflow failed semantic validation

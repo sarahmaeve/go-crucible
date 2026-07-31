@@ -106,12 +106,21 @@ func mapKeys(m map[string]any) []string {
 	return keys
 }
 
-// TestExercise15_ConfigSurprise round-trips a workflow YAML that has
-// cancel-in-progress: false and asserts that the explicit field is preserved.
+// TestExercise15_ConfigSurprise verifies all three presence states for the
+// optional cancel-in-progress setting survive a workflow round trip.
 func TestExercise15_ConfigSurprise(t *testing.T) {
-	// This workflow deliberately spells out the false value so round-trip
-	// fidelity can be tested independently of a consumer's default.
-	const workflowYAML = `
+	for _, tc := range []struct {
+		name      string
+		setting   string
+		wantField bool
+		wantValue bool
+	}{
+		{name: "absent"},
+		{name: "explicit false", setting: "  cancel-in-progress: false\n", wantField: true},
+		{name: "explicit true", setting: "  cancel-in-progress: true\n", wantField: true, wantValue: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			workflowYAML := `
 name: Deploy
 
 on:
@@ -120,8 +129,7 @@ on:
 
 concurrency:
   group: deploy-prod
-  cancel-in-progress: false
-
+` + tc.setting + `
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -130,21 +138,27 @@ jobs:
         run: ./deploy.sh
 `
 
-	out, err := parser.RoundTripWorkflow([]byte(workflowYAML))
-	if err != nil {
-		t.Fatalf("RoundTripWorkflow returned unexpected error: %v", err)
-	}
+			out, err := parser.RoundTripWorkflow([]byte(workflowYAML))
+			if err != nil {
+				t.Fatalf("RoundTripWorkflow returned unexpected error: %v", err)
+			}
 
-	var decoded struct {
-		Concurrency map[string]any `yaml:"concurrency"`
-	}
-	if err := yaml.Unmarshal(out, &decoded); err != nil {
-		t.Fatalf("round-tripped output is not valid YAML: %v\n%s", err, out)
-	}
-	value, ok := decoded.Concurrency["cancel-in-progress"]
-	if !ok {
-		t.Errorf("round-tripped YAML is missing cancel-in-progress; want explicit false\n%s", out)
-	} else if got, ok := value.(bool); !ok || got {
-		t.Errorf("round-tripped cancel-in-progress = %#v, want boolean false\n%s", value, out)
+			var decoded struct {
+				Concurrency map[string]any `yaml:"concurrency"`
+			}
+			if err := yaml.Unmarshal(out, &decoded); err != nil {
+				t.Fatalf("round-tripped output is not valid YAML: %v\n%s", err, out)
+			}
+			value, ok := decoded.Concurrency["cancel-in-progress"]
+			if ok != tc.wantField {
+				t.Fatalf("cancel-in-progress presence = %t, want %t\n%s", ok, tc.wantField, out)
+			}
+			if ok {
+				got, isBool := value.(bool)
+				if !isBool || got != tc.wantValue {
+					t.Errorf("cancel-in-progress = %#v, want %t\n%s", value, tc.wantValue, out)
+				}
+			}
+		})
 	}
 }

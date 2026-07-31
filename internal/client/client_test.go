@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -16,7 +17,8 @@ func TestExercise05_NilCheckThatLies(t *testing.T) {
 	// Use a guaranteed-nonexistent kubeconfig path. An empty string would
 	// fall back to ~/.kube/config or in-cluster config, which may succeed
 	// on a developer machine and silently hide the issue.
-	c, err := client.NewAuditClient("/tmp/go-crucible-nonexistent-kubeconfig-test")
+	missingPath := filepath.Join(t.TempDir(), "missing-kubeconfig")
+	c, err := client.NewAuditClient(missingPath)
 
 	// When config loading fails, the function must return a non-nil error.
 	if err == nil {

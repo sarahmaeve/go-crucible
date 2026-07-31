@@ -6,17 +6,20 @@ The bug is in error handling. The function receives an error from an API call, d
 
 ## Hint 2: Narrower
 
-Open `internal/audit/pods.go` and read the `if err != nil` block after `c.ListPods`. There are two statements inside it. One of them is correct. The other one is missing — it should stop execution and propagate the error to the caller.
+Open `internal/audit/pods.go` and read the `if err != nil` block after
+`c.ListPods`. It records the error locally but then continues. This library
+function should stop and return an error that retains the original cause.
 
 ## Hint 3: Almost There
 
-The block currently reads:
+The block currently logs and falls through. Replace that local handling with a
+wrapped return, for example:
 
 ```go
 if err != nil {
-    slog.Error("AuditPodLimits: failed to list pods", "err", err)
-    // fall through with empty pods slice
+    return nil, fmt.Errorf("audit pod limits: listing pods: %w", err)
 }
 ```
 
-The fix is to add `return nil, err` after the log line (or replace the log with a return that carries the error). The function signature is `([]types.Finding, error)` so returning `nil, err` satisfies both return values.
+The `%w` keeps `errors.Is` and `errors.As` working. A caller at the application
+boundary can log the returned error once with request or command context.

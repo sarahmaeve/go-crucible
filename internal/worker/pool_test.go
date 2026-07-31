@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"bytes"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -26,7 +28,9 @@ func TestExercise22_HollowRecovery(t *testing.T) {
 		return m, nil
 	}
 
-	p := worker.NewPool(panicky, nil)
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	p := worker.NewPool(panicky, logger)
 
 	input := []types.Metric{
 		{Name: "before"},
@@ -65,6 +69,14 @@ func TestExercise22_HollowRecovery(t *testing.T) {
 	if results[2].Err != nil {
 		t.Errorf("exercise 22: results[2].Err = %v, want nil "+
 			"(the batch should continue after a recovered panic)", results[2].Err)
+	}
+
+	logOutput := logs.String()
+	if !strings.Contains(logOutput, "processor panicked") {
+		t.Errorf("recovery log missing panic message: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, `"stack"`) || !strings.Contains(logOutput, "goroutine") {
+		t.Errorf("recovery log missing stack trace: %s", logOutput)
 	}
 }
 

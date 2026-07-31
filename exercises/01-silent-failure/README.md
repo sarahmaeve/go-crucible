@@ -20,9 +20,10 @@ The bug is in the error handling block immediately after `c.ListPods` is called.
 
 ## What You Will Learn
 
-- The difference between "log and continue" and "log and return" in Go error handling
+- The difference between handling an error locally and returning it to a caller
 - Why swallowed errors make programs silently incorrect rather than explicitly broken
 - How callers cannot distinguish a successful empty result from a failed audit when errors are not propagated
+- Why library code normally returns contextual errors and lets its boundary caller decide how to log them
 
 ## Fixing It
 

@@ -4,7 +4,6 @@
 # Function: RoundTripWorkflow (concurrencyIntermediate struct)
 #
 diff --git a/internal/parser/workflow.go b/internal/parser/workflow.go
-index 84418ac..fe67151 100644
 --- a/internal/parser/workflow.go
 +++ b/internal/parser/workflow.go
 @@ -89,7 +89,7 @@ type roundTripIntermediate struct {
@@ -12,7 +11,22 @@ index 84418ac..fe67151 100644
  type concurrencyIntermediate struct {
  	Group            string `json:"group"`
 -	CancelInProgress bool   `json:"cancel-in-progress,omitempty"`
-+	CancelInProgress bool   `json:"cancel-in-progress"`
++	CancelInProgress *bool  `json:"cancel-in-progress,omitempty"`
  }
  
  // RoundTripWorkflow parses a YAML workflow, converts it through a JSON
+@@ -110,13 +110,9 @@ func RoundTripWorkflow(data []byte) ([]byte, error) {
+ 		Permissions: wf.Permissions,
+ 	}
+ 	if wf.Concurrency != nil {
+-		var cancelInProgress bool
+-		if wf.Concurrency.CancelInProgress != nil {
+-			cancelInProgress = *wf.Concurrency.CancelInProgress
+-		}
+ 		inter.Concurrency = &concurrencyIntermediate{
+ 			Group:            wf.Concurrency.Group,
+-			CancelInProgress: cancelInProgress,
++			CancelInProgress: wf.Concurrency.CancelInProgress,
+ 		}
+ 	}
+ 

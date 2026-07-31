@@ -22,7 +22,8 @@ Notice that `Add` reads and writes `a.samples` without holding any lock.
 
 - Go maps are not safe for concurrent use: simultaneous reads and writes cause undefined behaviour
 - The race detector (`-race` flag) reliably catches these bugs at test time
-- The two standard fixes: add a `sync.Mutex` to the struct and lock/unlock around map access, or replace the map with a `sync.Map`
+- Protecting a compound read-modify-write invariant requires a lock around the whole operation
+- Why replacing the map with `sync.Map` alone would not protect mutation of the stored `[]float64` slices
 - Why `-race` should be part of your regular test suite, not an occasional check
 
 ## Fixing It

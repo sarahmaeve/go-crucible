@@ -29,6 +29,9 @@ func TestExercise01_SilentFailure(t *testing.T) {
 			sentinelErr,
 		)
 	}
+	if err != nil && !errors.Is(err, sentinelErr) {
+		t.Errorf("AuditPodLimits error = %v; want it to wrap the client error", err)
+	}
 
 	if len(findings) > 0 {
 		t.Errorf(

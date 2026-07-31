@@ -27,9 +27,10 @@ makes later stages possible.
 #### HTTP Client Patterns (pipeline app)
 These are the most common source of production incidents in Go infrastructure code.
 
-- **HTTP response body leak** — `http.Response.Body` can be non-nil even when `err != nil`.
-  The exercise would give learners a working HTTP client that leaks under error conditions.
-  Different from exercise 09 because the gotcha is specific to the `net/http` contract.
+- **HTTP response body leak — covered by exercise 09.** The modernized exercise
+  uses real `http.Response.Body` ownership, checks successful and failed
+  response paths, and demonstrates per-request defer scope without production
+  test hooks.
 
 - **Missing client timeout** — `http.Client{}` has no default timeout. Connections hang
   forever when a downstream service stops responding. Exercise: a health checker that

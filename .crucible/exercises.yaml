@@ -29,11 +29,12 @@ exercises:
       empty pod list, returning (nil, nil). Callers cannot distinguish
       "no issues found" from "audit couldn't run."
     fix: >
-      Add "return nil, err" inside the error-handling block after the
-      slog.Error call.
+      Replace the local log with a contextual error return that wraps the
+      client error. Let the application boundary decide where to log it.
     teaches:
-      - Error swallowing (log-and-continue vs log-and-return)
-      - The single handling rule — errors must be either logged OR returned
+      - Error swallowing (handle-and-continue vs return)
+      - The single handling rule — errors should be logged OR returned
+      - Contextual wrapping with %w preserves errors.Is and errors.As
     patch: solutions/01-silent-failure.patch
     notes: >
       Source migrated from `log.Printf` to `slog.Error` on 2026-04-16 as
@@ -50,8 +51,10 @@ exercises:
     mechanism: >
       The standalone function declares `var missingLabels map[string]bool`
       (nil map) instead of using make(). The DeploymentAuditor.Audit
-      method works because the constructor initializes the map — but the
-      direct function path panics on first write.
+      method works because the constructor initializes the map. The shared
+      helper uses this scratch map in two passes — first recording all missing
+      deployment/label pairs, then reading them to build findings — so the
+      direct function path panics on its first write.
     fix: >
       Change `var missingLabels map[string]bool` to
       `missingLabels := make(map[string]bool)`.
@@ -117,8 +120,9 @@ exercises:
       - Always return untyped nil for interface error paths
     patch: solutions/05-nil-check-that-lies.patch
     notes: >
-      Test uses a nonexistent kubeconfig path. Empty string would fall back
-      to ~/.kube/config which may succeed on developer machines.
+      Test uses a missing child of t.TempDir. Empty string would fall back to
+      ~/.kube/config which may succeed on developer machines, while a fixed
+      /tmp name could be created by another process.
 
   - number: "06"
     title: The Stuck Pipeline
@@ -127,16 +131,18 @@ exercises:
     file: internal/ingest/reader.go
     function: ReadMetrics
     mechanism: >
-      The goroutine reads from the source and sends to an unbuffered `out`
-      channel. There is no `select` on ctx.Done(). When the context is
-      cancelled and the consumer stops reading, the goroutine blocks
-      forever on `out <- m`, leaking.
+      ReadMetrics synchronously reads from the source and sends to an
+      unbuffered `out` channel. There is no `select` on ctx.Done(). When the
+      context is cancelled and the consumer stops reading, the caller-owned
+      goroutine blocks forever on `out <- m`, leaking and never receiving a
+      terminal error.
     fix: >
-      Wrap the send in a select with a ctx.Done() case.
+      Wrap the send in a select with a ctx.Done() case that returns ctx.Err().
     teaches:
-      - Goroutine lifecycle — every goroutine must have an exit path
+      - Caller-owned goroutine lifecycle — every blocking operation needs an exit path
       - Always include ctx.Done() in select when sending on channels
       - Unbuffered channels block when the other side stops
+      - Synchronous stream APIs preserve source and cancellation errors
     patch: solutions/06-stuck-pipeline.patch
 
   - number: "07"
@@ -175,6 +181,7 @@ exercises:
     teaches:
       - Maps are not safe for concurrent use
       - sync.Mutex for protecting shared state
+      - sync.Map alone does not protect mutation of stored slices
       - The -race flag as a diagnostic tool
     patch: solutions/08-zombie-metric.patch
     notes: >
@@ -183,23 +190,26 @@ exercises:
 
   - number: "09"
     title: The Immortal Connection
-    app: kube-patrol
+    app: pipeline
     difficulty: beginner
-    file: internal/audit/secrets.go
-    function: AuditSecretExpiry
+    file: internal/alert/rules.go
+    function: FetchRules
     mechanism: >
-      For each secret with an expiry annotation, the function opens an
-      io.ReadCloser via newSecretReader but never calls Close(). The
-      reader is used and then abandoned.
+      For each remote rule document, FetchRules receives an HTTP response and
+      decodes its body but never calls Close(). Live response bodies accumulate
+      across the batch, consuming transport resources and preventing reliable
+      connection reuse.
     fix: >
-      Move the open/read/defer-close lifetime into a per-secret helper so
-      each reader closes before the loop advances. A defer directly in the
-      outer loop would retain every reader until the audit returns.
+      Move one request's send/status/decode/defer-close lifetime into a helper
+      so each body closes before the loop advances, including error paths. A
+      defer directly in the outer loop would retain every body until the batch
+      returns.
     teaches:
       - Resource management — always close what you open
       - Defer lifetime follows function scope, not loop iteration
       - Small helpers give resource cleanup the correct scope
-      - Modeling real-world leaks (HTTP bodies, gRPC streams, DB cursors)
+      - HTTP response body ownership and connection reuse
+      - Dependency injection through http.Client instead of production test hooks
     patch: solutions/09-immortal-connection.patch
 
   - number: "10"
@@ -226,6 +236,8 @@ exercises:
       they used context.Background() internally), so the lesson of this
       exercise now matches the shape of the surrounding codebase. Learners
       who want the buggy form back: `git apply -R solutions/10-*.patch`.
+      The canonical test uses testing/synctest under the Go 1.26 floor, so its
+      500 ms deadline assertion consumes no wall-clock time.
 
   - number: "11"
     title: The Template Trap
@@ -318,23 +330,20 @@ exercises:
     file: internal/parser/workflow.go
     function: RoundTripWorkflow
     mechanism: >
-      The concurrencyIntermediate struct has CancelInProgress with
-      `json:"cancel-in-progress,omitempty"`. When the value is false
-      (a meaningful configuration), omitempty drops it during JSON
-      serialization. After the YAML->JSON->YAML round-trip, the field
-      is absent from the output.
+      WorkflowConcurrency correctly represents CancelInProgress as *bool, but
+      concurrencyIntermediate flattens it to a plain bool with
+      `json:"cancel-in-progress,omitempty"`. The mapping collapses nil and a
+      pointer to false before serialization, and omitempty then drops the zero
+      value. After the YAML->JSON->YAML round-trip, an explicit false is absent.
     fix: >
-      Remove `omitempty` from the CancelInProgress JSON tag for the
-      canonical simplified-model fix. A model that must preserve absence
-      distinctly needs a *bool (or other presence representation) in both
-      WorkflowConcurrency and the intermediate form so nil, false, and true
-      survive the entire pipeline.
+      Change concurrencyIntermediate.CancelInProgress to *bool with omitempty
+      and map the public pointer directly so nil, false, and true survive the
+      entire pipeline.
     teaches:
       - omitempty treats Go zero values as "empty" even when meaningful
       - Explicit-field preservation even when runtime defaults happen to match
       - The *bool pattern for genuinely distinguishing absent from false
-      - The limits of round-trip fidelity once an earlier model has already
-        collapsed presence into a plain bool
+      - Round-trip fidelity requires preserving presence through every model
     patch: solutions/15-config-surprise.patch
 
   - number: "16"
@@ -391,14 +400,17 @@ exercises:
       timer to fire, so live memory remains bounded, but allocation and
       garbage-collection work scale linearly with polling throughput.
     fix: >
-      Replace time.After with time.NewTicker (or time.NewTimer with
-      Reset). Defer ticker.Stop() for cleanup.
+      Reject nonpositive intervals, then replace time.After with
+      time.NewTicker (or time.NewTimer with Reset). Defer ticker.Stop() for
+      cleanup. Validation avoids introducing NewTicker's panic for invalid
+      caller input.
     teaches:
       - time.After allocates per call; recurring work can reuse one timer
       - time.NewTicker/time.NewTimer for recurring timers
       - Fixed-cadence tickers versus reset-after-work timer semantics
       - Allocation profiling and testing.AllocsPerRun
       - Go 1.23+ can collect unreachable unstopped timers and tickers
+      - Validate durations before calling APIs that require positive values
     patch: solutions/18-ticking-allocation.patch
     solved_in_main: 2026-04-16
     notes: >
@@ -1447,6 +1459,7 @@ wheel_exercises:
       - Using interface contracts and comparative traces as evidence
       - Locating the first contract violation across a component boundary
       - Reporting when a suspected peer component is actually conforming
+      - Using a negative control to prevent an overbroad error-handling repair
 
 # -----------------------------------------------------------------------------
 # Diagnosis Track
@@ -1486,7 +1499,6 @@ diagnosis_exercises:
     references:
       - file: internal/ingest/reader.go
         pins:
-          - { line: 12, contains: "go func()" }
           - { line: 18, contains: "out <- m" }
     directory: exercises/diagnosis/01-goroutine-pileup/
     scenario: >
@@ -1498,14 +1510,14 @@ diagnosis_exercises:
       with counts) and debug=2 (per-goroutine state and wait
       duration) form: 3,848 goroutines share one stack, parked in
       [chan send] at reader.go:18 with wait durations spread over
-      the whole migration week, created at reader.go:12.
+      the whole migration week. Caller and created-by frames show the
+      embedding scheduler owns each goroutine.
     teaches:
       - Reading debug=1 (what is most of the process doing) before
         debug=2 (how long, in what state)
       - The leak signature — many goroutines, one stack — and using
         wait-duration spread to distinguish leak from burst
-      - Walking created-by frames from a parked goroutine to the
-        code that started it
+      - Using caller and created-by frames to establish goroutine ownership
       - Triaging frames you own from runtime/embedder frames
     notes: >
       First diagnosis exercise. Gentlest of the three: the leaked

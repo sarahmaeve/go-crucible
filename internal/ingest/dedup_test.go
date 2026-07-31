@@ -39,6 +39,14 @@ type modernStore struct {
 	seen map[string]bool
 }
 
+type failingStore struct {
+	err error
+}
+
+func (s failingStore) Put(context.Context, string, types.Metric) error {
+	return s.err
+}
+
 func newModernStore() *modernStore {
 	return &modernStore{seen: make(map[string]bool)}
 }
@@ -93,4 +101,13 @@ func TestExercise20_BrittleMatch(t *testing.T) {
 			t.Errorf("replay: unexpected error: %v", err)
 		})
 	}
+
+	t.Run("unrelated store failure is preserved", func(t *testing.T) {
+		storeErr := errors.New("storage unavailable")
+		dedup := ingest.NewDeduplicator(failingStore{err: storeErr})
+		err := dedup.Ingest(ctx, metric)
+		if !errors.Is(err, storeErr) {
+			t.Errorf("Ingest error = %v; want wrapped storage error", err)
+		}
+	})
 }

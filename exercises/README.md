@@ -17,7 +17,7 @@ For a report-first production investigation using an existing bug, see the
 | [06](./06-stuck-pipeline/README.md) | The Stuck Pipeline | pipeline | Intermediate |
 | [07](./07-phantom-matrix/README.md) | The Phantom Matrix | gh-forge | Intermediate |
 | [08](./08-zombie-metric/README.md) | The Zombie Metric | pipeline | Intermediate |
-| [09](./09-immortal-connection/README.md) | The Immortal Connection | kube-patrol | Beginner |
+| [09](./09-immortal-connection/README.md) | The Immortal Connection | pipeline | Beginner |
 | [10](./10-hanging-health-check/README.md) | The Hanging Health Check† | pipeline | Intermediate |
 | [11](./11-template-trap/README.md) | The Template Trap | gh-forge | Intermediate |
 | [12](./12-race-report/README.md) | The Race Report | kube-patrol | Intermediate |

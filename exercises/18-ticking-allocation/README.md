@@ -36,6 +36,7 @@ iteration.
   collectable; older “timer leak” advice must be interpreted in light of the
   module's Go version
 - The fix: use `time.NewTicker(interval)` before the loop, and use the ticker's `C` channel in the `select`; remember to call `ticker.Stop()` via `defer`
+- `time.NewTicker` panics for nonpositive durations, so validate a caller-supplied interval before constructing it
 - A ticker follows a wall-clock cadence and may have a tick ready immediately
   after slow work; a reset timer expresses “wait this long after the previous
   iteration.” Choose according to the polling contract, not allocation count alone

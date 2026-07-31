@@ -21,31 +21,28 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// TestExercise06_Synctest is the testing/synctest rewrite of the goroutine-leak
-// check. Compare it against TestExercise06_StuckPipeline in reader_test.go,
-// which samples runtime.NumGoroutine() before and after a 200ms time.Sleep and
-// reports a leak as a count that drifted ("baseline 2, after cancel 3").
-//
-// This version runs the code inside a synctest bubble. There is no sleep and no
-// goroutine counting. After cancellation, synctest.Wait blocks until every
-// other goroutine in the bubble is durably blocked or has exited. A
-// cancellation-aware reader drains the bubble; one that remains blocked after
-// cancellation produces a deterministic deadlock report with the blocked frame.
+// TestExercise06_Synctest expresses the same lifecycle contract as the
+// canonical test inside a synctest bubble. This version replaces its bounded
+// real-time timeout with deterministic coordination.
 func TestExercise06_Synctest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		out := make(chan types.Metric) // unbuffered — the consumer controls flow
+		out := make(chan types.Metric)
 
-		// InfiniteSource keeps the fixture focused on downstream backpressure.
+		// Use a predictable source that always has another value available.
 		src := ingest.NewInfiniteSource("cpu")
-		if err := ingest.ReadMetrics(ctx, src, out); err != nil {
-			t.Fatalf("ReadMetrics returned unexpected error: %v", err)
-		}
+		done := make(chan error, 1)
+		go func() {
+			done <- ingest.ReadMetrics(ctx, src, out)
+		}()
 
-		<-out    // consume one metric so the goroutine is running
-		cancel() // cancel and stop consuming
+		<-out
+		cancel()
 
 		// Let every other bubble goroutine reach a durable block or exit.
 		synctest.Wait()
+		if err := <-done; err != context.Canceled {
+			t.Fatalf("ReadMetrics returned %v; want context.Canceled", err)
+		}
 	})
 }

@@ -1,34 +1,58 @@
 # Exercise 09: The Immortal Connection
-# App: kube-patrol | Difficulty: beginner
-# File: internal/audit/secrets.go
-# Function: AuditSecretExpiry
+# App: pipeline | Difficulty: beginner
+# File: internal/alert/rules.go
+# Function: FetchRules
 #
-diff --git a/internal/audit/secrets.go b/internal/audit/secrets.go
---- a/internal/audit/secrets.go
-+++ b/internal/audit/secrets.go
-@@ -113,10 +113,7 @@ func AuditSecretExpiry(ctx context.Context, c client.AuditClient, namespace stri
- 			continue
- 		}
- 
--		// Open a reader over the secret data.
--		reader := newSecretReader(secret.Data["value"])
--
--		expiry, err := parseExpiryFromReader(reader, expiryStr)
-+		expiry, err := readSecretExpiry(secret.Data["value"], expiryStr)
+diff --git a/internal/alert/rules.go b/internal/alert/rules.go
+--- a/internal/alert/rules.go
++++ b/internal/alert/rules.go
+@@ -15,26 +15,36 @@ import (
+ func FetchRules(ctx context.Context, client *http.Client, urls []string) ([]types.AlertRule, error) {
+ 	var all []types.AlertRule
+ 	for _, url := range urls {
+-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
++		rules, err := fetchRuleDocument(ctx, client, url)
  		if err != nil {
- 			continue
+-			return nil, fmt.Errorf("alert: creating rule request for %q: %w", url, err)
+-		}
+-		resp, err := client.Do(req)
+-		if err != nil {
+-			return nil, fmt.Errorf("alert: fetching rules from %q: %w", url, err)
+-		}
+-		if resp.StatusCode != http.StatusOK {
+-			return nil, fmt.Errorf("alert: fetching rules from %q: status %s", url, resp.Status)
+-		}
+-		rules, err := LoadRules(resp.Body)
+-		if err != nil {
+-			return nil, fmt.Errorf("alert: fetching rules from %q: %w", url, err)
++			return nil, err
  		}
-@@ -138,6 +134,13 @@ func AuditSecretExpiry(ctx context.Context, c client.AuditClient, namespace stri
- 	return findings, nil
+ 		all = append(all, rules...)
+ 	}
+ 	return all, nil
  }
  
-+func readSecretExpiry(data []byte, expiryStr string) (time.Time, error) {
-+	reader := newSecretReader(data)
-+	defer reader.Close()
++func fetchRuleDocument(ctx context.Context, client *http.Client, url string) ([]types.AlertRule, error) {
++	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
++	if err != nil {
++		return nil, fmt.Errorf("alert: creating rule request for %q: %w", url, err)
++	}
++	resp, err := client.Do(req)
++	if err != nil {
++		return nil, fmt.Errorf("alert: fetching rules from %q: %w", url, err)
++	}
++	defer resp.Body.Close()
 +
-+	return parseExpiryFromReader(reader, expiryStr)
++	if resp.StatusCode != http.StatusOK {
++		return nil, fmt.Errorf("alert: fetching rules from %q: status %s", url, resp.Status)
++	}
++	rules, err := LoadRules(resp.Body)
++	if err != nil {
++		return nil, fmt.Errorf("alert: fetching rules from %q: %w", url, err)
++	}
++	return rules, nil
 +}
 +
- // parseExpiryFromReader reads from r and parses the expiry date string.
- func parseExpiryFromReader(r io.Reader, expiryStr string) (time.Time, error) {
- 	buf := &bytes.Buffer{}
+ // LoadRules decodes a JSON array of AlertRule values from r.
+ func LoadRules(r io.Reader) ([]types.AlertRule, error) {
+ 	var rules []types.AlertRule

@@ -4,13 +4,23 @@
 # Function: TickerForwarder.Run
 #
 diff --git a/internal/ingest/ticker.go b/internal/ingest/ticker.go
-index f624436..7aca9ca 100644
 --- a/internal/ingest/ticker.go
 +++ b/internal/ingest/ticker.go
-@@ -14,11 +14,13 @@ type TickerForwarder struct{}
+@@ -2,6 +2,7 @@ package ingest
+ 
+ import (
+ 	"context"
++	"fmt"
+ 	"time"
+ 
+ 	"github.com/go-crucible/go-crucible/internal/types"
+@@ -14,11 +15,16 @@ type TickerForwarder struct{}
  // Run polls source every interval and sends each metric to out until ctx is
  // cancelled or the source is drained.
  func (tf *TickerForwarder) Run(ctx context.Context, interval time.Duration, source MetricSource, out chan<- types.Metric) error {
++	if interval <= 0 {
++		return fmt.Errorf("ticker forwarder: interval must be positive: %s", interval)
++	}
 +	ticker := time.NewTicker(interval)
 +	defer ticker.Stop()
  	for {

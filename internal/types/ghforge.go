@@ -13,7 +13,7 @@ type Workflow struct {
 // WorkflowConcurrency controls concurrent workflow runs.
 type WorkflowConcurrency struct {
 	Group            string `yaml:"group" json:"group"`
-	CancelInProgress bool   `yaml:"cancel-in-progress" json:"cancel-in-progress"`
+	CancelInProgress *bool  `yaml:"cancel-in-progress,omitempty" json:"cancel-in-progress,omitempty"`
 }
 
 // Job represents a single job in a workflow.

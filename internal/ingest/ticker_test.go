@@ -14,6 +14,12 @@ type finiteMetricSource struct {
 	remaining int
 }
 
+type panicMetricSource struct{}
+
+func (*panicMetricSource) Read(context.Context) (types.Metric, error) {
+	panic("source must not be read for an invalid interval")
+}
+
 func (s *finiteMetricSource) Read(context.Context) (types.Metric, error) {
 	if s.remaining == 0 {
 		return types.Metric{}, types.ErrSourceDrained
@@ -43,5 +49,14 @@ func TestExercise18_TickingAllocation(t *testing.T) {
 	if allocs > maxAllocs {
 		t.Errorf("TickerForwarder allocated %.0f objects for %d polls; want <= %d (reuse one ticker)",
 			allocs, iterations, maxAllocs)
+	}
+}
+
+func TestTickerForwarderRejectsNonpositiveInterval(t *testing.T) {
+	tf := &ingest.TickerForwarder{}
+	for _, interval := range []time.Duration{0, -time.Second} {
+		if err := tf.Run(t.Context(), interval, &panicMetricSource{}, make(chan types.Metric)); err == nil {
+			t.Errorf("Run(interval=%s) returned nil error; want validation error", interval)
+		}
 	}
 }

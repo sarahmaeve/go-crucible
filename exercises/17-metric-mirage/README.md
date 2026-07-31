@@ -23,6 +23,7 @@ Follow what happens to `m` (the loop variable) after the label renaming is appli
 - Map values in Go are not addressable — when you range over a map, the value is a copy
 - Modifying the copy (`m.Labels = newLabels`) has no effect on the value stored in the map
 - The fix: after modifying `m`, write it back with `result[key] = m`
+- Copying nested labels preserves the promise that the input map is not mutated
 - This is distinct from the map-reference bug in exercise 07 — here the outer container is correct; the problem is that the inner struct value is never reassigned
 
 ## Fixing It

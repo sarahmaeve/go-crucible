@@ -64,22 +64,20 @@ with locations, and wall-clock time drops to near zero.
 
 ### Exercise 06 — goroutine leak → deadlock with a location
 
-The canonical `TestExercise06_StuckPipeline` infers a leak from
-`runtime.NumGoroutine()` after a `time.Sleep(200ms)`, and reports it as a drifted
-count. The synctest version (`internal/ingest/reader_synctest_test.go`) cancels
-the context, calls `synctest.Wait()`, and lets the bubble end. On the buggy code
-the reader goroutine is stuck on `out <- m`, so synctest fails the test and points
-straight at `reader.go:18` — no sleep, no counting, no flake. Walkthrough:
+The canonical `TestExercise06_StuckPipeline` uses a bounded real-time timeout
+to observe whether the caller-owned goroutine returns. The extension
+(`internal/ingest/reader_synctest_test.go`) cancels the context, calls
+`synctest.Wait()`, and lets the bubble end. On the buggy code the reader
+goroutine is stuck on `out <- m`, so synctest fails the test and points straight
+at the blocked send — no timeout and no scheduler guess. Walkthrough:
 [exercises/06-stuck-pipeline/EXTENSION.md](../exercises/06-stuck-pipeline/EXTENSION.md).
 
 ### Exercise 10 — deadline proxy → exact assertion in zero time
 
-The canonical `TestExercise10_HangingHealthCheck` races a real 500 ms deadline
-against a real 1 s timeout. It asserts `context.DeadlineExceeded` and a broad
-400 ms–1 s timing window, costing ~0.5–1 s per run and retaining some scheduler
-tolerance. The synctest version (`internal/health/checker_synctest_test.go`) runs
-in fake time and asserts the exact property: `Check` returned at fake `t=500ms`
-with `context.DeadlineExceeded`. It finishes in ~0.00 s.
+The canonical `TestExercise10_HangingHealthCheck` now runs in fake time and
+asserts the exact property: `Check` returned at fake `t=500ms` with
+`context.DeadlineExceeded`. This replaced a real deadline/timeout race that
+cost 0.5–1 second per run and required a broad scheduler-tolerant window.
 Walkthrough:
 [exercises/10-hanging-health-check/EXTENSION.md](../exercises/10-hanging-health-check/EXTENSION.md).
 

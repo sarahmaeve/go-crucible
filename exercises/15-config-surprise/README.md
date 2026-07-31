@@ -4,15 +4,12 @@
 
 ## Symptoms
 
-A workflow explicitly contains `concurrency.cancel-in-progress: false`. After
-a round-trip through `RoundTripWorkflow` (parse → re-serialize), the output
-YAML no longer contains the field. [GitHub Actions currently requires an
-explicit `true` to cancel an in-progress
-run](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency),
-so omission has the same runtime behavior as `false`; nevertheless, the
-serializer has failed its stated job because an explicit configuration choice
-disappeared. That loss matters to tools that audit, diff, or enforce the
-written form.
+The public workflow model distinguishes an absent
+`concurrency.cancel-in-progress` setting from explicit `false` and explicit
+`true`. After a round trip through `RoundTripWorkflow` (parse → re-serialize),
+the intermediate representation collapses absence and false into the same Go
+zero value, so an explicit choice disappears. That loss matters to tools that
+audit, diff, or enforce the written form.
 
 ## Reproduce
 
@@ -28,12 +25,12 @@ Examine the JSON struct tag on that field carefully.
 
 ## What You Will Learn
 
-- `omitempty` in JSON/YAML tags omits the field when it equals the Go zero value for its type
-- For `bool`, the zero value is `false` — so `omitempty` silently drops `false` values even when they are semantically meaningful
+- `omitempty` on a plain boolean collapses absence and false during serialization
+- A pointer boolean can represent nil, false, and true when presence matters
 - This is a common footgun when explicit presence matters to configuration
   provenance, or when another schema gives absence and the zero value different meanings
-- The fix: remove `omitempty` from fields where the zero value is a valid, meaningful configuration choice
-- Removing `omitempty` makes this simplified model emit an explicit value whenever a concurrency block exists; a genuinely tri-state model requires a pointer or another presence-tracking representation throughout the parse pipeline
+- Presence information must survive every intermediate model in a round-trip pipeline
+- The fix: keep `*bool` rather than flattening the setting to `bool` in the JSON intermediate
 
 ## Fixing It
 

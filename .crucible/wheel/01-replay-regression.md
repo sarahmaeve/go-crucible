@@ -12,8 +12,10 @@ its explanatory text. The local classifier therefore absorbs the legacy replay
 and leaks the Atlas replay to its caller.
 
 The restrained repair is to classify the error chain with
-`errors.Is(err, types.ErrDuplicate)`. Neither store, the key function, nor the
-retry policy needs to change.
+`errors.Is(err, types.ErrDuplicate)`. The focused numbered test includes an
+unrelated store failure as a negative control, so swallowing every error is not
+a passing shortcut. Neither store, the key function, nor the retry policy needs
+to change.
 
 ## Why it reached production
 

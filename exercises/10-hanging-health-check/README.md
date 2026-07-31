@@ -38,9 +38,9 @@ go test ./internal/health/ -run TestExercise10 -v
 
 See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.
 
-## Extension
+## Deterministic timing
 
-See [EXTENSION.md](./EXTENSION.md) for a `testing/synctest` rewrite of this
-exercise's test that uses a fake clock to assert the deadline behaviour exactly
-and instantly — replacing the real 0.5–1 s wall-clock wait and its broad
-scheduler-tolerant timing window.
+The canonical test uses `testing/synctest`, available under this repository's
+Go 1.26 floor, to assert the deadline at exactly 500 ms of fake time without a
+wall-clock wait. See [EXTENSION.md](./EXTENSION.md) for why this is more reliable
+than timeout races in tests.

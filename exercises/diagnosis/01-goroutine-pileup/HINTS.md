@@ -30,25 +30,26 @@ distinguishes a leak from a one-off stall.
 
 ## Hint 3: Walking the frames
 
-Each leaked goroutine has exactly one frame of its own plus a
+Each leaked goroutine has a blocked library frame, its caller, and a
 `created by` line:
 
 ```
-github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics(...)
 	/build/go-crucible/internal/ingest/reader.go:18 +0x84
-created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+main.(*scheduler).runTarget.func1()
+	/srv/metrics-scheduler/scheduler.go:219 +0x91
+created by main.(*scheduler).runTarget in goroutine 412
+	/srv/metrics-scheduler/scheduler.go:212 +0x190
 ```
 
-`ReadMetrics.func1` is an anonymous function inside `ReadMetrics` —
-launched by the `go` statement at `reader.go:12`, blocked at the send
-on `reader.go:18`. The scheduler's frames (`/srv/metrics-scheduler/...`)
-appear only as the *creator's* creator — the leak is wholly inside
-the library code at those two lines.
+The scheduler owns the goroutine and calls the synchronous `ReadMetrics` API.
+That call is blocked at the send on `reader.go:18`. Ownership is healthy—the
+caller is allowed to choose a goroutine—but the blocking library operation has
+not provided a way to observe cancellation.
 
 Before opening the file, you can already write the diagnosis: the
-goroutine started at `reader.go:12` sends on a channel at
-`reader.go:18` with nothing forcing it to give up when its context is
+caller-owned goroutine sends on a channel at `reader.go:18` with nothing
+forcing the operation to give up when its context is
 cancelled. Now open `internal/ingest/reader.go:18` and check: is that
 send wrapped in a `select` with a `ctx.Done()` case? What *should* it
 look like? (This is exercise 06's bug — the fix is the same.)

@@ -6,7 +6,10 @@ Multiple goroutines are calling `Add` at the same time. The race detector flags 
 
 ## Hint 2: Narrower
 
-Open `internal/transform/aggregate.go`. The `WindowedAggregator` struct has a `samples` field but no synchronization primitive. Every other well-behaved concurrent data structure in Go's standard library protects shared state with a mutex or uses `sync.Map`. Add a `sync.Mutex` to the struct.
+Open `internal/transform/aggregate.go`. The `WindowedAggregator` struct has a
+`samples` field but no synchronization primitive. Both the map and the slice
+read-modify-write performed by `append` belong to one invariant, so protect the
+whole operation with a mutex.
 
 ## Hint 3: Almost There
 

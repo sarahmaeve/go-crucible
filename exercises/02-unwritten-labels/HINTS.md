@@ -2,7 +2,9 @@
 
 ## Hint 1: Direction
 
-The panic message is "assignment to entry in nil map". Something is trying to write a key into a map that was never initialized. Find where the map is declared in `AuditDeploymentLabels` and compare it with how the same map is set up in `NewDeploymentAuditor`.
+The panic message is "assignment to entry in nil map". The helper first writes
+its complete discovery result to a scratch map, then reads the map while
+building findings. Compare how the two public entry points set up that state.
 
 ## Hint 2: Narrower
 

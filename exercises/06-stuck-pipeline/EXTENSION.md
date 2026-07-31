@@ -9,16 +9,12 @@
 Open `internal/ingest/reader_test.go` and read `TestExercise06_StuckPipeline`.
 To decide whether the goroutine leaked, it:
 
-1. samples `runtime.NumGoroutine()` before starting,
-2. cancels the context,
-3. **sleeps 200 ms** to "give the goroutine time to exit," then
-4. samples `runtime.NumGoroutine()` again and compares.
+1. starts `ReadMetrics` in a goroutine,
+2. cancels the context while its output is backpressured, then
+3. waits up to one second for the function's terminal error.
 
-Every step is a compromise. The sleep is wall-clock time the suite pays on every
-run. The goroutine count is global and noisy — the test comment even hedges
-"allow +1 for transient runtime goroutines." And when it fails, the message is a
-count that drifted (`baseline 2, after cancel 3`), which tells you *that*
-something leaked but not *what* or *where*.
+The timeout is still a scheduler-based guard. It tells you that something did
+not return, but not exactly what or where it blocked.
 
 ## The synctest version
 
@@ -48,10 +44,10 @@ Now apply your fix to `reader.go` and run it again — the goroutine observes
 
 | | Canonical test | synctest extension |
 |---|---|---|
-| Wait mechanism | `time.Sleep(200ms)` | `synctest.Wait()` (no real time) |
-| Leak signal | global goroutine count, ±1 fudge | durable-block / deadlock detection |
-| Failure message | "count drifted" | exact file:line of the blocked send |
-| Flake surface | transient runtime goroutines | none — execution is deterministic |
+| Wait mechanism | one-second timeout | `synctest.Wait()` (no real time) |
+| Leak signal | missing terminal result | durable-block / deadlock detection |
+| Failure message | "remained blocked" | exact file:line of the blocked send |
+| Flake surface | scheduler timing | none — execution is deterministic |
 
 The lesson: a goroutine leak is a *blocking* fact, and synctest can observe
 blocking directly instead of inferring it from timing and counts.

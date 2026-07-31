@@ -15,9 +15,13 @@ A recurring ticker can provide every wake-up from one allocation.
 
 ## Hint 3: Almost There
 
-Replace `time.After` with `time.NewTicker`, created once before the loop:
+Validate that `interval` is positive, then replace `time.After` with
+`time.NewTicker`, created once before the loop:
 
 ```go
+if interval <= 0 {
+    return fmt.Errorf("ticker forwarder: interval must be positive: %s", interval)
+}
 ticker := time.NewTicker(interval)
 defer ticker.Stop()
 
@@ -41,6 +45,8 @@ for {
 
 `ticker.Stop()` ends the recurring schedule when `Run` returns. More
 importantly for this exercise, one ticker replaces the per-poll allocation.
+The validation preserves a normal error path for invalid configuration instead
+of replacing `time.After`'s immediate firing with a `NewTicker` panic.
 
 This changes the schedule from “wait an interval after the previous iteration”
 to a fixed ticker cadence. That matches `Run`'s “polls every interval” contract;

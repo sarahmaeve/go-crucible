@@ -12,7 +12,8 @@ legitimately differ.
 ```
 goroutine profile: total 3871
 3848 @ ...
-#	... ingest.ReadMetrics.func1+0x84	.../internal/ingest/reader.go:18
+#	... ingest.ReadMetrics+0x84	.../internal/ingest/reader.go:18
+#	... main.(*scheduler).runTarget.func1+0x90	.../scheduler.go:219
 ```
 
 The aggregated view exists precisely for this moment: 3,848 of 3,871
@@ -46,17 +47,18 @@ goroutine 81442 [chan send, 1129 minutes]:
 ### 3. The frames
 
 ```
-github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics(...)
 	/build/go-crucible/internal/ingest/reader.go:18 +0x84
-created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x6a
+main.(*scheduler).runTarget.func1()
+	/srv/metrics-scheduler/scheduler.go:219 +0x91
+created by main.(*scheduler).runTarget in goroutine 412
+	/srv/metrics-scheduler/scheduler.go:212 +0x190
 ```
 
-`ReadMetrics.func1` is the anonymous function launched by the `go`
-statement at `reader.go:12`; it is parked at `reader.go:18`. The
-scheduler's own code (`/srv/metrics-scheduler/...`) appears only as
-the creator's surroundings — frames we don't own and don't need. The
-whole leak is two lines of our library.
+The scheduler deliberately owns the goroutine and invokes the synchronous
+`ReadMetrics` API from it. The goroutine is parked inside our library at
+`reader.go:18`; the scheduler frame and creator identify ownership but do not
+change where the blocking operation needs its cancellation path.
 
 The SRE's claim — "we cancel every removed target's context" — now
 reads differently: cancellation is being *delivered* but nothing at
@@ -64,8 +66,8 @@ reads differently: cancellation is being *delivered* but nothing at
 
 ## The diagnosis
 
-**Localization:** `internal/ingest/reader.go:18`, the channel send
-inside the goroutine launched at `reader.go:12` (`ReadMetrics`).
+**Localization:** `internal/ingest/reader.go:18`, the channel send inside
+`ReadMetrics`, running in a goroutine owned by the embedding scheduler.
 
 **Mechanism:** the goroutine's send `out <- m` is bare. When the
 consumer stops reading — which is exactly what happens when the
@@ -80,7 +82,7 @@ immortal goroutine: the dashboard's monotonic climb.
 select {
 case out <- m:
 case <-ctx.Done():
-	return
+	return ctx.Err()
 }
 ```
 
@@ -100,9 +102,8 @@ source (is the send wrapped in a `select`?) takes ten seconds.
 - Wait *durations* are the cheapest leak/burst discriminator: a burst
   has uniform young durations, a leak has a spread as old as the
   trigger.
-- `created by` frames are the artifact's own answer to "where do I
-  start reading code?" — you rarely need more than the parked frame
-  and its creator.
+- Caller and `created by` frames distinguish ownership from mechanism: the
+  scheduler owns the goroutine, while the library owns the uncancellable send.
 - Frames you don't own (runtime, the embedding binary) are context,
   not noise: here they proved the *caller* was healthy and the library
   was not, before a single line of source was read.

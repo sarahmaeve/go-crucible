@@ -2,7 +2,9 @@
 
 ## Hint 1: Direction
 
-A workflow round-trips through `RoundTripWorkflow` and comes back missing a field. The missing field is a boolean set to `false`. In Go, `false` is the zero value for `bool`. Think about what `omitempty` does with zero values during marshaling.
+A workflow round-trips through `RoundTripWorkflow` and comes back missing an
+explicitly false field. Compare how the public workflow type and the internal
+round-trip type represent presence.
 
 ## Hint 2: Narrower
 
@@ -14,18 +16,18 @@ CancelInProgress bool `json:"cancel-in-progress,omitempty"`
 
 `omitempty` tells the JSON encoder to skip this field when it equals the zero value for its type. For `bool`, zero is `false`. A `false` value — even a deliberate one — is silently dropped from the JSON output.
 
+The public `WorkflowConcurrency` uses `*bool`: nil means absent, while pointers
+to false and true preserve explicit choices. Flattening that pointer into the
+plain intermediate boolean discards information before marshaling even begins.
+
 ## Hint 3: Almost There
 
-Remove `,omitempty` from the `CancelInProgress` JSON tag:
+Carry the pointer through the intermediate representation:
 
 ```go
-CancelInProgress bool `json:"cancel-in-progress"`
+CancelInProgress *bool `json:"cancel-in-progress,omitempty"`
 ```
 
-Now `false` is always written to the JSON output, preserved through the round-trip, and marshaled back into the output YAML. The field is only absent when the entire `Concurrency` block is absent (which is still handled by `omitempty` on the outer `Concurrency` pointer field).
-
-This is the canonical fix for the repository's simplified model. If a format
-requires all three states—absent, explicit false, and explicit true—the public
-`WorkflowConcurrency` field must also track presence (commonly with `*bool`).
-Changing only the intermediate struct cannot recover presence information that
-was already collapsed during the initial YAML decode.
+Map the public pointer directly into that field. With `omitempty`, nil remains
+absent, while pointers to false and true are both serialized. The exercise test
+covers all three states.
