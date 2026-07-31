@@ -818,16 +818,178 @@ Preventive follow-up:
           <div class="step"><strong>API comment</strong><p>Put responsibility for starting and stopping work, cancellation, and unusual behavior beside the API so responders do not need to rely on team memory.</p></div>
           <div class="step"><strong>Incident note</strong><p>Record the surprising cause and the shortest useful path to finding it, without turning ordinary code comments into a postmortem.</p></div>
         </div>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Closure / one alert, two responders</p>
+        <h3>The end of each alert response is a deployment.</h3>
+        <p class="lead">The deployment does not always change business logic. It may add a focused test, a worker-lifecycle metric, a typed error, a diagnostic endpoint, a clearer API, or a better alert. If an incident exposes a question that our code cannot answer, changing only the alert threshold leaves the next responder with the same question.</p>
+        <p>This does not mean changing code for its own sake. Close the response by asking what small, reviewable change will preserve what the team learned. If the alert was wrong, change its threshold or routing. If the system could not separate plausible causes, add the signals it lacked. If hidden state or ownership caused the confusion, fix the design.</p>
+
+        <blockquote class="report">
+          <p><code>QueueOldestAgeHigh</code> has been active for ten minutes. The oldest job is 94 seconds old, and the queue contains 18,420 jobs. Jobs are arriving at about their usual rate. The process is reachable, and CPU use is low. The dashboard does not show whether workers are running, whether attempts finish, whether retries are adding work, or how long the downstream call takes.</p>
+          <cite>Synthetic alert report — the values are illustrative</cite>
+        </blockquote>
+
+        <h4>Signals available to the first responder</h4>
+        <div class="evidence-grid">
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Oldest job: 94 seconds</strong><p>The alert shows that work is delayed. It does not show where progress stopped.</p></div>
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Depth: 18,420 jobs</strong><p>The backlog is large. Depth alone cannot tell whether jobs are arriving faster or completing more slowly.</p></div>
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Process up; CPU low</strong><p>The process answers its health check. That does not prove that any workers are still running.</p></div>
+          <div class="evidence-card unknown"><span class="tag unknown">Unknown</span><strong>What the workers are doing</strong><p>The dashboard has no worker count, attempt outcomes, retry rate, or handler latency.</p></div>
+        </div>
+
+        <p>“The downstream service is slow” is an obvious explanation because every job calls it. The available signals cannot prove that explanation wrong. A stopped worker pool, a retry loop, or a local queue bug would produce the same dashboard. The code shows why this is more than a missing chart.</p>
+
+        <h4>The alert revealed a lifecycle design problem</h4>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Before / hidden lifetime and reused cancellation</div>
+            <pre><code>type Pool struct {
+    ctx    context.Context
+    cancel context.CancelFunc
+    queue  Queue
+}
+
+func (p *Pool) Reload() {
+    p.cancel()
+    p.start(p.ctx)
+}
+
+func (p *Pool) start(ctx context.Context) {
+    go func() {
+        for {
+            select {
+            case &lt;-ctx.Done():
+                return
+            case job := &lt;-p.queue.Ready():
+                if err := handle(ctx, job); err != nil {
+                    p.queue.Retry(job)
+                }
+            }
+        }
+    }()
+}</code></pre>
+            <p class="code-note">The replacement receives the same context that <code>cancel</code> just cancelled, so it exits immediately. The API exposes no way to wait for workers, inspect why they stopped, or count attempt outcomes.</p>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">After / explicit ownership, outcomes, and evidence</div>
+            <pre><code>func (s *Supervisor) Reload(parent context.Context) error {
+    if err := s.stopAndWait(ErrReloaded); err != nil {
+        return fmt.Errorf("stop worker generation: %w", err)
+    }
+
+    ctx, cancel := context.WithCancelCause(parent)
+    done := make(chan error, 1)
+    s.cancel, s.done = cancel, done
+
+    go func() { done &lt;- s.worker.Run(ctx) }()
+    return nil
+}
+
+func (w *Worker) Run(ctx context.Context) (runErr error) {
+    w.observe.WorkerStarted()
+    defer func() {
+        cause := classifyStop(runErr, context.Cause(ctx))
+        w.observe.WorkerStopped(cause)
+    }()
+
+    for {
+        select {
+        case &lt;-ctx.Done():
+            return context.Cause(ctx)
+        case job := &lt;-w.queue.Ready():
+            started := time.Now()
+            err := w.handle(ctx, job)
+            outcome := classifyOutcome(err)
+            w.observe.AttemptFinished(outcome, time.Since(started))
+
+            if retryable(err) {
+                w.observe.RetryScheduled(classifyRetry(err))
+                w.queue.Retry(job)
+            }
+        }
+    }
+}</code></pre>
+            <p class="code-note">The supervisor creates a fresh context, owns cancellation, and waits for the previous workers to stop. The worker records a finite outcome value after each attempt.</p>
+          </div>
+        </div>
+
+        <p>The example is deliberately simplified. Production code must define what happens when the queue closes and how it handles successful jobs and permanent failures. It must also decide whether a reload may pause consumption or safely overlap worker generations. The new API makes those choices visible instead of hiding them inside <code>start</code>.</p>
+
+        <div class="code-panel good">
+          <div class="code-label">A small observation interface used by the queue and workers</div>
+          <pre><code>type WorkObserver interface {
+    Enqueued()
+    WorkerStarted()
+    WorkerStopped(StopCause)
+    AttemptFinished(Outcome, time.Duration)
+    RetryScheduled(RetryReason)
+}</code></pre>
+          <p class="code-note">The queue calls <code>Enqueued</code> after it accepts a job. Workers report when they start and stop, how each attempt ends, and why they schedule a retry. A metrics adapter turns those finite values into counters, gauges, and histograms. Tests use a recording observer to verify the reload sequence.</p>
+        </div>
+
+        <h4>Signals available to the next responder</h4>
+        <div tabindex="0" role="region" aria-label="Signals added after the alert response and the explanations they distinguish">
+          <table class="fact-table">
+            <thead><tr><th scope="col">Signal</th><th scope="col">What it distinguishes</th><th scope="col">Evidence against the obvious explanation</th></tr></thead>
+            <tbody>
+              <tr><td><code>queue_enqueued_total</code> and <code>job_completed_total</code></td><td>A traffic increase versus a drop in processing.</td><td>Jobs arrive at the usual rate while completions fall to zero.</td></tr>
+              <tr><td><code>workers_active</code> and <code>worker_stops_total{cause}</code></td><td>Slow workers versus workers that have stopped.</td><td>Active workers reach zero during reload, and the reported stop cause is <code>reload</code>.</td></tr>
+              <tr><td><code>job_attempt_duration_seconds{outcome}</code></td><td>Slow handling versus work that never began.</td><td>Handler attempt duration stays normal before attempts cease.</td></tr>
+              <tr><td><code>job_retries_total{reason}</code></td><td>A slow handler versus retries that create extra work.</td><td>The backlog begins growing when one retry reason increases, without a rise in handler latency.</td></tr>
+              <tr><td>Worker lifecycle logs</td><td>The exact transition that stopped work.</td><td>A structured log ties the stop to a reload and records its cause. Generation IDs stay in logs instead of becoming high-cardinality metric labels.</td></tr>
+              <tr><td><code>queue_oldest_age_seconds</code></td><td>User-visible delay versus raw queue size.</td><td>The oldest-job age falls after workers restart, even while the queue remains large.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>No single signal identifies the root cause. Together they let a responder test four explanations: rising demand, stopped workers, slow handling, and excess retries. In this example, the normal enqueue rate, zero active workers, absence of new attempts, and reload stop cause disprove downstream slowness before anyone reads the implementation.</p>
+
+        <h4>Code generation changes what is practical to deploy</h4>
+        <div class="handoff">
+          <div class="template">
+            <div class="code-label">Generation brief / evidence before implementation</div>
+            <pre><code>Distinguish:
+  demand growth
+  stopped workers
+  slow handling
+  retry amplification
+
+Generate:
+  explicit worker lifetime and wait path
+  fixed sets of attempt outcomes and stop causes
+  metrics adapter and structured lifecycle logs
+  focused reload and cancellation tests
+
+Preserve:
+  error causes
+  bounded metric cardinality
+  queue acknowledgement semantics
+  a staged and reversible rollout</code></pre>
+          </div>
+          <div class="handoff-notes">
+            <p class="micro">Responder responsibility</p>
+            <ul>
+              <li>State the competing explanations and the evidence that would distinguish them.</li>
+              <li>Review generated code for correct concurrency, shutdown, error handling, privacy, and performance.</li>
+              <li>Reject instrumentation that has no operational question or uses unbounded labels.</li>
+              <li>Run focused tests before using production telemetry to make a broader claim.</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>Code-generation tools make a broader response practical. They can draft the repetitive parts of an observation interface, metrics adapter, test matrix, dashboard query, and runbook change together. They cannot decide what the system needs to prove. The responder defines the required evidence and verifies that the generated code produces it.</p>
 
         <div class="question-grid" style="margin-top: 32px">
           <div>
-            <p>The <a href="styleguide.html">expanded style guide</a> matters during incident response for practical reasons: clear names are easier to search, small interfaces reduce what must be read, wrapped errors keep their cause, context shows cancellation, and stable tests make repairs easier to check.</p>
+            <p>The <a href="styleguide.html">expanded style guide</a> provides the building blocks for this design. They include <a href="styleguide.html#concurrency">explicit goroutine lifetime and cancellation</a>, <a href="styleguide.html#errors">errors that preserve their cause</a>, <a href="styleguide.html#apis">small interfaces defined by their users</a>, and <a href="styleguide.html#tests">tests that wait for observable completion</a>. Reliability architecture uses those building blocks to decide which state must be visible, who owns it, and which signals will distinguish plausible failures.</p>
             <p><a class="capsule" href="styleguide.html">Return to the style guide</a></p>
           </div>
           <aside class="aside">
             <p class="micro">The production test</p>
             <strong>Could a new responder prove the obvious explanation wrong?</strong>
-            <p>If the code only supports its authors’ assumptions, it is still too hard to operate.</p>
+            <p>Give them only the alert, dashboards, logs, and documented APIs. If they cannot disprove the obvious explanation, deploy the missing signals—or fix the design that hid them.</p>
           </aside>
         </div>
       </article>
@@ -947,7 +1109,7 @@ func (h *SearchHandler) searcherFor(accountID string) Searcher {
         <div class="chapter-no" aria-hidden="true">08</div>
         <div>
           <h2 id="wheels-title">Wheels of Misfortune</h2>
-          <p class="chapter-intro">Nine short investigations turn recent production write-ups and open-source change records into new Go examples. They practice reading reports and choosing useful evidence without repeating the bugs in go-crucible’s numbered exercises.</p>
+          <p class="chapter-intro">Fourteen short investigations draw on production reports, security advisories, and open-source changes. They provide new Go examples for practicing how to read reports and choose useful evidence, without repeating the bugs in go-crucible’s numbered exercises.</p>
         </div>
       </header>
 
@@ -1729,6 +1891,397 @@ func (r *Replica) apply(req ClearRequest) error {
 
         <p class="source-note"><strong>Source trail:</strong> the public advisory states the required conditions, affected versions, repair releases, detection queries, and three forms of corruption. The issue and production PR explain the two optimizer rules and add the regression test. Read <a href="https://www.cockroachlabs.com/docs/advisories/a166122" rel="noreferrer">Technical Advisory 166122</a>, <a href="https://github.com/cockroachdb/cockroach/issues/166122" rel="noreferrer">issue #166122</a>, and <a href="https://github.com/cockroachdb/cockroach/pull/166123" rel="noreferrer">repair PR #166123</a>.</p>
       </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune J / The Header That Survived Authentication</p>
+        <h3>Successful authentication can still let an attacker-controlled identity header through.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Trust boundaries</span><span>Intermediate</span><span>Source: March 2026</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>A reverse proxy accepts a valid token, and the authentication service returns <code>200 OK</code>. The service does not return an identity header. Even so, the backend receives <code>X-User-Role: superadmin</code>—the value supplied by the client.</p>
+          <cite>Teaching report — reconstructed from Caddy security advisory GHSA-7r4p-vjf4-gxv4</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Separate authentication from provenance</p>
+            <strong>What did the successful check establish?</strong>
+            <ul>
+              <li>The authentication service accepted the credential.</li>
+              <li>The authentication response contained no identity header.</li>
+              <li>The client’s identity header therefore remained untrusted.</li>
+              <li>The backend could not tell where the surviving value came from.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Follow one header across the boundary</p>
+            <strong>Compare the header at each boundary.</strong>
+            <ol>
+              <li>Record the client-supplied identity header.</li>
+              <li>Record whether the authentication response contains that header.</li>
+              <li>Record the value forwarded to the backend.</li>
+              <li>Repeat with a trusted value returned by the authentication service.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go middleware — not Caddy source</h4>
+        <div class="code-panel">
+          <div class="code-label">A conditional copy leaves the client’s value in place</div>
+          <pre><code>func copyIdentity(
+    request *http.Request,
+    authResponse *http.Response,
+    headers []string,
+) {
+    for _, name := range headers {
+        if value := authResponse.Header.Get(name); value != "" {
+            request.Header.Set(name, value)
+        }
+    }
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and trust-boundary test</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Caddy’s <code>forward_auth copy_headers</code> handling replaced a request header only when the authentication response supplied a value. If the response omitted the header, Caddy skipped the replacement and left the client’s value in place. The change that introduced this regression was intended to avoid copying empty placeholder values.</p>
+            <div class="code-panel good">
+              <div class="code-label">Remove untrusted state before conditionally adding trusted state</div>
+              <pre><code>func copyIdentity(
+    request *http.Request,
+    authResponse *http.Response,
+    headers []string,
+) {
+    for _, name := range headers {
+        request.Header.Del(name)
+        if value := authResponse.Header.Get(name); value != "" {
+            request.Header.Set(name, value)
+        }
+    }
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Caddy now deletes every header named in <code>copy_headers</code> before it conditionally copies the authentication service’s value. If the service returns a value, the backend receives that trusted value. If it returns nothing, the backend receives no header.</p>
+            <p><strong>Suggested verification:</strong> send an authenticated request with a forged identity header while the authentication response omits that header; assert that the backend receives no value. Then have the authentication service return an authoritative value and assert that it replaces the client’s value. Test both same-name copies and renamed destination headers.</p>
+            <p><strong>Teaching inference:</strong> absence matters at a trust boundary. Removing untrusted data and adding trusted data are separate operations. Remove the client’s value first; then decide whether an authoritative source should replace it.</p>
+            <p><strong>Source limit:</strong> the advisory and pull request document the vulnerability, the change that introduced it, the affected versions, and the repair. They do not report exploitation in the wild.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the advisory explains how a caller with a valid credential could preserve forged identity headers and identifies the regression. The repair PR adds the unconditional deletion, along with configuration and integration tests. Read <a href="https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4" rel="noreferrer">Caddy advisory GHSA-7r4p-vjf4-gxv4</a>, <a href="https://github.com/caddyserver/caddy/pull/6608" rel="noreferrer">introducing PR #6608</a>, and <a href="https://github.com/caddyserver/caddy/pull/7545" rel="noreferrer">repair PR #7545</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune K / Two Paths for One Request</p>
+        <h3>The router authorizes one path, but the backend receives another.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Canonical request identity</span><span>Advanced</span><span>Source: May 2025</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>A proxy exposes <code>/public</code> through one router and protects another path with different middleware. A request containing percent-encoded dot segments matches the public route. The backend later interprets the path differently and serves a resource that was not meant to be public.</p>
+          <cite>Teaching report — reconstructed from Traefik advisory GHSA-vrch-868g-9jx5</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Name every representation</p>
+            <strong>What does each component believe the path is?</strong>
+            <ul>
+              <li>The raw request contains percent-encoded characters.</li>
+              <li>The router uses one path to match its rules.</li>
+              <li>That match determines which middleware runs.</li>
+              <li>The backend interprets the forwarded path.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the decisive trace</p>
+            <strong>Compare policy input with execution input.</strong>
+            <ol>
+              <li>Record the raw and decoded request path.</li>
+              <li>Record the path used to choose the router.</li>
+              <li>Record which middleware chain ran.</li>
+              <li>Record the path ultimately forwarded downstream.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go router — not Traefik source</h4>
+        <div class="code-panel">
+          <div class="code-label">Routing and forwarding interpret the path differently</div>
+          <pre><code>func serve(request *http.Request) error {
+    route := matchRoute(request.URL.EscapedPath())
+
+    forwardedPath := path.Clean(request.URL.Path)
+    return route.Forward(request.Context(), forwardedPath)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and boundary tests</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Traefik did not use the same canonical path for matching and forwarding. The encoded path could select a router before Traefik removed dot segments or decoded unreserved characters. The backend then received a path with a different meaning, so the middleware chosen for the first path did not necessarily protect the second.</p>
+            <div class="code-panel good">
+              <div class="code-label">Canonicalize once before routing policy</div>
+              <pre><code>func serve(request *http.Request) error {
+    routingPath, forwardedPath, err := canonicalPaths(request.URL)
+    if err != nil {
+        return fmt.Errorf("canonicalize request path: %w", err)
+    }
+
+    route := matchRoute(routingPath)
+    return route.Forward(request.Context(), forwardedPath)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> before routing, Traefik now decodes unreserved characters, normalizes the case of percent escapes, removes dot segments, and merges repeated slashes. It stores the resulting routing path in the request context. A follow-up changed the v3 matchers to use that path too.</p>
+            <p><strong>Suggested verification:</strong> exercise literal and encoded dot segments, upper- and lower-case percent escapes, repeated slashes, and reserved characters. Assert not only the status code but also the selected router, middleware chain, and forwarded path.</p>
+            <p><strong>Teaching inference:</strong> every component that makes a security decision must agree about which resource a request names. Validating one representation and acting on another creates a policy bypass, even when each transformation seems reasonable by itself.</p>
+            <p><strong>Source limit:</strong> the advisory provides a proof of concept and lists affected releases. It does not report exploitation in the wild or a public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the advisory demonstrates the middleware bypass with an encoded traversal. The v2 repair adds path normalization and sanitization before routing. The v3 follow-up makes its matchers use the same routing path. Read <a href="https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5" rel="noreferrer">Traefik advisory GHSA-vrch-868g-9jx5</a>, <a href="https://github.com/traefik/traefik/pull/11768" rel="noreferrer">repair PR #11768</a>, and <a href="https://github.com/traefik/traefik/pull/11790" rel="noreferrer">v3 follow-up PR #11790</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune L / The Neighbor’s ServiceEntry</p>
+        <h3>A global hostname map erases a namespace boundary.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Multi-tenant configuration</span><span>Advanced</span><span>Source: April–July 2019</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Two teams define the same external hostname in separate Kubernetes namespaces. One team expects its <code>ServiceEntry</code> to remain local, but proxies in the other namespace begin sending requests to the first team’s destination. A related conflict causes HTTP 503 responses from an internal service.</p>
+          <cite>Teaching report — reconstructed from Istio issue #13008</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Look for a lost part of identity</p>
+            <strong>Which fields distinguish the two declarations?</strong>
+            <ul>
+              <li>The hostname is deliberately the same.</li>
+              <li>The namespace and export scope are different.</li>
+              <li>The destination endpoints can be different.</li>
+              <li>The proxy that will use the entry has its own namespace and import scope.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Vary order and point of view</p>
+            <strong>Does resolution depend on who asks?</strong>
+            <ol>
+              <li>Create the entries in both possible orders.</li>
+              <li>Resolve the hostname from a proxy in each namespace.</li>
+              <li>Record the endpoints and cluster configuration delivered to each proxy.</li>
+              <li>Repeat with explicit local and cross-namespace imports.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go registry — not Istio source</h4>
+        <div class="code-panel">
+          <div class="code-label">The map key drops the namespace</div>
+          <pre><code>type Registry struct {
+    endpoints map[string][]Endpoint
+}
+
+func (r *Registry) Add(entry ServiceEntry) {
+    r.endpoints[entry.Host] = append(
+        r.endpoints[entry.Host],
+        entry.Endpoints...,
+    )
+}
+
+func (r *Registry) Resolve(_ Proxy, host string) []Endpoint {
+    return r.endpoints[host]
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and isolation contract</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Pilot used the hostname alone as a service’s global identity. But namespace visibility also determined which <code>ServiceEntry</code> a proxy could use. With duplicate hostnames, some code paths chose a namespace arbitrarily while others combined services. Resolution did not consistently use the requesting proxy’s Sidecar scope.</p>
+            <div class="code-panel good">
+              <div class="code-label">Resolve within the requesting proxy’s visible configuration</div>
+              <pre><code>type ServiceKey struct {
+    Namespace string
+    Host      string
+}
+
+type Registry struct {
+    endpoints map[ServiceKey][]Endpoint
+}
+
+func (r *Registry) Resolve(proxy Proxy, host string) []Endpoint {
+    for _, namespace := range proxy.ImportedNamespaces() {
+        key := ServiceKey{Namespace: namespace, Host: host}
+        if endpoints := r.endpoints[key]; len(endpoints) != 0 {
+            return endpoints
+        }
+    }
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Istio changed Pilot to resolve duplicate hostnames through the requesting proxy’s Sidecar scope. Where possible, it prefers the proxy’s own namespace. The PR also added an integration test. The real implementation handles more resolution modes than the sketch above.</p>
+            <p><strong>Suggested verification:</strong> create duplicate DNS and static ServiceEntries in several namespaces, vary their creation order, and inspect the configuration delivered to proxies with different scopes. Assert deterministic results and confirm that a local entry cannot affect an unrelated namespace.</p>
+            <p><strong>Teaching inference:</strong> namespace, tenant, account, region, and environment are not mere metadata when they control visibility. Include those fields in lookup, merge, cache, and deduplication keys.</p>
+            <p><strong>Source limit:</strong> the issue includes a concrete multi-namespace reproduction and shows how the conflict could disrupt production traffic. It does not describe the size or duration of a public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the issue shows cross-namespace routing interference, arbitrary endpoint selection, and a conflict with an internal service. The repair PR explains the previous undefined behavior, introduces Sidecar-scoped resolution, and adds integration coverage. Read <a href="https://github.com/istio/istio/issues/13008" rel="noreferrer">Istio issue #13008</a> and <a href="https://github.com/istio/istio/pull/13631" rel="noreferrer">repair PR #13631</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune M / The Rebalance That Overwrote Its Source</p>
+        <h3>Stopping work does not make every old worker harmless.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Stale asynchronous work</span><span>Advanced</span><span>Source: August 2024</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>An object-store cluster has several storage pools. An operator repeatedly starts and stops rebalancing while workers move existing objects. After the sequence, some objects are unreadable even though the stop commands have returned.</p>
+          <cite>Teaching report — reconstructed from the MinIO repair PR’s reproduction</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Find what outlives the command</p>
+            <strong>Which decisions happen at different times?</strong>
+            <ul>
+              <li>The worker chooses its source pool when it starts.</li>
+              <li>An operator can stop or restart rebalancing while it runs.</li>
+              <li>The write path chooses a destination later.</li>
+              <li>The old worker may still reach that write after the stop.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Inspect the commit boundary</p>
+            <strong>What must still be true immediately before writing?</strong>
+            <ol>
+              <li>Record the worker’s original source pool.</li>
+              <li>Record the selected destination pool.</li>
+              <li>Record which rebalance run created the worker.</li>
+              <li>Reject the move if its source and destination are the same.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go worker — not MinIO source</h4>
+        <div class="code-panel">
+          <div class="code-label">Destination selection forgets where the data came from</div>
+          <pre><code>type Move struct {
+    Object Object
+    Source int
+}
+
+func (s *Store) apply(move Move) error {
+    destination := s.choosePool(move.Object)
+    return s.pools[destination].Put(move.Object)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and stale-work test</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> stopping a rebalance could race with workers that were already moving data. A worker could later choose the same pool it had read from as its destination. Treating that as a normal move allowed the write to overwrite the source object.</p>
+            <div class="code-panel good">
+              <div class="code-label">Carry the source identity to the final precondition</div>
+              <pre><code>var ErrSamePool = errors.New("source and destination pool are the same")
+
+func (s *Store) apply(move Move) error {
+    destination := s.choosePool(move.Object)
+    if destination == move.Source {
+        return ErrSamePool
+    }
+    return s.pools[destination].Put(move.Object)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> MinIO now carries <code>SrcPoolIdx</code> through normal and multipart data-movement writes. <code>PutObject</code> and <code>NewMultipartUpload</code> reject a write when the destination pool matches the source. They return a specific data-movement overwrite error, which the rebalance worker treats as an expected result of racing with a stop.</p>
+            <p><strong>Suggested verification:</strong> place a test barrier after reading from the source but before destination selection, stop and restart rebalance, and then release the stale worker. Assert that self-targeting movement is rejected and that every object remains readable. Also cover multipart objects.</p>
+            <p><strong>Teaching inference:</strong> cancellation asks work to stop; it does not prove that every worker has stopped. Destructive background work should carry its source pool—and, when needed, a run ID—all the way to the write. It must then check that the operation is still valid.</p>
+            <p><strong>Source limit:</strong> the PR provides the production repair and a repeatable start/stop stress test. It does not link to a separate operator report or public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the PR describes the stop race, carries the source-pool index through each write path, and rejects moves back to the source pool. Its test recipe repeatedly starts and stops rebalancing, then checks that every object remains readable. Read <a href="https://github.com/minio/minio/pull/20233" rel="noreferrer">MinIO repair PR #20233</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune N / The Three-Day Delete</p>
+        <h3>A cheap durability step becomes a multi-day delay when repeated millions of times.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Durability boundaries</span><span>Intermediate</span><span>Source: January 2026</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Retention-policy deletion appears to hang on databases with more than ten million series. The process stays alive and the disk remains busy, but deletion makes almost no visible progress. At roughly 35 million series, the measured cost per series predicts several days of work.</p>
+          <cite>Teaching report — reconstructed from InfluxDB PR #27114</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Multiply the local cost</p>
+            <strong>What happens once per series?</strong>
+            <ul>
+              <li>Each deletion acquires a partition mutex.</li>
+              <li>It records one series as deleted.</li>
+              <li>It flushes the active segment with <code>fsync</code>.</li>
+              <li>The loop runs millions of times alongside other disk I/O.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Measure work, not liveness</p>
+            <strong>Which evidence distinguishes deadlock from slow progress?</strong>
+            <ol>
+              <li>Count series completed and remaining.</li>
+              <li>Measure time per logical deletion and per flush.</li>
+              <li>Record mutex wait and disk latency separately.</li>
+              <li>Project completion time at production cardinality.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go deletion — not InfluxDB source</h4>
+        <div class="code-panel">
+          <div class="code-label">Every logical deletion becomes a durability barrier</div>
+          <pre><code>func (f *SeriesFile) Delete(ids []uint64) error {
+    for _, id := range ids {
+        partition := f.partitionFor(id)
+        if err := partition.DeleteSeriesID(id); err != nil {
+            return err
+        }
+        if err := partition.Flush(); err != nil {
+            return err
+        }
+    }
+    return nil
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and durability contract</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> <code>DeleteSeriesID</code> held a mutex and flushed its segment for every ID. The PR measured about 7.5 milliseconds per deletion in one test. At roughly 35 million series, that rate predicts almost three days of work—even before production lock contention and competing disk I/O.</p>
+            <div class="code-panel good">
+              <div class="code-label">Record the batch, then flush each touched partition</div>
+              <pre><code>func (f *SeriesFile) Delete(ids []uint64) error {
+    touched := make(map[int]struct{})
+    for _, id := range ids {
+        partition, err := f.DeleteSeriesID(id, NoFlush)
+        if err != nil {
+            return err
+        }
+        touched[partition.ID()] = struct{}{}
+    }
+    return f.FlushSegments(touched)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> InfluxDB made deletion and flushing separate operations. Bulk deletion records which partitions it touched, then flushes each partition’s active segment once, running those flushes in parallel. The change also logs progress every 10,000 series. In the revised test, the PR reports roughly two milliseconds for 10,000 deletions.</p>
+            <p><strong>Suggested verification:</strong> use a fake segment that counts flushes. Delete IDs spanning several partitions, then assert one final flush per touched partition rather than one per ID. Reopen the series file and confirm deletions remain durable. Benchmark at realistic cardinality rather than extrapolating from a small fixture alone.</p>
+            <p><strong>Teaching inference:</strong> durability needs an explicit boundary. Calling <code>fsync</code> after every small change is easy to reason about, but a batch can preserve the same recovery guarantee with far fewer flushes.</p>
+            <p><strong>Operational lesson:</strong> progress logs let responders distinguish a deadlock from slow forward progress. They also reveal the likely completion time while the team evaluates a deeper repair.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the PR describes the high-cardinality trigger, measures the cost per series, projects the multi-day runtime, and implements batched flushing and progress logs. It also tests deletion with and without an immediate flush. Read <a href="https://github.com/influxdata/influxdb/pull/27114" rel="noreferrer">InfluxDB repair PR #27114</a>.</p>
+      </article>
     </section>
 
     <section class="chapter shell" id="sources" aria-labelledby="sources-title">
@@ -1736,7 +2289,7 @@ func (r *Replica) apply(req ClearRequest) error {
         <div class="chapter-no" aria-hidden="true">//</div>
         <div>
           <h2 id="sources-title">Continue reading</h2>
-          <p class="chapter-intro">The project documents below turn the chapter into practice; the Go and SRE sources provide the broader engineering context.</p>
+          <p class="chapter-intro">The project documents turn the chapter into practice. Books and operational manuals supply broader techniques; original reports show how those techniques behave under pressure.</p>
         </div>
       </header>
 
@@ -1749,6 +2302,46 @@ func (r *Replica) apply(req ClearRequest) error {
           <li><a href="../exercises/wheel/01-replay-regression/REPORT.md">W01: Replay Regression — incoming report<span class="url">../exercises/wheel/01-replay-regression/REPORT.md</span></a></li>
           <li><a href="../exercises/wheel/WORKSHEET.template.md">Wheel of Misfortune investigation worksheet<span class="url">../exercises/wheel/WORKSHEET.template.md</span></a></li>
           <li><a href="../exercises/wheel/RUBRIC.md">Wheel of Misfortune process rubric<span class="url">../exercises/wheel/RUBRIC.md</span></a></li>
+        </ol>
+      </div>
+
+      <div class="source-panel">
+        <p class="micro">Books and field guides</p>
+        <h3>Building and shipping Go services</h3>
+        <ol>
+          <li><a href="https://www.manning.com/books/shipping-go" rel="noreferrer">Joel Holmes — <cite>Shipping Go</cite><span class="url">https://www.manning.com/books/shipping-go</span></a></li>
+          <li><a href="https://www.manning.com/books/go-in-practice-second-edition" rel="noreferrer">Nathan Kozyra, Matt Butcher, and Matt Farina — <cite>Go in Practice, Second Edition</cite><span class="url">https://www.manning.com/books/go-in-practice-second-edition</span></a></li>
+          <li><a href="https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them" rel="noreferrer">Teiva Harsanyi — <cite>100 Go Mistakes and How to Avoid Them</cite><span class="url">https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them</span></a></li>
+          <li><a href="https://www.manning.com/books/grpc-microservices-in-go" rel="noreferrer">H&uuml;seyin Babal — <cite>gRPC Microservices in Go</cite><span class="url">https://www.manning.com/books/grpc-microservices-in-go</span></a></li>
+          <li><a href="https://www.manning.com/books/go-in-action-second-edition" rel="noreferrer">Joel Holmes, Andrew Walker, and William Kennedy — <cite>Go in Action, Second Edition</cite> (Manning Early Access)<span class="url">https://www.manning.com/books/go-in-action-second-edition</span></a></li>
+          <li><a href="https://www.oreilly.com/library/view/cloud-native-go/9781098156411/" rel="noreferrer">Matthew A. Titmus — <cite>Cloud Native Go, Second Edition</cite><span class="url">https://www.oreilly.com/library/view/cloud-native-go/9781098156411/</span></a></li>
+          <li><a href="https://lets-go-further.alexedwards.net/" rel="noreferrer">Alex Edwards — <cite>Let&rsquo;s Go Further</cite><span class="url">https://lets-go-further.alexedwards.net/</span></a></li>
+          <li><a href="https://pragprog.com/titles/tjgo/distributed-services-with-go/" rel="noreferrer">Travis Jeffery — <cite>Distributed Services with Go</cite><span class="url">https://pragprog.com/titles/tjgo/distributed-services-with-go/</span></a></li>
+          <li><a href="https://www.oreilly.com/library/view/efficient-go/9781098105709/" rel="noreferrer">Bart&#322;omiej P&#322;otka — <cite>Efficient Go</cite><span class="url">https://www.oreilly.com/library/view/efficient-go/9781098105709/</span></a></li>
+          <li><a href="https://dave.cheney.net/practical-go" rel="noreferrer">Dave Cheney — <cite>Practical Go</cite><span class="url">https://dave.cheney.net/practical-go</span></a></li>
+        </ol>
+      </div>
+
+      <div class="source-panel">
+        <p class="micro">Operational manuals</p>
+        <h3>Signals, verification, lifecycle, and production feedback</h3>
+        <ol>
+          <li><a href="https://go.dev/doc/diagnostics" rel="noreferrer">Go Documentation — Diagnostics<span class="url">https://go.dev/doc/diagnostics</span></a></li>
+          <li><a href="https://pkg.go.dev/runtime/metrics" rel="noreferrer">Go package runtime/metrics<span class="url">https://pkg.go.dev/runtime/metrics</span></a></li>
+          <li><a href="https://go.dev/blog/slog" rel="noreferrer">Go Blog — Structured Logging with slog<span class="url">https://go.dev/blog/slog</span></a></li>
+          <li><a href="https://pkg.go.dev/net/http#Server" rel="noreferrer">Go package net/http — Server<span class="url">https://pkg.go.dev/net/http#Server</span></a></li>
+          <li><a href="https://pkg.go.dev/os/signal#NotifyContext" rel="noreferrer">Go package os/signal — NotifyContext<span class="url">https://pkg.go.dev/os/signal#NotifyContext</span></a></li>
+          <li><a href="https://go.dev/doc/articles/race_detector" rel="noreferrer">Go Documentation — Data Race Detector<span class="url">https://go.dev/doc/articles/race_detector</span></a></li>
+          <li><a href="https://go.dev/doc/security/fuzz/" rel="noreferrer">Go Documentation — Fuzzing<span class="url">https://go.dev/doc/security/fuzz/</span></a></li>
+          <li><a href="https://go.dev/doc/security/best-practices" rel="noreferrer">Go Documentation — Security Best Practices for Go Developers<span class="url">https://go.dev/doc/security/best-practices</span></a></li>
+          <li><a href="https://prometheus.io/docs/practices/instrumentation/" rel="noreferrer">Prometheus — Instrumentation practices<span class="url">https://prometheus.io/docs/practices/instrumentation/</span></a></li>
+          <li><a href="https://opentelemetry.io/docs/languages/go/" rel="noreferrer">OpenTelemetry — Go instrumentation<span class="url">https://opentelemetry.io/docs/languages/go/</span></a></li>
+          <li><a href="https://sre.google/workbook/monitoring/" rel="noreferrer">Google SRE Workbook — Monitoring<span class="url">https://sre.google/workbook/monitoring/</span></a></li>
+          <li><a href="https://go.dev/doc/pgo" rel="noreferrer">Go Documentation — Profile-guided optimization<span class="url">https://go.dev/doc/pgo</span></a></li>
+          <li><a href="https://www.datadoghq.com/blog/datadog-pgo-go/" rel="noreferrer">Datadog — Continuous PGO rollout, measurements, and memory regression<span class="url">https://www.datadoghq.com/blog/datadog-pgo-go/</span></a></li>
+          <li><a href="https://github.com/DataDog/datadog-pgo" rel="noreferrer">Datadog PGO — Open-source production-profile build tool<span class="url">https://github.com/DataDog/datadog-pgo</span></a></li>
+          <li><a href="https://github.com/golang/go/issues/65532" rel="noreferrer">Go issue #65532 — PGO can dramatically increase goroutine stack size<span class="url">https://github.com/golang/go/issues/65532</span></a></li>
+          <li><a href="https://www.uber.com/us/en/blog/automating-efficiency-of-go-programs-with-pgo/" rel="noreferrer">Uber — Automating Go PGO across production services<span class="url">https://www.uber.com/us/en/blog/automating-efficiency-of-go-programs-with-pgo/</span></a></li>
         </ol>
       </div>
 
@@ -1800,6 +2393,16 @@ func (r *Replica) apply(req ClearRequest) error {
           <li><a href="https://www.cockroachlabs.com/docs/advisories/a166122" rel="noreferrer">CockroachDB Technical Advisory 166122 — Partial-index corruption during backfill<span class="url">https://www.cockroachlabs.com/docs/advisories/a166122</span></a></li>
           <li><a href="https://github.com/cockroachdb/cockroach/issues/166122" rel="noreferrer">CockroachDB issue #166122 — Partial-index data loss and phantom rows<span class="url">https://github.com/cockroachdb/cockroach/issues/166122</span></a></li>
           <li><a href="https://github.com/cockroachdb/cockroach/pull/166123" rel="noreferrer">CockroachDB PR #166123 — Preserve complete rows for indexes being built<span class="url">https://github.com/cockroachdb/cockroach/pull/166123</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4" rel="noreferrer">Caddy advisory GHSA-7r4p-vjf4-gxv4 — Client-supplied identity header injection<span class="url">https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/pull/6608" rel="noreferrer">Caddy PR #6608 — Conditionally copy response headers<span class="url">https://github.com/caddyserver/caddy/pull/6608</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/pull/7545" rel="noreferrer">Caddy PR #7545 — Strip client identity before copying authenticated identity<span class="url">https://github.com/caddyserver/caddy/pull/7545</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5" rel="noreferrer">Traefik advisory GHSA-vrch-868g-9jx5 — Encoded path traversal bypass<span class="url">https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/pull/11768" rel="noreferrer">Traefik PR #11768 — Normalize request paths before routing<span class="url">https://github.com/traefik/traefik/pull/11768</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/pull/11790" rel="noreferrer">Traefik PR #11790 — Use the normalized routing path in v3 matchers<span class="url">https://github.com/traefik/traefik/pull/11790</span></a></li>
+          <li><a href="https://github.com/istio/istio/issues/13008" rel="noreferrer">Istio issue #13008 — ServiceEntry cross-namespace interference<span class="url">https://github.com/istio/istio/issues/13008</span></a></li>
+          <li><a href="https://github.com/istio/istio/pull/13631" rel="noreferrer">Istio PR #13631 — Resolve ServiceEntries through Sidecar scope<span class="url">https://github.com/istio/istio/pull/13631</span></a></li>
+          <li><a href="https://github.com/minio/minio/pull/20233" rel="noreferrer">MinIO PR #20233 — Prevent rebalance from overwriting its source<span class="url">https://github.com/minio/minio/pull/20233</span></a></li>
+          <li><a href="https://github.com/influxdata/influxdb/pull/27114" rel="noreferrer">InfluxDB PR #27114 — Batch segment flushes during retention deletion<span class="url">https://github.com/influxdata/influxdb/pull/27114</span></a></li>
           <li><a href="https://medium.com/@sogol.hedayatmanesh/goroutine-leaks-in-go-root-causes-real-world-examples-and-ironclad-detection-strategies-435c938d66ed" rel="noreferrer">Background article — common goroutine leak patterns<span class="url">https://medium.com/@sogol.hedayatmanesh/goroutine-leaks-in-go-root-causes-real-world-examples-and-ironclad-detection-strategies-435c938d66ed</span></a></li>
         </ol>
       </div>
