@@ -19,10 +19,10 @@ escalation path.
 
 ## Contents
 
-- **`exercises.yaml`** — registry of all 22 intentional bugs, what each one
-  teaches, and which patch file fixes it. Edit this file whenever the source
-  code around an exercise changes (e.g., a log-package migration that shifts
-  the snippet shown in a hint).
+- **`exercises.yaml`** — registry of all 22 intentional bugs and the review,
+  diagnosis, and Wheel tracks built on them. It records what each item teaches,
+  the files that define it, and which numbered patch supplies ground truth.
+  Edit it whenever source or exercise material changes.
 
 - **`notes/NN-*.md`** — optional long-form notes for individual exercises.
   Use these for context that is too long or too discursive for
@@ -39,11 +39,20 @@ Remote CI is not available to this repo, so invariant protection is
 local:
 
 - **`make verify-quick`** — seconds. Structural checks via
-  `tools/verify`: registry ↔ tree consistency for all three tracks
-  (numbered, review, diagnosis), solution patches present and
+  `tools/verify`: registry ↔ tree consistency for all four tracks
+  (numbered, review, diagnosis, Wheel), solution patches present and
   mentioning their target file, diagnosis artifact line pins intact,
-  spoiler lint over non-test `.go` files, and Makefile
-  `EXERCISES`/`PRESOLVED` drift against the registry.
+  spoiler lint over production and test `.go` comments, and Makefile
+  `EXERCISES`/`PRESOLVED` drift against the registry, plus gofmt
+  compliance for all Go source.
+
+The spoiler lint scans comments in both production and test Go files. Tests may
+name an exercise and state its observable contract, while production comments
+may document API obligations. Neither may prescribe the planted repair or
+explain the hidden mechanism. The checker includes semantic patterns for common
+leaks such as `%w`/`errors.Is` prescriptions, fixture comments that name an
+exact blocking operation, and descriptions of loop-scoped resource
+accumulation. Its regression cases live in `tools/verify/main_test.go`.
 - **`make verify`** — minutes. Everything above plus: `go vet` emits
   exactly the one expected warning, all non-exercise tests pass on the
   buggy tree, every exercise test FAILS on the buggy tree (pre-solved
@@ -83,3 +92,11 @@ and `verify` before anything that touches `.go` files or patches.
    panic frame in modern tracebacks) — live in
    `notes/diagnosis-artifacts.md`. Capture first, then fictionalise;
    never write tool output from memory.
+
+5. Wheel candidate files (`REPORT.md`, `CANDIDATE.md`, and `evidence/`) must
+   not state the diagnosis or exact repair. Put complete scenario truth under
+   `.crucible/wheel/` and the post-attempt walkthrough under
+   `solutions/wheel/`. Every decisive fact must nevertheless be discoverable
+   from the candidate-facing evidence or source; ambiguity must be designed,
+   not arbitrary. The registry's `production_escape` field must explain how
+   the defect could survive ordinary development and activate in production.

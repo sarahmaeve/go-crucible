@@ -6,8 +6,8 @@ and only open the next hint if you're still stuck.
 ## Hint 1: Count
 
 There are **two** correctness issues that must be fixed before
-merging — one in the replay loop, one in the shutdown path — and they
-interact. There are **two** suspicious-looking details that are
+merging — one in the replay loop and one in the shutdown path. They
+are independent. There are **two** suspicious-looking details that are
 correct ("Things I Verified"), **one** process concern, and **one**
 question.
 
@@ -39,11 +39,10 @@ document about its argument?"
 - `internal/ingest/replay.go`, `case <-time.After(rp.idleTimeout):` —
   every loop iteration allocates a fresh 30-second timer; whenever
   any other case wins (which is every iteration of a healthy replay,
-  100 times per second), the timer is abandoned but lives in the
-  runtime's timer heap until its full 30 seconds elapse. Sustained
-  replay ⇒ ~3,000 live timers at steady state per replay stream, plus
-  GC pressure — and the idle timeout never actually fires *between*
-  iterations the way the author thinks: it's reset by every metric.
+  100 times per second), the timer becomes garbage. Go 1.23+ can
+  collect it immediately, but sustained replay still creates avoidable
+  allocation and GC pressure. The timeout is also recreated
+  on every loop entry rather than reset at the event the policy names.
   The fix is the pattern `ticker.go` already demonstrates: one
   `time.NewTimer(rp.idleTimeout)` before the loop, `Reset` after each
   received metric, `defer Stop`.
@@ -59,12 +58,9 @@ document about its argument?"
   record of how far it got. Fix: give Shutdown its own budget —
   `context.WithTimeout(context.Background(), 30*time.Second)`.
 
-- The interaction, both directions: the throttle bug's memory growth
-  is what gets the daemon restarted by ops or the OOM killer — and
-  every such restart goes through the shutdown bug, killing whatever
-  replay triggered the growth. Conversely the shutdown bug is
-  harmless on an idle server; it needs the long-running replays this
-  endpoint exists to serve before it has anything to truncate.
+- Keep the findings distinct: the timer issue is a hot-path
+  performance problem, while the shutdown issue is loss of in-flight
+  work. Both block the PR, but one does not cause the other.
 
 - Things that are fine: the
   `err != nil && !errors.Is(err, http.ErrServerClosed)` filter is the

@@ -4,6 +4,10 @@ One patch per exercise. Each patch is the canonical fix — the smallest diff
 that turns the intentionally-buggy source into source that passes the
 exercise test.
 
+The `solutions/wheel/` subdirectory contains post-attempt investigation
+debriefs rather than patches. These explain the evidence path, rejected
+hypotheses, repair, verification, and handoff for Wheel scenarios.
+
 ## When to use these
 
 **Don't** open a patch before you've attempted the exercise. The learning
@@ -55,8 +59,10 @@ make verify-solution N=NN
 ```
 
 This copies the repo into a temporary directory, applies the patch there,
-runs the matching exercise test, and reports pass/fail. It does not touch
-your working tree.
+runs the matching exercise test, and reports pass/fail. For a pre-solved
+exercise it first reverses the patch and confirms the test fails, then
+reapplies the patch and confirms it passes. It does not touch your working
+tree, and the temporary copy is removed on both success and failure.
 
 ## Exercises pre-solved on `main`
 
@@ -66,7 +72,7 @@ branch — their tests pass out of the box. Apply the inverse to practise:
 | # | Title | Reintroduce |
 |---|-------|-------------|
 | 10 | The Hanging Health Check | `git apply -R solutions/10-hanging-health-check.patch` |
-| 18 | The Ticking Leak | `git apply -R solutions/18-ticking-leak.patch` |
+| 18 | The Ticking Allocation | `git apply -R solutions/18-ticking-allocation.patch` |
 | 19 | The Graceless Shutdown | `git apply -R solutions/19-graceless-shutdown.patch` |
 
 The authoritative list lives in `.crucible/exercises.yaml` (look for the

@@ -45,4 +45,11 @@ func TestExercise17_MetricMirage(t *testing.T) {
 	if val := m.Labels["env"]; val != "prod" {
 		t.Errorf("exercise 17: unrelated label 'env' = %q, want %q", val, "prod")
 	}
+
+	if got := input["cpu"].Labels["host"]; got != "server-01" {
+		t.Errorf("input host label = %q after Relabel; want original value", got)
+	}
+	if _, ok := input["cpu"].Labels["node"]; ok {
+		t.Error("Relabel mutated the input label map")
+	}
 }

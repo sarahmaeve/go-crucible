@@ -7,7 +7,7 @@ diff --git a/internal/ingest/reader.go b/internal/ingest/reader.go
 index 9338b66..dc81e23 100644
 --- a/internal/ingest/reader.go
 +++ b/internal/ingest/reader.go
-@@ -24,13 +28,13 @@ func ReadMetrics(ctx context.Context, source MetricSource, out chan<- types.Metr
+@@ -24,13 +28,17 @@ func ReadMetrics(ctx context.Context, source MetricSource, out chan<- types.Metr
  // ForwardMetrics copies metrics from in to out until in is closed or the
  // context is cancelled.
  func ForwardMetrics(ctx context.Context, in <-chan types.Metric, out chan<- types.Metric) error {
@@ -22,5 +22,10 @@ index 9338b66..dc81e23 100644
 -				continue
 +				return nil
  			}
- 			out <- m
+-			out <- m
++			select {
++			case out <- m:
++			case <-ctx.Done():
++				return ctx.Err()
++			}
  		}

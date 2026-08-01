@@ -2,11 +2,14 @@
 
 ## Hint 1: Direction
 
-The goroutine inside `ReadMetrics` is still alive after the context is cancelled. It is blocked somewhere. Blocked goroutines are either waiting on a channel operation, a mutex, or a system call. Look at what blocking operations exist inside the goroutine.
+The caller's goroutine running `ReadMetrics` is still alive after the context is
+cancelled. Look at the blocking operations inside the function.
 
 ## Hint 2: Narrower
 
-Open `internal/ingest/reader.go` and read the goroutine in `ReadMetrics`. There is a send: `out <- m`. This blocks until a receiver is ready. When the context is cancelled, the caller stops reading from `out`. The goroutine is now permanently blocked on the send with no way to exit.
+Open `internal/ingest/reader.go` and find the send `out <- m`. It blocks until a
+receiver is ready. When the context is cancelled, the consumer stops reading
+from `out`, leaving the caller-owned goroutine with no way to return.
 
 ## Hint 3: Almost There
 
@@ -16,8 +19,9 @@ Replace the bare send with a `select` that also listens for context cancellation
 select {
 case out <- m:
 case <-ctx.Done():
-    return
+    return ctx.Err()
 }
 ```
 
-This way, if the consumer stops reading, the goroutine unblocks via `ctx.Done()` and exits cleanly instead of leaking.
+This way, if the consumer stops reading, the function reports cancellation and
+the goroutine that the caller chose to start exits cleanly.

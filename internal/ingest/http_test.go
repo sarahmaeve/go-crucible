@@ -59,7 +59,7 @@ func TestPushHandlerHappyPath(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+		t.Fatalf("response status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
 	}
 	if got, want := sink.count(), 2; got != want {
 		t.Errorf("sink received %d metrics, want %d", got, want)
@@ -73,8 +73,6 @@ func TestPushHandlerHappyPath(t *testing.T) {
 // fully consumed, not after it has been decoded into memory.
 func TestExercise21_UnboundedRequest(t *testing.T) {
 	const limit = 512
-	sink := &recordingSink{}
-	handler := ingest.NewPushHandler(sink, limit)
 
 	// Construct a valid PushRequest whose encoded form is comfortably
 	// larger than the configured limit. The oversize comes from a single
@@ -99,16 +97,40 @@ func TestExercise21_UnboundedRequest(t *testing.T) {
 		t.Fatalf("test body is %d bytes; expected to exceed the %d-byte limit", len(body), limit)
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/metrics", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("handler accepted a %d-byte body with a %d-byte limit; want 413, got %d",
-			len(body), limit, rec.Code)
+	smallBody, err := json.Marshal(ingest.PushRequest{
+		Metrics: []types.Metric{{Name: "cpu_usage", Value: 42.0}},
+	})
+	if err != nil {
+		t.Fatalf("marshal small body: %v", err)
 	}
-	if sink.count() != 0 {
-		t.Errorf("sink received %d metrics; want 0 when the request body exceeds the limit", sink.count())
+	trailingOversize := append(append([]byte(nil), smallBody...), bytes.Repeat([]byte(" "), limit)...)
+
+	for _, tc := range []struct {
+		name          string
+		body          []byte
+		contentLength int64
+	}{
+		{name: "oversize JSON value, known length", body: body, contentLength: int64(len(body))},
+		{name: "oversize JSON value, unknown length", body: body, contentLength: -1},
+		{name: "oversize trailing data, known length", body: trailingOversize, contentLength: int64(len(trailingOversize))},
+		{name: "oversize trailing data, unknown length", body: trailingOversize, contentLength: -1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sink := &recordingSink{}
+			handler := ingest.NewPushHandler(sink, limit)
+			req := httptest.NewRequest(http.MethodPost, "/v1/metrics", bytes.NewReader(tc.body))
+			req.ContentLength = tc.contentLength
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusRequestEntityTooLarge {
+				t.Errorf("response status for a %d-byte body with a %d-byte limit = %d, want %d",
+					len(tc.body), limit, rec.Code, http.StatusRequestEntityTooLarge)
+			}
+			if sink.count() != 0 {
+				t.Errorf("sink received %d metrics; want 0 when the request body exceeds the limit", sink.count())
+			}
+		})
 	}
 }

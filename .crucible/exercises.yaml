@@ -29,11 +29,12 @@ exercises:
       empty pod list, returning (nil, nil). Callers cannot distinguish
       "no issues found" from "audit couldn't run."
     fix: >
-      Add "return nil, err" inside the error-handling block after the
-      slog.Error call.
+      Replace the local log with a contextual error return that wraps the
+      client error. Let the application boundary decide where to log it.
     teaches:
-      - Error swallowing (log-and-continue vs log-and-return)
-      - The single handling rule — errors must be either logged OR returned
+      - Error swallowing (handle-and-continue vs return)
+      - The single handling rule — errors should be logged OR returned
+      - Contextual wrapping with %w preserves errors.Is and errors.As
     patch: solutions/01-silent-failure.patch
     notes: >
       Source migrated from `log.Printf` to `slog.Error` on 2026-04-16 as
@@ -50,8 +51,10 @@ exercises:
     mechanism: >
       The standalone function declares `var missingLabels map[string]bool`
       (nil map) instead of using make(). The DeploymentAuditor.Audit
-      method works because the constructor initializes the map — but the
-      direct function path panics on first write.
+      method works because the constructor initializes the map. The shared
+      helper uses this scratch map in two passes — first recording all missing
+      deployment/label pairs, then reading them to build findings — so the
+      direct function path panics on its first write.
     fix: >
       Change `var missingLabels map[string]bool` to
       `missingLabels := make(map[string]bool)`.
@@ -117,8 +120,9 @@ exercises:
       - Always return untyped nil for interface error paths
     patch: solutions/05-nil-check-that-lies.patch
     notes: >
-      Test uses a nonexistent kubeconfig path. Empty string would fall back
-      to ~/.kube/config which may succeed on developer machines.
+      Test uses a missing child of t.TempDir. Empty string would fall back to
+      ~/.kube/config which may succeed on developer machines, while a fixed
+      /tmp name could be created by another process.
 
   - number: "06"
     title: The Stuck Pipeline
@@ -127,16 +131,18 @@ exercises:
     file: internal/ingest/reader.go
     function: ReadMetrics
     mechanism: >
-      The goroutine reads from the source and sends to an unbuffered `out`
-      channel. There is no `select` on ctx.Done(). When the context is
-      cancelled and the consumer stops reading, the goroutine blocks
-      forever on `out <- m`, leaking.
+      ReadMetrics synchronously reads from the source and sends to an
+      unbuffered `out` channel. There is no `select` on ctx.Done(). When the
+      context is cancelled and the consumer stops reading, the caller-owned
+      goroutine blocks forever on `out <- m`, leaking and never receiving a
+      terminal error.
     fix: >
-      Wrap the send in a select with a ctx.Done() case.
+      Wrap the send in a select with a ctx.Done() case that returns ctx.Err().
     teaches:
-      - Goroutine lifecycle — every goroutine must have an exit path
+      - Caller-owned goroutine lifecycle — every blocking operation needs an exit path
       - Always include ctx.Done() in select when sending on channels
       - Unbuffered channels block when the other side stops
+      - Synchronous stream APIs preserve source and cancellation errors
     patch: solutions/06-stuck-pipeline.patch
 
   - number: "07"
@@ -175,6 +181,7 @@ exercises:
     teaches:
       - Maps are not safe for concurrent use
       - sync.Mutex for protecting shared state
+      - sync.Map alone does not protect mutation of stored slices
       - The -race flag as a diagnostic tool
     patch: solutions/08-zombie-metric.patch
     notes: >
@@ -183,20 +190,26 @@ exercises:
 
   - number: "09"
     title: The Immortal Connection
-    app: kube-patrol
+    app: pipeline
     difficulty: beginner
-    file: internal/audit/secrets.go
-    function: AuditSecretExpiry
+    file: internal/alert/rules.go
+    function: FetchRules
     mechanism: >
-      For each secret with an expiry annotation, the function opens an
-      io.ReadCloser via newSecretReader but never calls Close(). The
-      reader is used and then abandoned.
+      For each remote rule document, FetchRules receives an HTTP response and
+      decodes its body but never calls Close(). Live response bodies accumulate
+      across the batch, consuming transport resources and preventing reliable
+      connection reuse.
     fix: >
-      Add `defer reader.Close()` immediately after opening the reader.
+      Move one request's send/status/decode/defer-close lifetime into a helper
+      so each body closes before the loop advances, including error paths. A
+      defer directly in the outer loop would retain every body until the batch
+      returns.
     teaches:
       - Resource management — always close what you open
-      - The defer pattern for cleanup
-      - Modeling real-world leaks (HTTP bodies, gRPC streams, DB cursors)
+      - Defer lifetime follows function scope, not loop iteration
+      - Small helpers give resource cleanup the correct scope
+      - HTTP response body ownership and connection reuse
+      - Dependency injection through http.Client instead of production test hooks
     patch: solutions/09-immortal-connection.patch
 
   - number: "10"
@@ -223,6 +236,8 @@ exercises:
       they used context.Background() internally), so the lesson of this
       exercise now matches the shape of the surrounding codebase. Learners
       who want the buggy form back: `git apply -R solutions/10-*.patch`.
+      The canonical test uses testing/synctest under the Go 1.26 floor, so its
+      500 ms deadline assertion consumes no wall-clock time.
 
   - number: "11"
     title: The Template Trap
@@ -295,14 +310,17 @@ exercises:
       closed-channel case correctly. When the channel is closed, the
       receive returns (zero-value, false) but the code continues instead
       of returning. The function spins forever on a closed channel.
-      Additionally, ctx.Done() is never checked.
+      Additionally, ctx.Done() is never checked and the bare output send
+      cannot be interrupted if the downstream consumer stops.
     fix: >
       Check the `ok` boolean from the channel receive — return when
-      !ok. Add a ctx.Done() case to the select.
+      !ok. Add a ctx.Done() case to the outer select and wrap the output
+      send in its own select with ctx.Done().
     teaches:
       - Closed channels return zero value immediately
       - The comma-ok idiom for channel reads
       - Always handle channel closure in select loops
+      - Every blocking channel operation needs its own cancellation path
     patch: solutions/14-forever-forwarder.patch
 
   - number: "15"
@@ -312,19 +330,20 @@ exercises:
     file: internal/parser/workflow.go
     function: RoundTripWorkflow
     mechanism: >
-      The concurrencyIntermediate struct has CancelInProgress with
-      `json:"cancel-in-progress,omitempty"`. When the value is false
-      (a meaningful configuration), omitempty drops it during JSON
-      serialization. After the YAML->JSON->YAML round-trip, the field
-      is absent from the output.
+      WorkflowConcurrency correctly represents CancelInProgress as *bool, but
+      concurrencyIntermediate flattens it to a plain bool with
+      `json:"cancel-in-progress,omitempty"`. The mapping collapses nil and a
+      pointer to false before serialization, and omitempty then drops the zero
+      value. After the YAML->JSON->YAML round-trip, an explicit false is absent.
     fix: >
-      Remove `omitempty` from the CancelInProgress JSON tag, or use
-      a *bool pointer type so that nil (absent) is distinguishable
-      from false (explicitly set).
+      Change concurrencyIntermediate.CancelInProgress to *bool with omitempty
+      and map the public pointer directly so nil, false, and true survive the
+      entire pipeline.
     teaches:
       - omitempty treats Go zero values as "empty" even when meaningful
-      - The *bool pattern for distinguishing absent from false
-      - Round-trip fidelity in serialization pipelines
+      - Explicit-field preservation even when runtime defaults happen to match
+      - The *bool pattern for genuinely distinguishing absent from false
+      - Round-trip fidelity requires preserving presence through every model
     patch: solutions/15-config-surprise.patch
 
   - number: "16"
@@ -341,8 +360,9 @@ exercises:
       the process's file descriptor limit.
     fix: >
       Extract the per-file logic into a separate function so defer runs
-      per iteration, or close the file explicitly at the end of each
-      iteration (without defer).
+      per iteration. Explicit close calls are also possible only if every
+      success and error path closes the file and handles close errors; one
+      close at the bottom of the current loop is insufficient.
     teaches:
       - defer runs at function exit, not loop iteration
       - Resource accumulation in loops
@@ -369,24 +389,29 @@ exercises:
     patch: solutions/17-metric-mirage.patch
 
   - number: "18"
-    title: The Ticking Leak
+    title: The Ticking Allocation
     app: pipeline
     difficulty: advanced
     file: internal/ingest/ticker.go
     function: TickerForwarder.Run
     mechanism: >
       The select loop uses `case <-time.After(interval)` which allocates
-      a new timer on every iteration. Each timer lives until it fires,
-      even after the next iteration has started. In a long-running daemon
-      with a short interval, this causes unbounded timer/memory growth.
+      a new one-shot timer on every iteration. The loop waits for each
+      timer to fire, so live memory remains bounded, but allocation and
+      garbage-collection work scale linearly with polling throughput.
     fix: >
-      Replace time.After with time.NewTicker (or time.NewTimer with
-      Reset). Defer ticker.Stop() for cleanup.
+      Reject nonpositive intervals, then replace time.After with
+      time.NewTicker (or time.NewTimer with Reset). Defer ticker.Stop() for
+      cleanup. Validation avoids introducing NewTicker's panic for invalid
+      caller input.
     teaches:
-      - time.After allocates per call — not suitable for loops
+      - time.After allocates per call; recurring work can reuse one timer
       - time.NewTicker/time.NewTimer for recurring timers
-      - Memory profiling to detect allocation growth
-    patch: solutions/18-ticking-leak.patch
+      - Fixed-cadence tickers versus reset-after-work timer semantics
+      - Allocation profiling and testing.AllocsPerRun
+      - Go 1.23+ can collect unreachable unstopped timers and tickers
+      - Validate durations before calling APIs that require positive values
+    patch: solutions/18-ticking-allocation.patch
     solved_in_main: 2026-04-16
     notes: >
       Fix applied on main 2026-04-16. Learners who want the buggy form back:
@@ -397,38 +422,37 @@ exercises:
     app: pipeline
     difficulty: advanced
     file: cmd/pipeline/main.go
-    function: RunPipeline + main
+    function: shutdownContext + RunPipeline
     mechanism: |
       Three independent bugs:
-      1. signal.Notify is never called — sigCh is created but discarded
-         with `_ = sigCh`. The daemon cannot be stopped via signals.
-      2. doneCh is a package-level channel closed in a deferred func.
-         Calling RunPipeline twice (e.g., in tests) panics on the second
-         close of an already-closed channel.
-      3. A background goroutine calls src.Read(context.Background())
+      1. shutdownContext registers os.Interrupt but omits syscall.SIGTERM.
+         Ctrl-C exercises graceful cancellation locally, but the supervisor's
+         SIGTERM follows Go's default immediate-exit path and skips cleanup.
+      2. A source worker calls src.Read(context.Background())
          instead of src.Read(ctx). It ignores context cancellation and
          outlives the shutdown.
+      3. RunPipeline records worker starts and completions in a WaitGroup but
+         never calls Wait. It returns on ctx.Done while owned workers may still
+         be completing work.
     fix: |
-      1. Add `signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)`.
-      2. Make doneCh local to RunPipeline, or use sync.Once to guard
-         the close.
-      3. Pass ctx to src.Read instead of context.Background().
+      1. Include syscall.SIGTERM in the signal.NotifyContext call.
+      2. Pass ctx to src.Read instead of context.Background().
+      3. Call workers.Wait() after cancellation and before returning.
     teaches:
-      - Signal handling requires signal.Notify registration
-      - Closing an already-closed channel panics
-      - Every goroutine must honor the caller's context
-      - Compound bugs in shutdown paths cause data loss
+      - signal.NotifyContext changes behavior only for registered signals
+      - Every blocking worker must receive the caller's context
+      - Goroutine ownership includes joining workers before return
+      - Test graceful cleanup effects rather than mere process exit
+      - Compound shutdown defects can mask one another
     patch: solutions/19-graceless-shutdown.patch
     solved_in_main: 2026-04-16
     notes: >
-      Fix applied on main 2026-04-16. Canonical fix migrated from the old
-      sigCh+signalNotify form to `signal.NotifyContext` (Go 1.16+), which
-      makes bug 19-1 (signal.Notify never called) structurally
-      inexpressible. The test dropped its `signal_notify_called` subtest
-      accordingly; two subtests remain (double-close panic, goroutine-
-      exits-on-cancel). See .crucible/notes/19-graceless-shutdown.md for
-      the full modernization rationale. Learners who want the buggy form
-      back: `git apply -R solutions/19-*.patch`.
+      Rewritten for the Go 1.26 floor in 2026-07. Both forms now use
+      signal.NotifyContext; the exercise form omits SIGTERM instead of
+      resurrecting a manual signal channel. The historical unused global
+      doneCh/double-close bug was replaced by a missing worker join. See
+      .crucible/notes/19-graceless-shutdown.md. Learners who want the buggy
+      form back: `git apply -R solutions/19-*.patch`.
 
   - number: "20"
     title: The Brittle Match
@@ -481,7 +505,7 @@ exercises:
       can post an arbitrarily large payload and exhaust server memory
       before the handler notices.
     fix: |
-      Two additions before the decode:
+      Bound and fully consume the request before publishing:
         1. Wrap the body: r.Body = http.MaxBytesReader(w, r.Body, h.maxBytes).
            Assigning back to r.Body propagates the cap to any downstream
            reader (the JSON decoder, a streaming parser).
@@ -489,11 +513,17 @@ exercises:
            errors.As(err, &maxErr) where maxErr is *http.MaxBytesError.
            On match, respond 413 Request Entity Too Large; otherwise fall
            through to the existing 400 Bad Request response.
-      Add `errors` to the import block.
+        3. Keep the decoder and perform a second Decode that must return
+           io.EOF before publishing. Classify a resulting MaxBytesError the
+           same way; reject other results as extra/malformed input. Reusing the
+           decoder accounts for bytes it buffered past the first JSON value.
+      Add `errors` and `io` to the import block.
     teaches:
       - net/http does not cap request-body size by default
       - http.MaxBytesReader wraps the body so reads past the limit return
         *http.MaxBytesError
+      - A single json.Decoder.Decode may leave unread or internally buffered
+        request bytes; whole-body limits require reaching EOF on that decoder
       - "Classify decode errors: 413 for size-cap violations, 400 for
         malformed content — collapsing both hides signal from operators"
       - Defense in depth — the cap must be applied before the decoder
@@ -501,8 +531,8 @@ exercises:
     patch: solutions/21-unbounded-request.patch
     notes: >
       The crucible's first HTTP-body-handling exercise. Companion pieces:
-      exercise 09 teaches "close what you open" on HTTP bodies; exercise
-      10 teaches context propagation inside handlers; exercise 21 teaches
+      exercise 09 teaches the general "close what you open" resource rule;
+      exercise 10 teaches context propagation inside handlers; exercise 21 teaches
       bounded input. Together they form the core of "what a Go HTTP
       handler must get right." Inspired by the go-prod-change-registry
       audit: the change-registry's own event-creation handlers decode
@@ -985,9 +1015,10 @@ review_exercises:
           returns, immediately deregistering the handlers and
           restoring default signal disposition. The returned ctx can
           never cancel on a signal; the first SIGTERM default-kills
-          the process and the drain never runs. Modern re-expression
-          of 19-1 (signal handling that isn't), with exercise 22's
-          frame-scoped-defer lesson as the mechanism.
+          the process and the drain never runs. This transfers exercise
+          19's signal-boundary lesson: local Ctrl-C success does not prove
+          that supervisor SIGTERM reaches graceful cleanup. Exercise 22's
+          frame-scoped-defer lesson supplies the mechanism here.
       - kind: correctness
         echoes: "14"
         summary: >
@@ -1005,7 +1036,9 @@ review_exercises:
           then falls through — no return — to the unconditional
           close(drainDone). Any drain failure becomes panic, close of
           closed channel, during shutdown, after logging "drain
-          complete" directly under "drain failed". Echo of 19-2.
+          complete" directly under "drain failed". A neighboring instance
+          of exercise 19's shutdown-ownership lesson: completion must have
+          one owner and occur exactly once.
       - kind: red-herring
         summary: >
           len(in) in the drain's opening log line. Channel length is
@@ -1046,11 +1079,9 @@ review_exercises:
     notes: >
       First advanced-tier review exercise; first with three
       correctness issues, matching ex 19's compound shape. The
-      setupSignals bug deliberately re-expresses 19-1 in the
-      signal.NotifyContext idiom that ex 19's modernization adopted —
-      the registry note there says NotifyContext makes 19-1
-      "structurally inexpressible"; wrapping it in a helper with a
-      mis-framed defer is exactly how it comes back.
+      setupSignals bug transfers ex 19's modern signal-boundary lesson to a
+      different failure: the right SIGTERM registration is present, but a
+      mis-framed defer deregisters it before it can work.
 
   - number: "R08"
     title: The Workflow Sync PR
@@ -1139,23 +1170,22 @@ review_exercises:
       R07's drain: an ingest.Replayer streaming spilled JSON-lines
       metrics into a MetricSink at a throttled rate with an idle
       watchdog, plus an embedded admin HTTP server hosting POST
-      /v1/replay with graceful shutdown. The two planted bugs
-      interact — one needs sustained load to matter, the other
-      decides what happens to that load at shutdown.
+      /v1/replay with graceful shutdown. The two planted bugs are
+      independent: one creates avoidable allocation pressure under
+      sustained load, while the other mishandles in-flight work at
+      shutdown.
     planted:
       - kind: correctness
         echoes: "18"
         summary: >
           The idle watchdog is `case <-time.After(rp.idleTimeout)` in
           the hot replay loop. Every iteration allocates a fresh 30s
-          timer that another case abandons ~100 times per second
-          under healthy load; abandoned timers live out their full
-          duration in the runtime timer heap (~3,000 live per stream
-          at steady state). The rate limiter three lines up uses
-          NewTicker correctly, and ticker.go on main shows the right
-          shape — the bug sits next to two correct siblings. The
-          After form also resets on every select entry, so it never
-          measures input idleness as intended.
+          timer that another case abandons ~100 times per second under
+          healthy load. Go 1.23+ can collect those unreachable timers,
+          so this is allocation and GC pressure rather than retained
+          timer growth. The rate limiter three lines up uses NewTicker
+          correctly. A reusable timer also makes the watchdog's intended
+          reset point explicit: reset it when input is received.
       - kind: correctness
         summary: >
           srv.Shutdown(ctx) is called after <-ctx.Done() with that
@@ -1205,9 +1235,7 @@ review_exercises:
         callee's contract says about it
       - Spotting the wrong timer idiom next to correct siblings in
         the same diff and the same package
-      - Naming bug interactions — two medium bugs that feed each
-        other are a severe system, and the merge decision should
-        hear the cycle, not two findings
+      - Separating independent performance and shutdown findings
       - Positive verification with reasons on an advanced diff
     notes: >
       Third advanced-tier review exercise, completing the planned
@@ -1216,10 +1244,10 @@ review_exercises:
       already-cancelled-ctx bug is the first planted issue with no
       numbered-exercise ancestor, by design - the README says so up
       front so learners know the pattern library has deliberately run
-      out. The interaction shape (timer growth causes the restarts
-      that the shutdown bug turns into replay truncation) realises
-      the backlog's "one provides the sustained load that makes the
-      other visible" intent in both directions.
+      out. The exercise deliberately asks learners to keep the
+      hot-path allocation finding separate from the shutdown
+      correctness finding rather than inventing a causal link between
+      them.
 
   - number: "R10"
     title: Capstone — The Watch Mode PR
@@ -1383,6 +1411,57 @@ review_exercises:
       "suspicious in a loop."
 
 # -----------------------------------------------------------------------------
+# Wheel of Misfortune Track
+#
+# Wheel exercises train report-first investigation: clarify an incomplete
+# production report, choose staged evidence, manage competing hypotheses, then
+# localize and repair an existing numbered exercise. Candidate material stays
+# under exercises/wheel; facilitator truth and debriefs live in spoiler areas.
+#
+# Schema:
+#   - number: "W01", "W02", ... — W-prefixed namespace
+#   - draws_on: numbered exercises whose code and repair are reused
+#   - directory, report, candidate, evidence: candidate-facing paths
+#   - facilitator: scenario truth table under .crucible/wheel
+#   - debrief: post-attempt analysis under solutions/wheel
+# -----------------------------------------------------------------------------
+
+wheel_exercises:
+  - number: "W01"
+    title: Replay Regression
+    tier: intermediate
+    draws_on: ["20"]
+    directory: exercises/wheel/01-replay-regression/
+    report: exercises/wheel/01-replay-regression/REPORT.md
+    candidate: exercises/wheel/01-replay-regression/CANDIDATE.md
+    evidence:
+      - exercises/wheel/01-replay-regression/evidence/01.md
+      - exercises/wheel/01-replay-regression/evidence/02.md
+      - exercises/wheel/01-replay-regression/evidence/03.md
+      - exercises/wheel/01-replay-regression/evidence/04.md
+      - exercises/wheel/01-replay-regression/evidence/05.md
+      - exercises/wheel/01-replay-regression/evidence/06.md
+    facilitator: .crucible/wheel/01-replay-regression.md
+    debrief: solutions/wheel/01-replay-regression.md
+    scenario: >
+      A cache-store migration coincides with a retry burst, and replayed
+      metrics begin surfacing duplicate errors to callers. The reporter blames
+      the new adapter. The learner owns the Deduplicator boundary and must
+      distinguish adapter non-conformance, unstable operation identity,
+      upstream retry behavior, and local classification before repairing ex 20.
+    production_escape: >
+      Happy-path writes and the legacy backend both pass. The latent coupling
+      activates only when production retries encounter a conforming backend
+      whose diagnostic prose differs from the original implementation.
+    teaches:
+      - Separating rollout correlation from proof of causality
+      - Asking for first-attempt versus replay scope and operation identity
+      - Using interface contracts and comparative traces as evidence
+      - Locating the first contract violation across a component boundary
+      - Reporting when a suspected peer component is actually conforming
+      - Using a negative control to prevent an overbroad error-handling repair
+
+# -----------------------------------------------------------------------------
 # Diagnosis Track
 #
 # Diagnosis exercises train artifact-first debugging: the learner reads
@@ -1420,7 +1499,6 @@ diagnosis_exercises:
     references:
       - file: internal/ingest/reader.go
         pins:
-          - { line: 12, contains: "go func()" }
           - { line: 18, contains: "out <- m" }
     directory: exercises/diagnosis/01-goroutine-pileup/
     scenario: >
@@ -1432,14 +1510,14 @@ diagnosis_exercises:
       with counts) and debug=2 (per-goroutine state and wait
       duration) form: 3,848 goroutines share one stack, parked in
       [chan send] at reader.go:18 with wait durations spread over
-      the whole migration week, created at reader.go:12.
+      the whole migration week. Caller and created-by frames show the
+      embedding scheduler owns each goroutine.
     teaches:
       - Reading debug=1 (what is most of the process doing) before
         debug=2 (how long, in what state)
       - The leak signature — many goroutines, one stack — and using
         wait-duration spread to distinguish leak from burst
-      - Walking created-by frames from a parked goroutine to the
-        code that started it
+      - Using caller and created-by frames to establish goroutine ownership
       - Triaging frames you own from runtime/embedder frames
     notes: >
       First diagnosis exercise. Gentlest of the three: the leaked

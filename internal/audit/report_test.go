@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-crucible/go-crucible/internal/audit"
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -55,15 +55,15 @@ func makeNoPodLimitsPod(namespace, name string, containers int) *corev1.Pod {
 }
 
 // TestExercise12_RaceReport verifies that ConcurrentAudit collects findings
-// from all auditors without dropping any results. Run with -race to also detect
-// data races on the shared findings slice:
+// from all auditors without dropping results under concurrent execution. Run
+// with -race to detect unsafe shared-state access:
 //
 //	go test -race -count=5 ./internal/audit/ -run TestExercise12
 func TestExercise12_RaceReport(t *testing.T) {
 	const (
-		numAuditors    = 10
-		findingsEach   = 5
-		wantTotal      = numAuditors * findingsEach
+		numAuditors  = 10
+		findingsEach = 5
+		wantTotal    = numAuditors * findingsEach
 	)
 
 	auditors := make([]audit.AuditFunc, numAuditors)
@@ -79,8 +79,8 @@ func TestExercise12_RaceReport(t *testing.T) {
 
 	if report.Summary.Total != wantTotal {
 		t.Errorf(
-			"expected %d total findings from %d auditors × %d findings each, got %d",
-			wantTotal, numAuditors, findingsEach, report.Summary.Total,
+			"total findings from %d auditors × %d findings each = %d, want %d",
+			numAuditors, findingsEach, report.Summary.Total, wantTotal,
 		)
 	}
 }
@@ -112,8 +112,8 @@ func TestExercise13_LostGoroutine(t *testing.T) {
 		}
 		if report.Summary.Total != wantTotal {
 			t.Errorf(
-				"iteration %d: expected %d total findings from all goroutines, got %d",
-				i, wantTotal, report.Summary.Total,
+				"iteration %d: total findings from all goroutines = %d, want %d",
+				i, report.Summary.Total, wantTotal,
 			)
 			// Report first failure and stop to avoid log spam.
 			return

@@ -1,0 +1,2417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A practical chapter about writing Go that can be analyzed safely under production incident pressure.">
+  <title>Reading and Writing Production Go — go-crucible</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06070b;
+      --panel: #f7f4ea;
+      --panel-solid: #fbf9f2;
+      --ink: #111318;
+      --text: #f2efe6;
+      --muted: #aeb5bf;
+      --blue: #4c8fd8;
+      --blue-soft: #16283c;
+      --lime: #aad24a;
+      --amber: #d0a24a;
+      --red: #b84a55;
+      --chrome: linear-gradient(90deg, #242930, #e8e8e3 16%, #6f7680 37%, #faf9f2 54%, #505761 78%, #d8d9d5);
+      --display: "Arial Narrow", "Aptos Narrow", "Roboto Condensed", Impact, sans-serif;
+      --body: Inter, Aptos, "Segoe UI", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      --shadow: 0 1px 0 rgba(255,255,255,.36) inset, 0 28px 70px rgba(0,0,0,.48);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 83% 4%, rgba(76,143,216,.16), transparent 30rem),
+        linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.017) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, 48px 48px, 48px 48px, auto;
+      color: var(--text);
+      font: 17px/1.6 var(--body);
+      letter-spacing: -.012em;
+    }
+
+    a { color: inherit; }
+    a:hover { color: var(--blue); }
+    a:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 4px;
+    }
+    p, li { max-width: 76ch; }
+    code, pre, .mono { font-family: var(--mono); }
+    code { font-size: .92em; }
+
+    .skip {
+      position: fixed;
+      z-index: 20;
+      top: 12px;
+      left: 12px;
+      padding: 10px 16px;
+      border-radius: 9999px;
+      background: var(--blue);
+      color: var(--bg);
+      transform: translateY(-180%);
+    }
+    .skip:focus { transform: translateY(0); }
+
+    .shell { width: min(1320px, calc(100% - 48px)); margin-inline: auto; }
+    .micro {
+      margin: 0;
+      color: var(--muted);
+      font: 700 .71rem/1.25 var(--mono);
+      letter-spacing: .105em;
+      text-transform: uppercase;
+    }
+    .signal {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 5px rgba(76,143,216,.12), 0 0 18px rgba(76,143,216,.5);
+    }
+    .capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 40px;
+      padding: 8px 15px;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.055));
+      box-shadow: 0 1px 0 rgba(255,255,255,.28) inset, 0 -1px 0 rgba(0,0,0,.8) inset;
+      color: var(--text);
+      font: 700 .7rem/1 var(--mono);
+      letter-spacing: .065em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .capsule::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding-block: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .toplinks { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
+      gap: 32px;
+      align-items: stretch;
+      padding: 52px 0 96px;
+    }
+    .hero-main, .console, .paper, .case-panel, .source-panel { position: relative; box-shadow: var(--shadow); }
+    .hero-main::before, .console::before, .paper::before, .case-panel::before, .source-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 11px;
+      background: var(--chrome);
+      box-shadow: 0 2px 0 #07080a;
+    }
+    .hero-main {
+      min-height: 620px;
+      padding: 52px 52px 44px;
+      overflow: hidden;
+      background: var(--panel);
+      color: var(--ink);
+    }
+    .hero-main::after {
+      content: "INCIDENT READING / 01";
+      position: absolute;
+      top: 54px;
+      right: 14px;
+      writing-mode: vertical-rl;
+      color: rgba(17,19,24,.42);
+      font: 700 .63rem/1 var(--mono);
+      letter-spacing: .18em;
+    }
+    h1, h2, h3 {
+      font-family: var(--display);
+      line-height: 1.04;
+      letter-spacing: -.04em;
+      text-wrap: balance;
+    }
+    h1 {
+      max-width: 9ch;
+      margin: 28px 0 32px;
+      font-size: clamp(4.4rem, 8.4vw, 8rem);
+      text-transform: uppercase;
+    }
+    .thesis {
+      max-width: 38rem;
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.55rem);
+      line-height: 1.47;
+      letter-spacing: -.025em;
+    }
+    .thesis strong { color: #315f91; }
+    .concrete {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 42px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .concrete li {
+      min-height: 74px;
+      padding: 14px;
+      background: #e5e2d9;
+      font-size: .88rem;
+      line-height: 1.42;
+    }
+    .concrete strong { display: block; margin-bottom: 4px; color: #416e9e; font: 700 .68rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+
+    .console {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 620px;
+      padding: 52px 32px 32px;
+      background: #0b0e13;
+    }
+    .readout { display: grid; gap: 10px; margin: 34px 0; padding: 0; list-style: none; font: .78rem/1.5 var(--mono); }
+    .readout li { display: grid; grid-template-columns: 4.2rem 1fr; gap: 12px; }
+    .readout span:first-child { color: var(--blue); }
+    .readout li:last-child span:first-child { color: var(--lime); }
+    .console-note { padding: 24px; background: var(--blue-soft); }
+    .console-note strong { display: block; margin-bottom: 9px; font: 700 1.55rem/1.1 var(--display); letter-spacing: -.02em; }
+    .console-note p { margin: 0; color: #cad1da; font-size: .92rem; }
+
+    .contents { padding-bottom: 96px; }
+    .contents-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 48px;
+      padding: 40px;
+      background: var(--panel-solid);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+    .contents-panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 8px; background: var(--chrome); }
+    .contents-panel h2 { margin: 12px 0 18px; font-size: clamp(2.2rem, 4vw, 3.4rem); }
+    .contents-panel > p { align-self: end; margin: 0; }
+    .contents-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .contents-list a { display: flex; gap: 10px; padding: 13px 14px; background: #e7e4dc; color: var(--ink); font-weight: 750; text-decoration: none; }
+    .contents-list span { color: #4a78aa; font: 700 .7rem/1.7 var(--mono); }
+
+    .chapter { padding: 96px 0; scroll-margin-top: 20px; }
+    .chapter-head { display: grid; grid-template-columns: minmax(130px, 2fr) minmax(0, 7fr); gap: 48px; margin-bottom: 48px; }
+    .chapter-no { color: var(--blue); font: 700 clamp(4rem, 9vw, 7rem)/.8 var(--display); letter-spacing: -.06em; }
+    .chapter h2 { margin: 0 0 16px; font-size: clamp(3rem, 6vw, 5.6rem); text-transform: uppercase; }
+    .chapter-intro { margin: 0; color: #c8cdd4; font-size: 1.18rem; }
+
+    .paper, .case-panel, .source-panel { margin-bottom: 48px; padding: 48px; background: var(--panel); color: var(--ink); }
+    .paper h3, .case-panel h3, .source-panel h3 { margin: 14px 0 18px; font-size: clamp(2rem, 4vw, 3.2rem); }
+    .paper h4, .case-panel h4 {
+      margin: 34px 0 12px;
+      font: 800 .75rem/1 var(--mono);
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .lead { font-size: 1.1rem; }
+
+    .sequence { display: grid; gap: 2px; margin: 30px 0 0; counter-reset: process; }
+    .step {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) minmax(240px, 2fr);
+      gap: 24px;
+      align-items: start;
+      padding: 24px;
+      background: #e9e6dd;
+      counter-increment: process;
+    }
+    .step::before { content: "0" counter(process); color: #4d77a4; font: 700 1rem/1.5 var(--mono); }
+    .step strong { font-family: var(--display); font-size: 1.45rem; letter-spacing: -.02em; }
+    .step p { margin: 0; font-size: .92rem; }
+
+    .evidence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 30px; }
+    .evidence-card { padding: 24px; background: #e7e4db; }
+    .evidence-card strong { display: block; margin: 7px 0; font: 700 1.35rem/1.1 var(--display); letter-spacing: -.02em; }
+    .evidence-card p { margin: 0; font-size: .91rem; }
+    .evidence-card.observed { box-shadow: 5px 5px 0 var(--blue); }
+    .evidence-card.theory { box-shadow: 5px 5px 0 var(--amber); }
+    .evidence-card.unknown { box-shadow: 5px 5px 0 #717984; }
+    .evidence-card.contract { box-shadow: 5px 5px 0 var(--lime); }
+
+    .code-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 30px 0; }
+    .code-panel { min-width: 0; background: #0a0d12; color: #edf0e9; }
+    .code-label { display: flex; align-items: center; gap: 8px; padding: 11px 15px; background: #20242b; color: #c2c8d0; font: 700 .66rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .code-label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+    .good .code-label::before { background: var(--lime); }
+    pre { margin: 0; padding: 20px; overflow-x: auto; font-size: .79rem; line-height: 1.62; tab-size: 4; }
+    .code-note { margin: 0; padding: 0 20px 22px; color: #b9c1cc; font-size: .86rem; }
+
+    .question-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(250px, 4fr); gap: 32px; align-items: start; }
+    .questions { margin: 20px 0; padding-left: 1.2rem; }
+    .questions li { margin-block: 10px; }
+    .aside { padding: 24px; background: var(--ink); color: var(--text); }
+    .aside strong { display: block; margin: 8px 0; font: 700 1.5rem/1.1 var(--display); letter-spacing: -.02em; }
+    .aside p { margin: 0; color: #c8ced6; font-size: .92rem; }
+
+    .case-panel { background: var(--panel-solid); }
+    .report {
+      margin: 28px 0;
+      padding: 28px;
+      background: var(--ink);
+      color: var(--text);
+      box-shadow: 6px 6px 0 var(--blue);
+    }
+    .report p { margin: 0; font-size: 1.05rem; }
+    .report cite { display: block; margin-top: 14px; color: var(--muted); font: normal 700 .68rem/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .fact-table { width: 100%; border-collapse: collapse; margin-top: 28px; font-size: .92rem; }
+    .fact-table th, .fact-table td { padding: 14px 16px; border-bottom: 1px solid #d9d5cc; text-align: left; vertical-align: top; }
+    .fact-table th { background: #14171c; color: var(--text); font: 700 .68rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .fact-table tbody tr:nth-child(even) { background: #ece9e1; }
+    .tag { display: inline-block; padding: 5px 9px; border-radius: 9999px; background: #dce7f2; color: #315e90; font: 700 .65rem/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+    .tag.theory { background: #eee1c6; color: #72591f; }
+    .tag.unknown { background: #e1e2e4; color: #4e555e; }
+
+    .rings { display: grid; gap: 12px; margin-top: 28px; }
+    .ring { display: grid; grid-template-columns: 150px 1fr; gap: 24px; padding: 22px; background: #e8e5dd; }
+    .ring strong { color: #426f9f; font: 800 .72rem/1.4 var(--mono); letter-spacing: .075em; text-transform: uppercase; }
+    .ring p { margin: 0; font-size: .92rem; }
+
+    .handoff {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(280px, 4fr);
+      gap: 32px;
+      margin-top: 30px;
+    }
+    .template { background: #0a0d12; color: #edf0e9; }
+    .template pre { font-size: .84rem; }
+    .handoff-notes { padding: 24px; background: #e7e4db; }
+    .handoff-notes ul { margin: 12px 0 0; padding-left: 1.2rem; }
+    .handoff-notes li { margin-block: 8px; }
+
+    .source-panel ol { display: grid; gap: 14px; padding-left: 1.4rem; }
+    .source-panel a { color: #315f91; font-weight: 750; overflow-wrap: anywhere; }
+    .url { display: block; color: #59616b; font: .69rem/1.45 var(--mono); overflow-wrap: anywhere; }
+
+    .wheel-case { margin-bottom: 64px; }
+    .wheel-case:last-child { margin-bottom: 0; }
+    .wheel-case .report { margin-bottom: 18px; }
+    .case-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 26px;
+    }
+    .case-meta span {
+      padding: 7px 10px;
+      border-radius: 9999px;
+      background: #e2e6e9;
+      color: #4b5660;
+      font: 700 .64rem/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .case-meta span:first-child { background: #dbe8f4; color: #315f91; }
+    .packet-grid {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 12px;
+      margin: 28px 0;
+    }
+    .packet {
+      padding: 24px;
+      background: #e8e5dd;
+    }
+    .packet strong {
+      display: block;
+      margin: 8px 0;
+      font: 700 1.35rem/1.1 var(--display);
+      letter-spacing: -.02em;
+    }
+    .packet p, .packet li { font-size: .9rem; }
+    .packet ol, .packet ul { margin: 10px 0 0; padding-left: 1.2rem; }
+    .packet li { margin-block: 8px; }
+    details.debrief {
+      margin-top: 28px;
+      background: var(--blue-soft);
+      color: var(--text);
+      box-shadow: 6px 6px 0 #0b0d11;
+    }
+    details.debrief summary {
+      padding: 20px 24px;
+      cursor: pointer;
+      color: var(--text);
+      font: 800 .72rem/1.3 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .debrief-body { padding: 0 24px 24px; }
+    .debrief-body p, .debrief-body li { color: #d3d9e0; }
+    .debrief-body .code-panel { margin: 22px 0; }
+    .source-note {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #d4d0c7;
+      color: #555d66;
+      font-size: .86rem;
+    }
+    .source-note a { color: #315f91; font-weight: 750; overflow-wrap: anywhere; }
+
+    .footer { display: flex; justify-content: space-between; gap: 24px; padding: 38px 0 64px; border-top: 8px solid transparent; border-image: var(--chrome) 1; color: var(--muted); font: .7rem/1.5 var(--mono); letter-spacing: .045em; }
+
+    @media (max-width: 980px) {
+      .hero, .contents-panel { grid-template-columns: 1fr; }
+      .hero-main, .console { min-height: auto; }
+      .console { gap: 48px; }
+      .step { grid-template-columns: 64px 1fr; }
+      .step p { grid-column: 2; }
+    }
+    @media (max-width: 720px) {
+      body { font-size: 16px; }
+      .shell { width: min(100% - 24px, 1320px); }
+      .topbar { align-items: flex-start; }
+      .toplinks .capsule:nth-child(n+3) { display: none; }
+      .hero { padding: 28px 0 68px; }
+      .hero-main, .console, .paper, .case-panel, .source-panel, .contents-panel { padding: 32px 22px; }
+      h1 { font-size: clamp(3.8rem, 18vw, 6rem); }
+      .concrete, .contents-list, .evidence-grid, .code-pair, .question-grid, .handoff, .packet-grid { grid-template-columns: 1fr; }
+      .chapter { padding: 72px 0; }
+      .chapter-head { grid-template-columns: 1fr; gap: 16px; }
+      .chapter-no { font-size: 4rem; }
+      .step { grid-template-columns: 42px 1fr; gap: 12px; padding: 18px; }
+      .ring { grid-template-columns: 1fr; gap: 8px; }
+      .footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+    @media print {
+      :root { color-scheme: light; }
+      body { background: #fff; color: #111; font-size: 11pt; }
+      .shell { width: 100%; }
+      .topbar, .contents { display: none; }
+      .hero { display: block; padding: 0 0 24pt; }
+      .hero-main, .console, .paper, .case-panel, .source-panel { min-height: 0; box-shadow: none; break-inside: avoid; }
+      .console { margin-top: 12pt; }
+      .chapter { padding: 30pt 0; }
+      .chapter-intro { color: #333; }
+      a { color: #111; text-decoration: underline; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the chapter</a>
+
+  <header class="topbar shell">
+    <a class="brand" href="../README.md" aria-label="go-crucible home">
+      <span class="signal" aria-hidden="true"></span>
+      <span class="micro">go-crucible / production field notes</span>
+    </a>
+    <nav class="toplinks" aria-label="Related documents">
+      <a class="capsule" href="styleguide.html">Style guide</a>
+      <a class="capsule" href="../exercises/wheel/README.md">Wheel of Misfortune</a>
+      <a class="capsule" href="#sources">Sources</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" aria-labelledby="page-title">
+      <div class="hero-main">
+        <p class="micro">Reading and writing / production Go</p>
+        <h1 id="page-title">Code Under Pressure</h1>
+        <p class="thesis"><strong>We write production code to be analyzed under time pressure, during incident response. This is why the style guide matters.</strong> Concretely:</p>
+        <ul class="concrete">
+          <li><strong>Names</strong>make code searches faster.</li>
+          <li><strong>Contracts</strong>show what the code promises to do.</li>
+          <li><strong>Error chains</strong>show what failed underneath.</li>
+          <li><strong>Ownership</strong>shows who must act and where to make the repair.</li>
+          <li><strong>Cancellation</strong>shows when background work should stop.</li>
+          <li><strong>Tests</strong>keep the same bug from returning.</li>
+        </ul>
+      </div>
+
+      <aside class="console" aria-label="Chapter premise">
+        <div>
+          <p class="micro">[ response.protocol ]</p>
+          <ul class="readout">
+            <li><span>INPUT</span><span>INCOMPLETE REPORT</span></li>
+            <li><span>MODE</span><span>MORE THAN ONE POSSIBLE CAUSE</span></li>
+            <li><span>SCOPE</span><span>CODE WE OWN</span></li>
+            <li><span>OUTPUT</span><span>CAUSE SUPPORTED BY EVIDENCE</span></li>
+            <li><span>STATE</span><span>TESTED REPAIR</span></li>
+          </ul>
+        </div>
+        <div class="console-note">
+          <strong>Readable code saves time during incidents.</strong>
+          <p>Under pressure, style determines whether code answers a responder’s questions directly or makes them reconstruct what its author meant.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="contents shell" aria-labelledby="contents-title">
+      <div class="contents-panel">
+        <div>
+          <p class="micro">Chapter map / eight parts</p>
+          <h2 id="contents-title">From an unclear report to a focused change.</h2>
+          <p>This page connects ordinary Go readability to the report-first investigation practiced by the Wheel of Misfortune.</p>
+        </div>
+        <nav aria-label="Chapter contents">
+          <ol class="contents-list">
+            <li><a href="#report-to-code"><span>01</span>From report to code</a></li>
+            <li><a href="#code-evidence"><span>02</span>Code as evidence</a></li>
+            <li><a href="#wheel-of-misfortune"><span>03</span>Wheel of Misfortune case study</a></li>
+            <li><a href="#repair"><span>04</span>A focused repair</a></li>
+            <li><a href="#handoff"><span>05</span>Say what remains unknown</a></li>
+            <li><a href="#write-forward"><span>06</span>Write for the next incident</a></li>
+            <li><a href="#release-safely"><span>07</span>Release and deploy safely</a></li>
+            <li><a href="#wheels-of-misfortune"><span>08</span>Wheels of Misfortune</a></li>
+          </ol>
+        </nav>
+      </div>
+    </section>
+
+    <section class="chapter shell" id="report-to-code" aria-labelledby="report-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">01</div>
+        <div>
+          <h2 id="report-title">From report to code</h2>
+          <p class="chapter-intro">An incoming incident report is a starting point, not a program specification. It may mix what people saw, metric values, expected behavior, guesses about the cause, and important details that are still missing.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Investigation practice / keep the source and certainty clear</p>
+        <h3>Build a working explanation without turning a possible cause into a fact.</h3>
+        <p class="lead">This is an investigation practice, not an instruction to delay action. During a major outage, protect users and stabilize the system first while saving logs and other data that may soon be overwritten. As the investigation proceeds, keep four things separate: what was observed, who observed it, what the system was expected to do, and what responders think may explain it.</p>
+
+        <p>The earlier phrase “do not strengthen the report” was trying to describe three specific mistakes that can occur when a report is restated:</p>
+
+        <div tabindex="0" role="region" aria-label="Ways a restatement can accidentally increase certainty">
+          <table class="fact-table">
+            <thead><tr><th scope="col">Incoming claim</th><th scope="col">Accidental change</th><th scope="col">What was lost</th></tr></thead>
+            <tbody>
+              <tr><td>“The EU on-call reports 503s from two probes.”</td><td>“The service is returning 503s.”</td><td>The source and the limited range of the report.</td></tr>
+              <tr><td>“The rollout may have changed replay behavior.”</td><td>“The rollout broke retries.”</td><td>The uncertainty and other possible causes.</td></tr>
+              <tr><td>“Heap growth began after the deployment.”</td><td>“The deployment caused a memory leak.”</td><td>“Happened after” was changed to “caused.”</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Keeping those details does not mean distrusting the reporter. It keeps the information needed to test the claim. The source tells us where to reproduce it. The reported range tells us where to look for a counterexample. Words such as “may” tell us that we have a possible cause, not a finding.</p>
+
+        <div class="evidence-grid">
+          <div class="evidence-card observed"><p class="micro">Observation</p><strong>What a person or tool saw</strong><p>“Probe eu-3 recorded 503 responses between 09:14 and 09:22.” Record who or what observed it and under which conditions.</p></div>
+          <div class="evidence-card theory"><p class="micro">Possible cause</p><strong>An explanation we can test</strong><p>“The rollout changed replay behavior.” State what would support it and what would show it is wrong.</p></div>
+          <div class="evidence-card unknown"><p class="micro">Unknown</p><strong>A missing fact that could change the next action</strong><p>“Did first attempts fail, or only replays?” Ask first about unknowns most likely to change what you do next.</p></div>
+          <div class="evidence-card contract"><p class="micro">Expected</p><strong>What this part of the code promises</strong><p>State this in your own words before comparing it with the implementation or tests.</p></div>
+        </div>
+
+        <div class="sequence" aria-label="Report-to-code investigation sequence">
+          <div class="step"><strong>Record the source</strong><p>Record each observation with its source, time, conditions, and reported range. Mark possible causes as such and leave unanswered questions visible.</p></div>
+          <div class="step"><strong>Set the work area</strong><p>Name the component and behavior you own. Record important evidence from other components without assuming that you can redesign them during this repair.</p></div>
+          <div class="step"><strong>List possible causes</strong><p>Keep at least two reasonable explanations in view. For each, identify an observation that would support it or show it is wrong.</p></div>
+          <div class="step"><strong>Choose what to inspect</strong><p>Open the smallest log, trace, test, diff, or source file that can separate the current explanations. Decide what each result would mean before opening it.</p></div>
+          <div class="step"><strong>State the expected behavior</strong><p>Define what this part of the code should do for the observed input. Do not assume that the current implementation is correct merely because it already exists.</p></div>
+          <div class="step"><strong>Find the first wrong step</strong><p>Follow the evidence to the first place actual behavior differs from expected behavior. The loudest log line may be several layers downstream.</p></div>
+        </div>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Why this practice / lessons from safety investigations</p>
+        <h3>Other fields have already learned how premature answers mislead investigations.</h3>
+        <p class="lead">A software outage is not an aircraft or refinery accident. Even so, their investigators use several practices that work well for software: keep facts separate from explanations, say when the evidence is incomplete, look for evidence that could prove an early idea wrong, and look beyond the first broken part.</p>
+
+        <div class="sequence">
+          <div class="step"><strong>Stabilize, then investigate</strong><p><a href="https://sre.google/sre-book/effective-troubleshooting/" rel="noreferrer">Google SRE’s “Effective Troubleshooting”</a> puts service restoration before root-cause work in a major outage while still preserving logs and other short-lived evidence. It starts with observations, lists possible causes, and looks for results that support or rule out each one.</p></div>
+          <div class="step"><strong>Keep facts and analysis separate</strong><p>The <a href="https://www.ntsb.gov/investigations/AccidentReports/Reports/AIR2504.pdf?pubDate=20250711" rel="noreferrer">NTSB’s 2025 Alaska Airlines Flight 1282 report</a> presents “Factual Information” before a separate “Analysis” chapter. Its timeline labels periods as undetermined when the record cannot establish the door plug’s position. It also says directly when the available data was not enough to assess Boeing’s safety culture.</p></div>
+          <div class="step"><strong>Look beyond the broken part</strong><p>The <a href="https://www.csb.gov/assets/1/20/exxonmobil_report_for_public_release.pdf?15813=" rel="noreferrer">Chemical Safety Board’s ExxonMobil Torrance report</a> maps causes from damaged equipment through site and corporate decisions, industry standards, and regulation. It also shows how the operating measurements people relied on failed to reveal a dangerous state.</p></div>
+          <div class="step"><strong>Protect dissent from a premature conclusion</strong><p>The <a href="https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20030093634.pdf" rel="noreferrer">Columbia Accident Investigation Board report</a> describes managers converging on “no safety-of-flight” before the evidence justified it, technical concern losing urgency as it moved upward, and barriers to minority views. For a software team, the lesson is to record competing explanations and the evidence behind them.</p></div>
+        </div>
+
+        <p class="source-note"><strong>What these reports do and do not show:</strong> they support the investigation practices above. They do not tell us what caused a particular software incident. A Wheel of Misfortune must still test each possible cause against its own metrics, logs, code, experiments, and expected behavior.</p>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Before opening a file / ask why</p>
+        <h3>Command output matters only when it changes your working understanding.</h3>
+        <div class="question-grid">
+          <div>
+            <p>Before reading a log, diff, trace, test, or source file, write three short statements:</p>
+            <ol class="questions">
+              <li><strong>The question:</strong> which possible cause or unanswered question is this meant to address?</li>
+              <li><strong>Why this source:</strong> how can this log, trace, test, diff, or file separate explanations that currently fit?</li>
+              <li><strong>What next:</strong> what would each possible result mean for the next action?</li>
+            </ol>
+            <p>This feels slower for roughly a minute. It becomes much faster once the alternative is opening ten files, accumulating facts without a working explanation, and forgetting why each fact mattered.</p>
+          </div>
+          <aside class="aside">
+            <p class="micro">Weak evidence request</p>
+            <strong>“Show me all the logs.”</strong>
+            <p>Broad inspection increases volume, not necessarily information. Prefer: “Show whether failures occurred on initial attempts, replays, or both.”</p>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="code-evidence" aria-labelledby="evidence-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">02</div>
+        <div>
+          <h2 id="evidence-title">Code as evidence</h2>
+          <p class="chapter-intro">Production code should help a responder answer four questions: what is promised, who owns it, how it fails, and when its work ends.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Pattern / show what the caller needs</p>
+        <h3>Interfaces should reduce how much code a responder must read.</h3>
+        <p class="lead">An interface helps during an incident when it names the one ability its caller needs. A large interface makes responders study methods that cannot affect the reported behavior.</p>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / mirrors the whole implementation</div>
+            <pre><code>type StorageClient interface {
+    Connect(context.Context) error
+    Save(context.Context, *Snapshot) error
+    Load(context.Context, string) (*Snapshot, error)
+    Delete(context.Context, string) error
+    Compact(context.Context) error
+    Stats() StorageStats
+    Close() error
+}
+
+type Auditor struct {
+    storage StorageClient
+}</code></pre>
+            <p class="code-note">The auditor appears coupled to connection management, compaction, statistics, and deletion even if it only loads one snapshot.</p>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / says what the caller needs</div>
+            <pre><code>// SnapshotLoader retrieves the named audit snapshot.
+// It returns ErrSnapshotNotFound when no snapshot exists.
+type SnapshotLoader interface {
+    LoadSnapshot(
+        context.Context,
+        string,
+    ) (*Snapshot, error)
+}
+
+type Auditor struct {
+    snapshots SnapshotLoader
+}</code></pre>
+            <p class="code-note">The smaller interface tells a responder which behavior matters and is easy to replace in a focused test.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="paper">
+        <p class="micro">During an incident / why style helps</p>
+        <h3>Readable choices become incident shortcuts.</h3>
+        <div class="sequence">
+          <div class="step"><strong>Names reduce search</strong><p><code>LoadSnapshot</code> distinguishes retrieval from computation. A package named <code>snapshot</code> says more where the code is called than <code>util</code>.</p></div>
+          <div class="step"><strong>Errors keep the underlying cause</strong><p>Wrapping an error adds the failed operation without hiding the error that the caller may need to recognize.</p></div>
+          <div class="step"><strong>Report an error once</strong><p>Returning an error to the code that owns the outcome prevents one failure from appearing as several separate events.</p></div>
+          <div class="step"><strong>Context shows when work stops</strong><p>A first-parameter context shows where cancellation begins and whether the caller’s deadline reaches the work.</p></div>
+          <div class="step"><strong>Channel direction shows who can act</strong><p><code>&lt;-chan</code> and <code>chan&lt;-</code> show who can send and receive, which helps readers work out who must stop the work and close the channel.</p></div>
+          <div class="step"><strong>Tests record expected behavior</strong><p>A focused test names the input and expected result, turning a vague incident symptom into something anyone can run again.</p></div>
+        </div>
+
+        <h4>Return context; report where the outcome is decided</h4>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Anti-pattern / one failure becomes three events</div>
+            <pre><code>func load(ctx context.Context, id string) (*Snapshot, error) {
+    value, err := store.Load(ctx, id)
+    if err != nil {
+        slog.Error("load failed", "id", id, "err", err)
+        return nil, err
+    }
+    return value, nil
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Pattern / context travels upward</div>
+            <pre><code>func load(ctx context.Context, id string) (*Snapshot, error) {
+    value, err := store.Load(ctx, id)
+    if err != nil {
+        return nil, fmt.Errorf("load snapshot %q: %w", id, err)
+    }
+    return value, nil
+}</code></pre>
+          </div>
+        </div>
+        <p>The handler, command, or supervisor that owns the outcome can now emit one structured event. The lower layer remains reusable in requests, background jobs, tests, and tools that apply different reporting policy.</p>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="wheel-of-misfortune" aria-labelledby="wheel-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">03</div>
+        <div>
+          <h2 id="wheel-title">Wheel of Misfortune case study</h2>
+          <p class="chapter-intro">W01 begins before source code: an incomplete production report connects replay errors to a cache-store rollout and offers a confident theory about the adapter.</p>
+        </div>
+      </header>
+
+      <article class="case-panel">
+        <p class="micro">W01 / Replay Regression / report-safe view</p>
+        <h3>A change just before a failure did not necessarily cause it.</h3>
+        <blockquote class="report">
+          <p>Ingestion errors appeared during an upstream retry burst, shortly after a new cache-store adapter rolled out. The storage on-call suspects that the adapter rejects duplicate keys differently and cannot support replay behavior.</p>
+          <cite>Paraphrased from the W01 incoming report</cite>
+        </blockquote>
+
+        <div tabindex="0" role="region" aria-label="W01 report classification table">
+          <table class="fact-table">
+            <thead><tr><th scope="col">Report element</th><th scope="col">Classification</th><th scope="col">What it permits</th></tr></thead>
+            <tbody>
+              <tr><td>Ingestion returned errors during the retry burst.</td><td><span class="tag">Observation</span></td><td>Investigate the replay path and establish affected scope.</td></tr>
+              <tr><td>Reports began after the Atlas rollout.</td><td><span class="tag">Correlation</span></td><td>Treat the rollout as relevant evidence, not proof of cause.</td></tr>
+              <tr><td>The adapter does not support replay behavior.</td><td><span class="tag theory">Possible cause</span></td><td>Keep it as one explanation and look for evidence that could rule it out.</td></tr>
+              <tr><td>Whether first attempts succeed.</td><td><span class="tag unknown">Unknown</span></td><td>Ask because the answer sharply separates broad store failure from replay-specific behavior.</td></tr>
+              <tr><td>Where observed behavior first becomes wrong.</td><td><span class="tag unknown">Unknown</span></td><td>Compare the store’s raw result with the result returned by the code that owns this behavior.</td></tr>
+              <tr><td>Whether rollback addresses the owned component.</td><td><span class="tag unknown">Unknown</span></td><td>Do not promise that another team’s rollback repairs a defect in our code.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>The code-reading questions</h4>
+        <div class="question-grid">
+          <ol class="questions">
+            <li>What does the deduplication code promise on the first attempt and on a replay?</li>
+            <li>Is the same logical input involved in both paths?</li>
+            <li>Which evidence shows whether the store returned the wrong result or our code handled a correct result incorrectly?</li>
+            <li>Can an unrelated store failure still reach the caller?</li>
+            <li>What is the smallest test that proves the expected behavior without depending on the adapter’s error text?</li>
+          </ol>
+          <aside class="aside">
+            <p class="micro">Spoiler limit</p>
+            <strong>Questions, not answers.</strong>
+            <p>This case study stops before the implementation, focused test, diagnosis, or repair. Continue through W01 when you want to perform the investigation.</p>
+          </aside>
+        </div>
+
+        <p><a class="capsule" href="../exercises/wheel/01-replay-regression/REPORT.md">Begin W01 from the report</a></p>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="repair" aria-labelledby="repair-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">04</div>
+        <div>
+          <h2 id="repair-title">A focused repair</h2>
+          <p class="chapter-intro">An incident is urgent, but mixing the repair with cleanup, redesign, and future prevention makes the patch harder to understand and test.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Repair checklist / keep the reason for each change clear</p>
+        <h3>Change only what the evidence justifies.</h3>
+        <div class="question-grid">
+          <div>
+            <ol class="questions">
+              <li><strong>Keep the failing example.</strong> Keep the focused test or reproduction that shows the wrong behavior.</li>
+              <li><strong>Leave nearby cleanup for later.</strong> Renames, new abstractions, formatting changes, and dependency upgrades make the important change harder to see unless the repair requires them.</li>
+              <li><strong>Repair the first wrong step.</strong> Do not compensate farther downstream merely because the symptom is louder there.</li>
+              <li><strong>Keep other errors working.</strong> Accepting one new condition must not hide unrelated failures.</li>
+              <li><strong>Say what the tests prove.</strong> A focused test supports a claim about this code. It does not prove that the entire incident is resolved.</li>
+            </ol>
+          </div>
+          <aside class="aside">
+            <p class="micro">Incident style</p>
+            <strong>Small changes are easier to trust and undo.</strong>
+            <p>A focused patch makes it easier to see why behavior changed, test the repair, review the risk, and revert it cleanly if the diagnosis is wrong.</p>
+          </aside>
+        </div>
+
+        <h4>Check a wider area one step at a time</h4>
+        <div class="rings">
+          <div class="ring"><strong>1 / Exact case</strong><p>Does the reported or recreated case now behave as expected?</p></div>
+          <div class="ring"><strong>2 / Nearby cases</strong><p>Do closely related success and failure paths still behave correctly?</p></div>
+          <div class="ring"><strong>3 / Package tests</strong><p>Do the component’s ordinary tests still pass?</p></div>
+          <div class="ring"><strong>4 / Running system</strong><p>Do production or staging metrics support the wider claim? What is still unknown?</p></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="handoff" aria-labelledby="handoff-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">05</div>
+        <div>
+          <h2 id="handoff-title">Say what remains unknown</h2>
+          <p class="chapter-intro">A useful handoff separates impact, cause, repair, and verification. It tells the next responder what is known without hiding what has not been checked.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Three-minute structure / short but complete</p>
+        <h3>Explain what happened and why; do not merely list commands.</h3>
+        <div class="handoff">
+          <div class="template">
+            <div class="code-label">Incident handoff template</div>
+            <pre><code>Impact:
+  What users or systems experienced, over what scope and time.
+
+Confirmed scope:
+  Who, where, and when was affected, and what evidence supports that statement.
+
+Key evidence:
+  The observations that separated the leading possible causes.
+
+First wrong step:
+  The earliest place in code we own where behavior became wrong.
+
+Repair:
+  The exact behavior change and why it fixes the problem.
+
+Verification:
+  Focused reproduction, neighboring cases, and broader checks.
+
+Still unknown:
+  What has not been checked or belongs to another component.
+
+Preventive follow-up:
+  One test, release check, metric, or log improvement.</code></pre>
+          </div>
+          <div class="handoff-notes">
+            <p class="micro">Avoid</p>
+            <ul>
+              <li>“Fixed” without naming the confirmed scope.</li>
+              <li>A command transcript with no explanation of what each result established.</li>
+              <li>Mixing up the visible symptom, the defect in this code, and the wider incident.</li>
+              <li>Claiming another component behaved a certain way without evidence.</li>
+              <li>A prevention backlog disguised as part of the emergency repair.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="write-forward" aria-labelledby="forward-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">06</div>
+        <div>
+          <h2 id="forward-title">Write for the next incident</h2>
+          <p class="chapter-intro">The repair closes one defect. The lesson lasts only when the codebase makes a similar incident easier to understand next time.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Prevention / keep what we learned</p>
+        <h3>Put each production lesson somewhere it will be used.</h3>
+        <div class="sequence">
+          <div class="step"><strong>Focused test</strong><p>Record the expected behavior in the smallest part of the code that owns it. Include important error cases and, when relevant, more than one implementation.</p></div>
+          <div class="step"><strong>Release check</strong><p>Run the test where risky changes enter: a new adapter, migration, small canary rollout, or compatibility test.</p></div>
+          <div class="step"><strong>Metrics and logs</strong><p>Add signals that separate the main possible causes. Use a few useful labels rather than a flood of messages.</p></div>
+          <div class="step"><strong>API comment</strong><p>Put responsibility for starting and stopping work, cancellation, and unusual behavior beside the API so responders do not need to rely on team memory.</p></div>
+          <div class="step"><strong>Incident note</strong><p>Record the surprising cause and the shortest useful path to finding it, without turning ordinary code comments into a postmortem.</p></div>
+        </div>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Closure / one alert, two responders</p>
+        <h3>The end of each alert response is a deployment.</h3>
+        <p class="lead">The deployment does not always change business logic. It may add a focused test, a worker-lifecycle metric, a typed error, a diagnostic endpoint, a clearer API, or a better alert. If an incident exposes a question that our code cannot answer, changing only the alert threshold leaves the next responder with the same question.</p>
+        <p>This does not mean changing code for its own sake. Close the response by asking what small, reviewable change will preserve what the team learned. If the alert was wrong, change its threshold or routing. If the system could not separate plausible causes, add the signals it lacked. If hidden state or ownership caused the confusion, fix the design.</p>
+
+        <blockquote class="report">
+          <p><code>QueueOldestAgeHigh</code> has been active for ten minutes. The oldest job is 94 seconds old, and the queue contains 18,420 jobs. Jobs are arriving at about their usual rate. The process is reachable, and CPU use is low. The dashboard does not show whether workers are running, whether attempts finish, whether retries are adding work, or how long the downstream call takes.</p>
+          <cite>Synthetic alert report — the values are illustrative</cite>
+        </blockquote>
+
+        <h4>Signals available to the first responder</h4>
+        <div class="evidence-grid">
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Oldest job: 94 seconds</strong><p>The alert shows that work is delayed. It does not show where progress stopped.</p></div>
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Depth: 18,420 jobs</strong><p>The backlog is large. Depth alone cannot tell whether jobs are arriving faster or completing more slowly.</p></div>
+          <div class="evidence-card observed"><span class="tag">Observed</span><strong>Process up; CPU low</strong><p>The process answers its health check. That does not prove that any workers are still running.</p></div>
+          <div class="evidence-card unknown"><span class="tag unknown">Unknown</span><strong>What the workers are doing</strong><p>The dashboard has no worker count, attempt outcomes, retry rate, or handler latency.</p></div>
+        </div>
+
+        <p>“The downstream service is slow” is an obvious explanation because every job calls it. The available signals cannot prove that explanation wrong. A stopped worker pool, a retry loop, or a local queue bug would produce the same dashboard. The code shows why this is more than a missing chart.</p>
+
+        <h4>The alert revealed a lifecycle design problem</h4>
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">Before / hidden lifetime and reused cancellation</div>
+            <pre><code>type Pool struct {
+    ctx    context.Context
+    cancel context.CancelFunc
+    queue  Queue
+}
+
+func (p *Pool) Reload() {
+    p.cancel()
+    p.start(p.ctx)
+}
+
+func (p *Pool) start(ctx context.Context) {
+    go func() {
+        for {
+            select {
+            case &lt;-ctx.Done():
+                return
+            case job := &lt;-p.queue.Ready():
+                if err := handle(ctx, job); err != nil {
+                    p.queue.Retry(job)
+                }
+            }
+        }
+    }()
+}</code></pre>
+            <p class="code-note">The replacement receives the same context that <code>cancel</code> just cancelled, so it exits immediately. The API exposes no way to wait for workers, inspect why they stopped, or count attempt outcomes.</p>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">After / explicit ownership, outcomes, and evidence</div>
+            <pre><code>func (s *Supervisor) Reload(parent context.Context) error {
+    if err := s.stopAndWait(ErrReloaded); err != nil {
+        return fmt.Errorf("stop worker generation: %w", err)
+    }
+
+    ctx, cancel := context.WithCancelCause(parent)
+    done := make(chan error, 1)
+    s.cancel, s.done = cancel, done
+
+    go func() { done &lt;- s.worker.Run(ctx) }()
+    return nil
+}
+
+func (w *Worker) Run(ctx context.Context) (runErr error) {
+    w.observe.WorkerStarted()
+    defer func() {
+        cause := classifyStop(runErr, context.Cause(ctx))
+        w.observe.WorkerStopped(cause)
+    }()
+
+    for {
+        select {
+        case &lt;-ctx.Done():
+            return context.Cause(ctx)
+        case job := &lt;-w.queue.Ready():
+            started := time.Now()
+            err := w.handle(ctx, job)
+            outcome := classifyOutcome(err)
+            w.observe.AttemptFinished(outcome, time.Since(started))
+
+            if retryable(err) {
+                w.observe.RetryScheduled(classifyRetry(err))
+                w.queue.Retry(job)
+            }
+        }
+    }
+}</code></pre>
+            <p class="code-note">The supervisor creates a fresh context, owns cancellation, and waits for the previous workers to stop. The worker records a finite outcome value after each attempt.</p>
+          </div>
+        </div>
+
+        <p>The example is deliberately simplified. Production code must define what happens when the queue closes and how it handles successful jobs and permanent failures. It must also decide whether a reload may pause consumption or safely overlap worker generations. The new API makes those choices visible instead of hiding them inside <code>start</code>.</p>
+
+        <div class="code-panel good">
+          <div class="code-label">A small observation interface used by the queue and workers</div>
+          <pre><code>type WorkObserver interface {
+    Enqueued()
+    WorkerStarted()
+    WorkerStopped(StopCause)
+    AttemptFinished(Outcome, time.Duration)
+    RetryScheduled(RetryReason)
+}</code></pre>
+          <p class="code-note">The queue calls <code>Enqueued</code> after it accepts a job. Workers report when they start and stop, how each attempt ends, and why they schedule a retry. A metrics adapter turns those finite values into counters, gauges, and histograms. Tests use a recording observer to verify the reload sequence.</p>
+        </div>
+
+        <h4>Signals available to the next responder</h4>
+        <div tabindex="0" role="region" aria-label="Signals added after the alert response and the explanations they distinguish">
+          <table class="fact-table">
+            <thead><tr><th scope="col">Signal</th><th scope="col">What it distinguishes</th><th scope="col">Evidence against the obvious explanation</th></tr></thead>
+            <tbody>
+              <tr><td><code>queue_enqueued_total</code> and <code>job_completed_total</code></td><td>A traffic increase versus a drop in processing.</td><td>Jobs arrive at the usual rate while completions fall to zero.</td></tr>
+              <tr><td><code>workers_active</code> and <code>worker_stops_total{cause}</code></td><td>Slow workers versus workers that have stopped.</td><td>Active workers reach zero during reload, and the reported stop cause is <code>reload</code>.</td></tr>
+              <tr><td><code>job_attempt_duration_seconds{outcome}</code></td><td>Slow handling versus work that never began.</td><td>Handler attempt duration stays normal before attempts cease.</td></tr>
+              <tr><td><code>job_retries_total{reason}</code></td><td>A slow handler versus retries that create extra work.</td><td>The backlog begins growing when one retry reason increases, without a rise in handler latency.</td></tr>
+              <tr><td>Worker lifecycle logs</td><td>The exact transition that stopped work.</td><td>A structured log ties the stop to a reload and records its cause. Generation IDs stay in logs instead of becoming high-cardinality metric labels.</td></tr>
+              <tr><td><code>queue_oldest_age_seconds</code></td><td>User-visible delay versus raw queue size.</td><td>The oldest-job age falls after workers restart, even while the queue remains large.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>No single signal identifies the root cause. Together they let a responder test four explanations: rising demand, stopped workers, slow handling, and excess retries. In this example, the normal enqueue rate, zero active workers, absence of new attempts, and reload stop cause disprove downstream slowness before anyone reads the implementation.</p>
+
+        <h4>Code generation changes what is practical to deploy</h4>
+        <div class="handoff">
+          <div class="template">
+            <div class="code-label">Generation brief / evidence before implementation</div>
+            <pre><code>Distinguish:
+  demand growth
+  stopped workers
+  slow handling
+  retry amplification
+
+Generate:
+  explicit worker lifetime and wait path
+  fixed sets of attempt outcomes and stop causes
+  metrics adapter and structured lifecycle logs
+  focused reload and cancellation tests
+
+Preserve:
+  error causes
+  bounded metric cardinality
+  queue acknowledgement semantics
+  a staged and reversible rollout</code></pre>
+          </div>
+          <div class="handoff-notes">
+            <p class="micro">Responder responsibility</p>
+            <ul>
+              <li>State the competing explanations and the evidence that would distinguish them.</li>
+              <li>Review generated code for correct concurrency, shutdown, error handling, privacy, and performance.</li>
+              <li>Reject instrumentation that has no operational question or uses unbounded labels.</li>
+              <li>Run focused tests before using production telemetry to make a broader claim.</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>Code-generation tools make a broader response practical. They can draft the repetitive parts of an observation interface, metrics adapter, test matrix, dashboard query, and runbook change together. They cannot decide what the system needs to prove. The responder defines the required evidence and verifies that the generated code produces it.</p>
+
+        <div class="question-grid" style="margin-top: 32px">
+          <div>
+            <p>The <a href="styleguide.html">expanded style guide</a> provides the building blocks for this design. They include <a href="styleguide.html#concurrency">explicit goroutine lifetime and cancellation</a>, <a href="styleguide.html#errors">errors that preserve their cause</a>, <a href="styleguide.html#apis">small interfaces defined by their users</a>, and <a href="styleguide.html#tests">tests that wait for observable completion</a>. Reliability architecture uses those building blocks to decide which state must be visible, who owns it, and which signals will distinguish plausible failures.</p>
+            <p><a class="capsule" href="styleguide.html">Return to the style guide</a></p>
+          </div>
+          <aside class="aside">
+            <p class="micro">The production test</p>
+            <strong>Could a new responder prove the obvious explanation wrong?</strong>
+            <p>Give them only the alert, dashboards, logs, and documented APIs. If they cannot disprove the obvious explanation, deploy the missing signals—or fix the design that hid them.</p>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="release-safely" aria-labelledby="release-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">07</div>
+        <div>
+          <h2 id="release-title">Release and deploy safely</h2>
+          <p class="chapter-intro">A repair is not finished when it compiles. We also need a controlled way to put it into service, see unexpected changes quickly, and return to a known-good state.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <p class="micro">Release engineering / make safe behavior routine</p>
+        <h3>Deploying code and activating behavior are different operations.</h3>
+        <p class="lead">Software has to change. The practical aim is not to avoid releases, but to make ordinary releases small enough to observe and easy enough to stop. Sarah Murphy’s <a href="https://github.com/sarahmaeve/the-oldest-sins-in-the-newest-of-ways/blob/main/RELENG.md" rel="noreferrer">Principles of Release Engineering</a> describes this in terms of preserving a known-good state, rolling out changes in stages, reducing the time and attention required to ship, and treating unexpected production changes as bugs.</p>
+
+        <div class="evidence-grid">
+          <div class="evidence-card observed"><span class="tag">Deploy</span><strong>Put the new version in place.</strong><p>The binary can contain both the established and new behavior while production continues to use the established path.</p></div>
+          <div class="evidence-card theory"><span class="tag theory">Activate</span><strong>Choose who receives the change.</strong><p>A feature flag, canary, region, or traffic rule lets the team increase exposure deliberately.</p></div>
+          <div class="evidence-card contract"><span class="tag">Observe</span><strong>Know what must remain healthy.</strong><p>Compare errors, latency, resource use, and the important user action against the state before activation.</p></div>
+          <div class="evidence-card unknown"><span class="tag unknown">Reverse</span><strong>Decide how to get back first.</strong><p>Turning off a flag or routing traffic back is safer than inventing a repair while the impact is growing.</p></div>
+        </div>
+
+        <h4>Keep the established path available during rollout</h4>
+        <div class="code-panel good">
+          <div class="code-label">A simplified application gate</div>
+          <pre><code>type Searcher interface {
+    Find(context.Context, string) ([]Result, error)
+}
+
+type Rollout interface {
+    Enabled(feature, subject string) bool
+}
+
+type SearchHandler struct {
+    established Searcher
+    candidate   Searcher
+    rollout     Rollout
+}
+
+func (h *SearchHandler) searcherFor(accountID string) Searcher {
+    if h.rollout.Enabled("search-v2", accountID) {
+        return h.candidate
+    }
+    return h.established
+}</code></pre>
+          <p class="code-note">Shipping this binary does not require enabling <code>search-v2</code>. Activation can begin with a small group, stop without another build, and retain the established path until the candidate has proved safe.</p>
+        </div>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Production example / Grafana Cloud, February 2025</p>
+        <h3>A narrow test passed; the full deployment failed.</h3>
+        <blockquote class="report">
+          <p>A TLS-policy override remained in place after configuration reconciliation in development. A complete redeployment was not tested. When the merge-policy change reached every environment together, it also changed Kubernetes Services from <code>LoadBalancer</code> to <code>ClusterIP</code>, causing Kubernetes to destroy the load balancers.</p>
+          <cite>Summary of Grafana Labs’ public incident report</cite>
+        </blockquote>
+
+        <div class="sequence">
+          <div class="step"><strong>Test the whole change</strong><p>Confirm the result after creating or replacing the managed resource, not only after updating one field on a resource that already exists.</p></div>
+          <div class="step"><strong>Enforce the first wave</strong><p>Make development the default first destination. Reaching staging or production together should require an explicit exception.</p></div>
+          <div class="step"><strong>Hold and compare</strong><p>After each wave, check the expected change and unrelated critical behavior. A healthy process is not enough if a load balancer or another external resource disappeared.</p></div>
+          <div class="step"><strong>Stop on an unexpected change</strong><p>Rollback or deactivate first when that is safe. Investigate after impact has stopped growing and evidence has been preserved.</p></div>
+          <div class="step"><strong>Plan stored-state changes separately</strong><p>A binary can often be rolled back; a schema, membership record, or destructive external action may not be. Such changes need their own staged compatibility and recovery plan.</p></div>
+        </div>
+
+        <p class="source-note"><strong>Source and limit:</strong> Grafana Labs reports that the incident lasted about 150 minutes and affected roughly 25% of its services. Its public report explains the testing gap, bypassed deployment waves, rollback, and new automated checks, but does not link the implementation PR. It supports the release lesson here; it is not presented as a Go code case. Read <a href="https://grafana.com/blog/how-we-responded-to-a-2-hour-partial-outage-in-grafana-cloud/" rel="noreferrer">“How we responded to a 2+ hour partial outage in Grafana Cloud.”</a></p>
+      </article>
+
+      <article class="paper">
+        <p class="micro">Production example / Argo CD, 2024–2025</p>
+        <h3>A preview must not perform the destructive part of an operation.</h3>
+        <blockquote class="report">
+          <p>Jobs marked <code>Force=true,Replace=true</code> were created during Argo CD’s dry-run phase and then created again during their sync waves. In another report, the preview-created Job acquired a finalizer—a marker that prevents deletion until cleanup finishes. Replacement waited for that deletion, and the application remained in <code>Progressing</code>.</p>
+          <cite>Summary of public Argo CD and GitOps Engine reports</cite>
+        </blockquote>
+
+        <p>The word “dry run” describes an intended result, not proof that every function called underneath is harmless. Kubernetes force-replace can delete and recreate a resource. Passing the same <code>force</code> value to preview and apply therefore allowed the preview path to change the cluster.</p>
+
+        <div class="code-pair">
+          <div class="code-panel">
+            <div class="code-label">One option set is reused for two different jobs</div>
+            <pre><code>func replace(mode Mode, force bool) error {
+    options := ReplaceOptions{
+        DryRun: mode == Preview,
+        Force:  force,
+    }
+    return options.Run()
+}</code></pre>
+          </div>
+          <div class="code-panel good">
+            <div class="code-label">Preview cannot request destructive replacement</div>
+            <pre><code>func replace(mode Mode, force bool) error {
+    options := ReplaceOptions{
+        DryRun: mode == Preview,
+        Force:  force &amp;&amp; mode == Apply,
+    }
+    if err := options.Validate(); err != nil {
+        return fmt.Errorf("validate replace: %w", err)
+    }
+    return options.Run()
+}</code></pre>
+          </div>
+        </div>
+
+        <p><strong>Teaching inference:</strong> preview, validation, planning, and apply paths need tests that assert which external calls occur—not merely the returned status. Include resources with finalizers and ordered sync waves. The repairing PR changed the production path but added no direct test coverage for its new lines, so it is evidence of the repair, not a complete testing model to copy.</p>
+
+        <p class="source-note"><strong>Source trail:</strong> read <a href="https://github.com/argoproj/gitops-engine/issues/623" rel="noreferrer">GitOps Engine issue #623</a>, <a href="https://github.com/argoproj/argo-cd/issues/23570" rel="noreferrer">Argo CD issue #23570</a>, and <a href="https://github.com/argoproj/gitops-engine/pull/633" rel="noreferrer">repair PR #633</a>. The Go code above is an original reduction of the option-handling problem, not Argo source.</p>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="wheels-of-misfortune" aria-labelledby="wheels-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">08</div>
+        <div>
+          <h2 id="wheels-title">Wheels of Misfortune</h2>
+          <p class="chapter-intro">Fourteen short investigations draw on production reports, security advisories, and open-source changes. They provide new Go examples for practicing how to read reports and choose useful evidence, without repeating the bugs in go-crucible’s numbered exercises.</p>
+        </div>
+      </header>
+
+      <article class="paper">
+        <div class="question-grid">
+          <div>
+            <p class="micro">How to use sources</p>
+            <h3>Common bug patterns give us leads, not proof.</h3>
+            <p>A short list of goroutine leak patterns can help at the start of an investigation. It gives a responder names for blocked sends, missing cancellation, and untracked work. It does not show which one, if any, caused this incident.</p>
+            <p>Check even familiar examples against the Go specification. A receive from a closed channel is ready immediately; without the two-value receive it can create a hot loop rather than a blocked goroutine. A channel buffer can delay a blocked send without deciding who must receive it. A <code>WaitGroup</code> can wait for completion, but cannot cancel the work.</p>
+          </div>
+          <aside class="aside">
+            <p class="micro">Source trail</p>
+            <strong>Follow the work from report to test.</strong>
+            <p>Original report → design or Kubernetes Enhancement Proposal (KEP) → implementation PR → compatibility tests → benchmark. Each source answers a different question. If they disagree, investigate the difference.</p>
+          </aside>
+        </div>
+        <p class="source-note"><strong>How to read the debriefs:</strong> cause, repair, and reported-result statements summarize the linked sources. Labels beginning with “Suggested” and the broader prevention or release lessons are teaching inferences unless the text explicitly attributes them to a report, test, or pull request.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune A / The Quiet Batch</p>
+        <h3>Low request rate, disappearing ports.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Go fan-out</span><span>Intermediate</span><span>Source: April 2026</span><span>20 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>One data-center site is intermittently failing cache operations with “address already in use.” Request rate is ordinary, cache latency rose across unrelated object types, and a recent internal client sends fewer than three requests per second. The status update blames packet loss between the cloud provider and the site.</p>
+          <cite>Teaching report — facts adapted, names and system simplified</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Before opening code</p>
+            <strong>Write two possible causes.</strong>
+            <ul>
+              <li>A network path is dropping or delaying cache traffic.</li>
+              <li>A client workload is exhausting a local resource shared by all cache calls.</li>
+              <li>The cache service itself is rejecting one object type.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose one first packet</p>
+            <strong>Which result most sharply separates them?</strong>
+            <ol>
+              <li>Total requests per second by endpoint.</li>
+              <li>Batch-size distribution and in-flight cache dials by caller.</li>
+              <li>All cache error logs from the affected site.</li>
+              <li>A traceroute from the affected site.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go example — not the production source</h4>
+        <div class="code-panel">
+          <div class="code-label">Object loader</div>
+          <pre><code>func LoadObjects(
+    ctx context.Context,
+    keys []string,
+) ([]*Object, error) {
+    objects := make([]*Object, len(keys))
+    group, ctx := errgroup.WithContext(ctx)
+
+    for index, key := range keys {
+        group.Go(func() error {
+            object, err := loadOne(ctx, key)
+            if err != nil {
+                return fmt.Errorf("load %q: %w", key, err)
+            }
+            objects[index] = object
+            return nil
+        })
+    }
+
+    if err := group.Wait(); err != nil {
+        return nil, err
+    }
+    return objects, nil
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and prevention</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> request count hid the size of each request. A low-rate client could send a batch large enough to create thousands of cache operations at once. Those connections consumed ephemeral ports. Because all cache calls shared those ports, unrelated paths also failed. Logging every failure then made the overloaded process do even more work.</p>
+            <div class="code-panel good">
+              <div class="code-label">Bound work before launching it</div>
+              <pre><code>group, ctx := errgroup.WithContext(ctx)
+group.SetLimit(50)
+
+for index, key := range keys {
+    group.Go(func() error {
+        object, err := loadOne(ctx, key)
+        if err != nil {
+            return fmt.Errorf("load %q: %w", key, err)
+        }
+        objects[index] = object
+        return nil
+    })
+}</code></pre>
+            </div>
+            <p><strong>Suggested verification:</strong> exercise the largest supported batch; assert the concurrency ceiling; cancel while submissions are waiting for capacity; confirm each newly admitted task observes the canceled context before starting dependency work; and verify that the same logical results are returned. <code>SetLimit</code> bounds active goroutines, but it does not make the capacity wait inside <code>Group.Go</code> cancellation-aware. If submission itself must stop immediately, use a worker pool or an explicit context-aware admission step.</p>
+            <p><strong>Teaching recommendation:</strong> measure batch size and in-flight work per caller, not only requests per second. Rate-limit repetitive error reporting so the failure path cannot dominate the process.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Basis:</strong> Jim’s Pckt, “April 2026 Outage Post-Mortem,” a first-person production account with Go code showing a missing <code>errgroup</code> limit, unusually large batches, port exhaustion, and a logging-driven death spiral. This exercise changes the domain and rewrites the code. Read the <a href="https://pckt.blog/b/jcalabro/april-2026-outage-post-mortem-219ebg2" rel="noreferrer">production account</a> and the official <a href="https://pkg.go.dev/golang.org/x/sync/errgroup#Group.SetLimit" rel="noreferrer"><code>errgroup.SetLimit</code> documentation</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune B / The Healthy Certificate</p>
+        <h3>Green probes, red browsers.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Probe the user paths</span><span>Beginner</span><span>Source: March 2024</span><span>15 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Users report an expired certificate on the documentation site roughly 90 days after a hosting migration. Certificate-expiry monitoring remains green. The site publishes both A and AAAA records; IPv6 passes through a team-managed proxy, while IPv4 reaches the hosting provider directly.</p>
+          <cite>Teaching report — architecture adapted from a public outage</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Classify the evidence</p>
+            <strong>What does “the probe passed” establish?</strong>
+            <p>It establishes that one resolved address and one handshake returned a valid certificate. It does not yet establish that every user-visible network path terminates at the same certificate.</p>
+          </div>
+          <div class="packet">
+            <p class="micro">Ask what changes the path</p>
+            <strong>What can send the probe to a different server?</strong>
+            <p>Address family, resolver location, CDN or proxy routing, SNI, region, and protocol can all make two checks of the “same hostname” observe different infrastructure.</p>
+          </div>
+        </div>
+
+        <h4>Simplified Go probe</h4>
+        <div class="code-panel">
+          <div class="code-label">A check with an unstated path</div>
+          <pre><code>func certificateExpiry(
+    ctx context.Context,
+    hostname string,
+) (time.Time, error) {
+    dialer := &amp;tls.Dialer{
+        Config: &amp;tls.Config{ServerName: hostname},
+    }
+
+    conn, err := dialer.DialContext(ctx, "tcp", hostname+":443")
+    if err != nil {
+        return time.Time{}, fmt.Errorf("dial %s: %w", hostname, err)
+    }
+    defer conn.Close()
+
+    state := conn.(*tls.Conn).ConnectionState()
+    return state.PeerCertificates[0].NotAfter, nil
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and prevention</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> the check saw a real certificate, but only on the path chosen by normal name resolution. In the source incident, the probes checked IPv6 through a proxy with a healthy certificate. IPv4 users reached the hosting provider’s certificate, which had failed to renew.</p>
+            <div class="code-panel good">
+              <div class="code-label">Make the network path explicit</div>
+              <pre><code>type CertificateTarget struct {
+    Name       string
+    Network    string // tcp4 or tcp6
+    Address    string
+    ServerName string
+}
+
+func probeCertificate(
+    ctx context.Context,
+    target CertificateTarget,
+) (time.Time, error) {
+    dialer := &amp;net.Dialer{}
+    raw, err := dialer.DialContext(ctx, target.Network, target.Address)
+    if err != nil {
+        return time.Time{}, fmt.Errorf("dial %s: %w", target.Name, err)
+    }
+
+    conn := tls.Client(raw, &amp;tls.Config{ServerName: target.ServerName})
+    defer conn.Close()
+    if err := conn.HandshakeContext(ctx); err != nil {
+        return time.Time{}, fmt.Errorf("handshake %s: %w", target.Name, err)
+    }
+    return conn.ConnectionState().PeerCertificates[0].NotAfter, nil
+}</code></pre>
+            </div>
+            <p><strong>Suggested verification:</strong> configure explicit IPv4 and IPv6 targets, label their results separately, and test that one failing path cannot be hidden by another passing path.</p>
+            <p><strong>Preventive question:</strong> does each automated check follow a real user path, or merely prove that some route works?</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Basis:</strong> Tailscale, “About the Tailscale.com outage on March 7, 2024.” Its certificate probes covered IPv6 only and therefore observed a different certificate path from affected IPv4 users. The Go prober above is an original teaching implementation. <a href="https://tailscale.com/blog/tls-outage-20240307" rel="noreferrer">https://tailscale.com/blog/tls-outage-20240307</a></p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune C / The Trusted Feature File</p>
+        <h3>A generated input crosses the fleet.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Configuration activation</span><span>Advanced</span><span>Source: November 2025</span><span>20 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Core proxies begin returning 5xx responses across the fleet. Traffic volume is elevated, so the first theory is a large DDoS attack. Minutes earlier, a database-permission change altered the rows visible to an internal feature-file generator. The resulting file is roughly twice its usual size.</p>
+          <cite>Teaching report — facts adapted from Cloudflare’s postmortem</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Possible causes</p>
+            <strong>Attack load or shared configuration file?</strong>
+            <ul>
+              <li>External traffic exceeds proxy capacity.</li>
+              <li>A shared configuration file makes normal traffic fail.</li>
+              <li>A downstream dependency fails independently.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">A useful comparison</p>
+            <strong>Compare when the file arrived with when failures began.</strong>
+            <p>Ask whether crashes follow traffic rate, receipt of one file version, or both. Inspect the first panic or load error before repeated failures fill the logs.</p>
+          </div>
+        </div>
+
+        <h4>Simplified Go file loader</h4>
+        <div class="code-panel">
+          <div class="code-label">Generated does not mean safe</div>
+          <pre><code>const maxFeatures = 200
+
+func (m *Model) Activate(raw []byte) {
+    var file FeatureFile
+    if err := json.Unmarshal(raw, &amp;file); err != nil {
+        panic(err)
+    }
+    if len(file.Features) &gt; maxFeatures {
+        panic("feature capacity exceeded")
+    }
+
+    compiled, err := compileFeatures(file.Features)
+    if err != nil {
+        panic(err)
+    }
+    m.active.Store(compiled)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and prevention</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> a permissions change made a database query return more rows than intended. The generated file exceeded the reader’s fixed limit. Loading the file turned that expected error into a panic, and sending the same file across the fleet made every proxy vulnerable to the same failure.</p>
+            <div class="code-panel good">
+              <div class="code-label">Validate before replacing known-good state</div>
+              <pre><code>func (m *Model) Activate(raw []byte) error {
+    var file FeatureFile
+    if err := json.Unmarshal(raw, &amp;file); err != nil {
+        return fmt.Errorf("decode feature file: %w", err)
+    }
+    if len(file.Features) &gt; maxFeatures {
+        return fmt.Errorf(
+            "feature file has %d entries, maximum is %d",
+            len(file.Features),
+            maxFeatures,
+        )
+    }
+
+    compiled, err := compileFeatures(file.Features)
+    if err != nil {
+        return fmt.Errorf("compile feature file: %w", err)
+    }
+    m.active.Store(compiled)
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Suggested verification:</strong> malformed, oversized, duplicate, and otherwise invalid files must leave the last-known-good state active. Test the file writer and reader separately, then test a staged rollout and rollback.</p>
+            <p><strong>Teaching recommendation:</strong> treat generated configuration like user input; send it to a small canary group before the whole fleet; retain a kill switch; and ensure error reporting cannot itself exhaust memory or CPU.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Basis:</strong> Cloudflare, “Cloudflare outage on November 18, 2025.” The postmortem documents an internal query returning duplicate metadata after a permission change, a feature file exceeding a fixed limit of 200 features, an unhandled error that panicked, and the same bad file being sent across the fleet. The Go code above is an original example of the same kind of failure, not Cloudflare source. <a href="https://blog.cloudflare.com/18-november-2025-outage/" rel="noreferrer">https://blog.cloudflare.com/18-november-2025-outage/</a></p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune D / The Sixteenth Informer</p>
+        <h3>A few allowed requests can still use all the memory.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Buffering a whole response</span><span>Advanced</span><span>Sources: 2024–2025</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>After a short control-plane network interruption, controllers reconnect and issue LIST requests. API server replicas are terminated after running out of memory, often called being OOM-killed. The server handles no more requests than its configured limit, and small-cluster tests pass. A reproduction with 400 one-megabyte objects fails when the sixteenth informer—a controller-side component that watches resources and maintains a local cache—joins.</p>
+          <cite>Synthetic incident report — adapted from Kubernetes scalability demonstrations, not presented as a historical outage</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Do not stop at “retry storm”</p>
+            <strong>What can still grow too large?</strong>
+            <ul>
+              <li>The number of LIST requests handled at once.</li>
+              <li>The bytes held while each response is still being sent.</li>
+              <li>The objects returned by storage.</li>
+              <li>The client’s reconnection delay.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Measure request count and response size separately.</strong>
+            <ol>
+              <li>Graph heap growth by response bytes and concurrent LIST calls.</li>
+              <li>Capture an allocation profile during one large response.</li>
+              <li>Compare time to first byte with total encoding time.</li>
+              <li>Repeat with the same concurrency and smaller objects.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go encoder</h4>
+        <div class="code-panel">
+          <div class="code-label">One write first builds the whole response</div>
+          <pre><code>type ListResponse[T any] struct {
+    Items []T `json:"items"`
+}
+
+func writeList[T any](
+    w http.ResponseWriter,
+    response ListResponse[T],
+) error {
+    encoded, err := json.Marshal(response)
+    if err != nil {
+        return fmt.Errorf("encode list: %w", err)
+    }
+    if _, err := w.Write(encoded); err != nil {
+        return fmt.Errorf("write list: %w", err)
+    }
+    return nil
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and source trail</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> limiting the number of requests did not limit the memory used by each request. The encoder first built the whole response in one byte slice. Peak encoding memory therefore grew with <em>requests at once × response size</em>. A slow connection kept each large allocation alive longer. Reused buffers could also keep the heap large after the request ended.</p>
+            <div class="code-panel good">
+              <div class="code-label">Write one item at a time</div>
+              <pre><code>func writeItems[T any](w io.Writer, items []T) error {
+    if _, err := io.WriteString(w, `{"items":[`); err != nil {
+        return fmt.Errorf("write list prefix: %w", err)
+    }
+    for index := range items {
+        if index &gt; 0 {
+            if _, err := io.WriteString(w, ","); err != nil {
+                return fmt.Errorf("write item separator: %w", err)
+            }
+        }
+        encoded, err := json.Marshal(items[index])
+        if err != nil {
+            return fmt.Errorf("encode item %d: %w", index, err)
+        }
+        if _, err := w.Write(encoded); err != nil {
+            return fmt.Errorf("write item %d: %w", index, err)
+        }
+    }
+    if _, err := io.WriteString(w, `]}`); err != nil {
+        return fmt.Errorf("write list suffix: %w", err)
+    }
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Do not mistake the sketch for the Kubernetes patch.</strong> The real implementation had to preserve JSON and Protocol Buffer output byte for byte, validate Go struct tags, handle gzip chunking and repeated writer calls, cover built-in and custom list types, and retain client compatibility. Those constraints are visible in the linked proposal, pull requests, and tests.</p>
+            <p><strong>Suggested verification:</strong> compare old and new bytes across all supported list types; measure memory as both item size and number of items grow; test slow and failed writers; exercise compression; and confirm that partial writes do not look like complete responses.</p>
+            <p><strong>Result in the Kubernetes benchmark:</strong> ten one-gigabyte LIST responses running at once fell from roughly 70–80 GB of memory to about 3 GB. The encoder no longer needs another full-sized copy of the list. Most of its extra memory is used for the item being written and the network buffers.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> Kubernetes first published a large-scale demonstration of API server memory pressure, then documented the v1.33 streaming encoder and benchmark. Kubernetes Enhancement Proposal (KEP) 5116 links the implementation, compatibility tests, checks for incorrect struct tags, compression work, and benchmarks. Read the <a href="https://kubernetes.io/blog/2024/12/17/kube-apiserver-api-streaming/" rel="noreferrer">2024 scalability demonstration</a>, <a href="https://kubernetes.io/blog/2025/05/09/kubernetes-v1-33-streaming-list-responses/" rel="noreferrer">2025 streaming LIST article</a>, <a href="https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/5116-streaming-response-encoding/README.md" rel="noreferrer">KEP 5116</a>, <a href="https://github.com/kubernetes/kubernetes/pull/129334" rel="noreferrer">JSON encoder PR #129334</a>, and <a href="https://github.com/kubernetes/kubernetes/pull/129407" rel="noreferrer">Protocol Buffer encoder PR #129407</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune E / The Queue Says It Is Keeping Up</p>
+        <h3>An hour behind, with no reason to add workers.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Measurement under load</span><span>Advanced</span><span>Source: October 2025</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>After an upgrade, several remote-forwarding installations fall more than an hour behind. The affected sites have slower network links, but CPU remains below 20%, memory below 25%, and the queue uses only three or four workers despite a configured maximum of 75. Rolling back clears the lag. Reapplying the upgrade reproduces it.</p>
+          <cite>Teaching report — facts adapted from a public Prometheus regression</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Possible causes</p>
+            <strong>Do not equate spare CPU with a healthy pipeline.</strong>
+            <ul>
+              <li>The remote receiver cannot accept more data.</li>
+              <li>The network is too slow for any worker count to help.</li>
+              <li>The queue’s scaling calculation understates incoming work.</li>
+              <li>Workers are available but unable to make progress.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Compare the pipeline at more than one boundary.</strong>
+            <ol>
+              <li>Count records committed to local storage.</li>
+              <li>Count records admitted to the forwarding queue.</li>
+              <li>Count records successfully sent.</li>
+              <li>Graph queue capacity, desired workers, and actual workers together.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go example — not Prometheus source</h4>
+        <div class="code-panel">
+          <div class="code-label">The queue’s view of incoming work</div>
+          <pre><code>type Queue struct {
+    pending  chan Sample
+    observed atomic.Uint64
+}
+
+func (q *Queue) Enqueue(
+    ctx context.Context,
+    sample Sample,
+) error {
+    select {
+    case q.pending &lt;- sample:
+        q.observed.Add(1)
+        return nil
+    case &lt;-ctx.Done():
+        return context.Cause(ctx)
+    }
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and release lesson</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> the source change moved the input measurement closer to the forwarding queues. Work contributed to the measured input rate only after it entered a queue. When the queues filled, producers blocked before the counter advanced. The scaler could therefore observe an input rate no greater than the output rate, even while unsent data accumulated elsewhere. It saw no reason to add workers.</p>
+            <div class="code-panel good">
+              <div class="code-label">Measure committed input in the write-ahead log (WAL), before the constrained queue</div>
+              <pre><code>type Receiver struct {
+    wal      *WAL
+    received atomic.Uint64
+}
+
+func (r *Receiver) Commit(batch []Sample) error {
+    if err := r.wal.Append(batch); err != nil {
+        return fmt.Errorf("append input batch: %w", err)
+    }
+    r.received.Add(uint64(len(batch)))
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Prometheus reverted the queue scaling behavior to the known-good 3.6 logic. The original developers continued to consider how to improve the design, but did not hold the urgent production repair for that redesign.</p>
+            <p><strong>Reported verification:</strong> the repair PR added a higher-level test that constrains forwarding, creates enough input to require more shards, and checks that the system scales up. The test failed on the broken branch and passed with the revert.</p>
+            <p><strong>Reported release evidence:</strong> the reporter rolled back, observed recovery, reapplied the upgrade, and observed the same regression. That sequence did not by itself identify the defective line, but it sharply limited the search and protected the affected installations.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the public Prometheus report includes versions, resource use, queue settings, production graphs, two successful rollbacks, and reports from more than one environment. The discussion then narrows the problem to where the scaling calculation measures input. Read <a href="https://github.com/prometheus/prometheus/issues/17384" rel="noreferrer">issue #17384</a>, the <a href="https://github.com/prometheus/prometheus/pull/17407" rel="noreferrer">diagnostic PR #17407</a>, and the <a href="https://github.com/prometheus/prometheus/pull/17412" rel="noreferrer">release-3.7 revert and regression test in PR #17412</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune F / The Members That Came Back</p>
+        <h3>The first upgraded node remembers a different cluster.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Stored-state migration</span><span>Advanced</span><span>Source: November–December 2025</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>The first node in a five-node cluster is upgraded from version 3.5.25 to 3.6.6. It reports old members that were removed years ago. The old and current members have different IDs but duplicate names and peer addresses. A query to an unchanged 3.5 node still shows the expected five members, and attempts to reproduce the problem with a newly created cluster fail.</p>
+          <cite>Teaching report — facts adapted from an etcd production bug report</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Classify the observations</p>
+            <strong>Which facts depend on the node or its history?</strong>
+            <ul>
+              <li>The duplicate IDs appear after one node changes version.</li>
+              <li>Different-version nodes report different membership lists.</li>
+              <li>The duplicate addresses belonged to real former members.</li>
+              <li>A clean cluster has no history of removals or recovery.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Compare what each version reads, not only what its API returns.</strong>
+            <ol>
+              <li>Record the membership view from every node before changing another one.</li>
+              <li>Inspect both persisted membership representations on the affected node.</li>
+              <li>Reconstruct member additions, removals, restores, and forced recovery operations.</li>
+              <li>Check whether the upgrade changes which stored copy each version trusts.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go model — not etcd source</h4>
+        <div class="code-panel">
+          <div class="code-label">Two releases choose different stored membership</div>
+          <pre><code>type Release int
+
+const (
+    Release35 Release = iota
+    Release36
+)
+
+func LoadMembers(
+    release Release,
+    stores MembershipStores,
+) ([]Member, error) {
+    if release == Release35 {
+        return stores.LoadLegacy()
+    }
+    return stores.LoadCurrent()
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and safe upgrade path</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> etcd 3.5 trusted its older membership representation, called <code>v2store</code>, even though membership was also present in a newer representation called <code>v3store</code>. etcd 3.6 switched to the <code>v3store</code> copy. Some long-running clusters had accumulated inconsistencies between the two through earlier member removal or recovery paths. Version 3.5 continued to operate from the expected records; version 3.6 exposed the stale ones.</p>
+            <div class="code-panel good">
+              <div class="code-label">Repair the next source before switching to it</div>
+              <pre><code>func PrepareUpgrade(stores MembershipStores) error {
+    members, err := stores.LoadLegacy()
+    if err != nil {
+        return fmt.Errorf("load 3.5 membership: %w", err)
+    }
+    if err := stores.ReplaceCurrent(members); err != nil {
+        return fmt.Errorf("repair current membership: %w", err)
+    }
+    if err := stores.Sync(); err != nil {
+        return fmt.Errorf("persist repaired membership: %w", err)
+    }
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> etcd 3.5.26 added an automatic synchronization from the membership source used by 3.5 to the source that 3.6 would use. The safe sequence is therefore 3.5.26 or later, wait for and confirm cluster health, then 3.6.</p>
+            <p><strong>An earlier repair missed a different path:</strong> etcd 3.5.20 repaired learner promotion records, but a rolling replacement could still copy an older member’s incorrect snapshot into a newer member. The cluster continued working while 3.5 trusted <code>v2store</code>; the error appeared later when 3.6 trusted <code>v3store</code>. Version 3.5.24 corrected membership while applying such a snapshot. The first fix was not pointless or wrong—it covered the path that had been reproduced—but the real upgrade sequence found another way for old state to survive.</p>
+            <p><strong>Why the clean reproduction failed:</strong> the inconsistent state depended on the real cluster’s history. A fresh cluster exercised the new code without recreating old snapshots, removal behavior, forced recovery, crash timing, or other paths that might have left the stores different.</p>
+            <p><strong>Suggested verification:</strong> start with deliberately inconsistent stored membership, run the repair release, restart every member, and then upgrade one member at a time. Confirm both stored copies and the API view after every step. Keep fixtures for several known histories, but do not claim that the known histories cover every possible cause.</p>
+            <p><strong>Teaching inference:</strong> rollback is more complicated once a release changes durable state. The upgrade design must say which versions can run together, when the new version begins trusting the new copy, how old state is repaired, and what operators should check before proceeding.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the original report contains the five-node production history, exact versions, per-node output, duplicate IDs and addresses, logs, and failed attempts to reproduce from scratch. The etcd project’s follow-ups explain the two membership stores, several known ways they could diverge, repairs in successive 3.5 releases, and the required upgrade order. Read <a href="https://github.com/etcd-io/etcd/issues/20967" rel="noreferrer">issue #20967</a>, <a href="https://etcd.io/blog/2025/zombie_members_upgrade/" rel="noreferrer">“Avoiding Zombie Cluster Members When Upgrading to etcd v3.6”</a>, <a href="https://github.com/etcd-io/etcd/pull/20995" rel="noreferrer">repair PR #20995</a>, and the <a href="https://github.com/etcd-io/etcd/releases/tag/v3.5.26" rel="noreferrer">etcd 3.5.26 release</a>. For the earlier rolling-replacement path, read the <a href="https://etcd.io/blog/2025/upgrade_from_3.5_to_3.6_issue_followup/" rel="noreferrer">official October 2025 follow-up</a>, <a href="https://github.com/etcd-io/etcd/issues/20793" rel="noreferrer">issue #20793</a>, and <a href="https://github.com/etcd-io/etcd/pull/20797" rel="noreferrer">repair PR #20797</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune G / The Restart That Waited for Itself</p>
+        <h3>Only nodes receiving DNS traffic fail to restart.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Startup deadlock</span><span>Intermediate</span><span>Source: September–November 2024</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>After an upgrade to Cilium 1.16, one agent takes three minutes to start, exits, and then succeeds on its second attempt. The affected node has a workload selected by an application-layer (L7) DNS policy. If that workload is idle, startup often succeeds; if it is resolving names, startup fails. The same failure is reported with and without Envoy or Container Network Interface (CNI) chaining, and it remains after removing kube-proxy.</p>
+          <cite>Teaching report — facts adapted from Cilium issue #35080</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Separate signal from coincidence</p>
+            <strong>Which differences track the failure?</strong>
+            <ul>
+              <li>The same six Kubernetes resources finish their initial synchronization.</li>
+              <li>A policy resource waits until the three-minute startup timeout.</li>
+              <li>Active DNS traffic changes whether the failure appears.</li>
+              <li>A race-detector warning in iptables disappears after locking, but the startup failure remains.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Capture what is waiting, then trace who holds it.</strong>
+            <ol>
+              <li>Take goroutine stacks before the startup timeout.</li>
+              <li>Identify locks held by endpoint restoration and policy synchronization.</li>
+              <li>Trace callbacks that DNS traffic can invoke before startup completes.</li>
+              <li>Compare the endpoint-restoration path with first-time endpoint creation.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go model — not Cilium source</h4>
+        <div class="code-panel">
+          <div class="code-label">Restoration enables a callback before the endpoint is ready</div>
+          <pre><code>func parseRestoredEndpoint(data []byte) (*Endpoint, error) {
+    endpoint, err := decodeEndpoint(data)
+    if err != nil {
+        return nil, fmt.Errorf("decode endpoint: %w", err)
+    }
+    endpoint.initDNSHistoryTrigger()
+    return endpoint, nil
+}
+
+func (e *Endpoint) observeDNS(answer DNSAnswer) {
+    e.history.Add(answer)
+    e.dnsHistoryTrigger.Trigger()
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and misleading evidence</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> restored endpoints started a DNS-history trigger while the agent was still starting. DNS traffic could fire the trigger and request endpoint regeneration. Regeneration needed startup work to finish, while startup was waiting with the endpoint locked. Each side waited for progress that the other side prevented.</p>
+            <div class="code-panel good">
+              <div class="code-label">Initialize the trigger during the first regeneration</div>
+              <pre><code>func parseRestoredEndpoint(data []byte) (*Endpoint, error) {
+    endpoint, err := decodeEndpoint(data)
+    if err != nil {
+        return nil, fmt.Errorf("decode endpoint: %w", err)
+    }
+    return endpoint, nil
+}
+
+func (e *Endpoint) regenerate(ctx context.Context) error {
+    e.initDNSHistoryTrigger()
+    return e.writeHeader(ctx)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Cilium removed the unnecessary trigger initialization from endpoint parsing. The normal first regeneration already initialized it at a safe point. The upstream production change deleted two lines and was backported to Cilium 1.16.4.</p>
+            <p><strong>Why the race warning was not the cause:</strong> it was a real defect worth repairing, but adding a lock made the warning disappear without changing the reported failure. Evidence can uncover more than one bug; a candidate cause must also change the symptom or explain the complete sequence.</p>
+            <p><strong>Suggested verification:</strong> restore an endpoint selected by an L7 DNS policy, generate DNS traffic throughout agent startup, and assert that startup completes without waiting for the global timeout. Repeat enough times to cover the timing window and confirm that DNS history still works after regeneration.</p>
+            <p><strong>Teaching inference:</strong> restart tests need realistic live traffic and restored state. A test that creates only new endpoints cannot cover a defect confined to the restoration path.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the community report records affected and unaffected versions, controlled comparisons, stack traces, a real but unrelated race, and confirmation from several environments. Read <a href="https://github.com/cilium/cilium/issues/35080" rel="noreferrer">Cilium issue #35080</a>, <a href="https://github.com/cilium/cilium/pull/35890" rel="noreferrer">repair PR #35890</a>, and the <a href="https://github.com/cilium/cilium/releases/tag/v1.16.4" rel="noreferrer">Cilium 1.16.4 release notes</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune H / The Replicas That Agreed</p>
+        <h3>Every copy can agree that live data is gone.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Range split race</span><span>Advanced</span><span>Source: February 2026</span><span>35 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>A CockroachDB cluster reports no ordinary replica inconsistency, but a recently written row is missing. The table has long runs of deleted sequential keys and occasionally receives corrections in old key ranges. Near the missing write, multi-version concurrency control (MVCC) garbage collection and a range split ran at nearly the same time.</p>
+          <cite>Teaching report — reconstructed from CockroachDB Technical Advisory 162085</cite>
+        </blockquote>
+
+        <p>CockroachDB divides its ordered keys into ranges and keeps several copies of each range. MVCC retains old versions of a key so transactions can read a consistent point in time; garbage collection later removes versions that are no longer needed. For a long span of obsolete keys, a range tombstone can delete the span more efficiently than deleting keys one at a time. A latch is a short-lived internal lock that prevents conflicting operations on the same keys.</p>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Do not equate agreement with correctness</p>
+            <strong>What operation could reach every copy?</strong>
+            <ul>
+              <li>Garbage collection found at least 2,000 consecutive obsolete versions.</li>
+              <li>The range split inside that span while the request was being prepared.</li>
+              <li>A new write landed on the new right-hand range before clearing finished.</li>
+              <li>The clear operation was created by the old left-hand range.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Compare the advertised span with the actual deletion.</strong>
+            <ol>
+              <li>Build a timeline of GC, the split, and the new write.</li>
+              <li>Record the range bounds used to route and latch the request.</li>
+              <li>Record every key span the request will actually clear.</li>
+              <li>Check whether the two spans are validated together after the split.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go model — not CockroachDB source</h4>
+        <div class="code-panel">
+          <div class="code-label">Coordination follows the header; deletion follows another span</div>
+          <pre><code>type ClearRequest struct {
+    Header Span
+    Clear  Span
+}
+
+func (r *Replica) apply(req ClearRequest) error {
+    release := r.latches.Lock(req.Header)
+    defer release()
+
+    if !r.bounds().Contains(req.Header) {
+        return ErrRangeChanged
+    }
+    return r.store.Clear(req.Clear)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and why checks could miss it</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> GC identified a clearable span before a split. After the split, the request header described the left-hand range, but the ClearRange operation could still extend into the new right-hand range. Latches protected only the advertised left-hand work. A right-hand write could therefore succeed and then be removed when the old clear operation reached the same underlying storage.</p>
+            <div class="code-panel good">
+              <div class="code-label">Validate and protect the keys that will actually be cleared</div>
+              <pre><code>func (r *Replica) apply(req ClearRequest) error {
+    release := r.latches.Lock(req.Clear)
+    defer release()
+
+    current := r.bounds()
+    if !current.Contains(req.Clear) {
+        return ErrRangeChanged
+    }
+    return r.store.Clear(req.Clear)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> CockroachDB added checks for GC keys that straddle the request header and tightened how the request span is constructed and validated. The exact production repair is more defensive than the sketch above; the important rule is that routing, latching, validation, and storage must describe the same keys.</p>
+            <p><strong>Why replicas could agree:</strong> after a split, the left- and right-hand ranges can still share the same storage on a node. Applying the same range tombstone on the left-hand replicas can therefore delete the right-hand key on every replica. Agreement proves that the same operation ran; it does not prove that the operation was valid.</p>
+            <p><strong>Detection:</strong> a secondary index may retain evidence that the primary row disappeared, and some timing variants can make replicas diverge. Neither is guaranteed. The advisory therefore recommends patched releases rather than relying on detection alone.</p>
+            <p><strong>Suggested verification:</strong> reproduce all three required events—an eligible obsolete span, a split inside it, and a new write on the right before clearing completes. Assert that an old request is rejected or rebuilt and that the new write survives.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the CockroachDB advisory gives the required timing, affected versions, mitigations, detection limits, and technical sequence. The issue and PR expose the production discussion, tests, backports, and follow-up hardening. Read <a href="https://www.cockroachlabs.com/docs/advisories/a162085" rel="noreferrer">Technical Advisory 162085</a>, <a href="https://github.com/cockroachdb/cockroach/issues/162085" rel="noreferrer">issue #162085</a>, and <a href="https://github.com/cockroachdb/cockroach/pull/162271" rel="noreferrer">repair PR #162271</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune I / The Index Built from Missing Columns</p>
+        <h3>An optimization that is safe for ordinary updates corrupts a backfill.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Schema change under writes</span><span>Advanced</span><span>Source: March–April 2026</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>After a partial index is created online, queries forced through that index disagree with the primary index. Some rows are missing, some contain unexpected <code>NULL</code> values, and some no longer satisfy the index predicate. The table uses multiple column families and continued receiving updates while the index was backfilled.</p>
+          <cite>Teaching report — reconstructed from CockroachDB Technical Advisory 166122</cite>
+        </blockquote>
+
+        <p>A partial index contains only rows that match a condition, such as <code>status = 'active'</code>. A backfill creates index entries for rows that existed before the index while ordinary writes continue. CockroachDB column families can store different groups of columns separately, so updating one family does not necessarily fetch values from another.</p>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Identify the special execution mode</p>
+            <strong>What is different during a backfill?</strong>
+            <ul>
+              <li>The new index is incomplete and is still being assembled.</li>
+              <li>Concurrent updates must also be written to a temporary index.</li>
+              <li>The merger needs a complete view of each changed row.</li>
+              <li>Columns in another family may not be fetched automatically.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the next evidence</p>
+            <strong>Read the same rows through independent paths.</strong>
+            <ol>
+              <li>Compare the partial index with the primary index in both directions.</li>
+              <li>Record which columns the update plan fetched.</li>
+              <li>Record whether the partial-index write was simplified away.</li>
+              <li>Repeat with one column family and then several.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go optimizer — not CockroachDB source</h4>
+        <div class="code-panel">
+          <div class="code-label">Ordinary-update rules are also applied to an index being built</div>
+          <pre><code>func optimizeUpdate(plan *UpdatePlan) {
+    if plan.indexColumnsUnchanged() {
+        plan.dropUnneededFetchColumns()
+        plan.skipPartialIndexWrite()
+    }
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and evidence</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> two optimizer rules were correct for an established index. If an update did not change index columns, the plan could avoid fetching them and avoid writing the unchanged index entry. During a backfill, however, the temporary index still needed the complete row and a write for every concurrent update. With several column families, omitted columns arrived as <code>NULL</code>; skipped writes produced missing or phantom rows.</p>
+            <div class="code-panel good">
+              <div class="code-label">Do not apply ordinary-update shortcuts to an index being built</div>
+              <pre><code>func optimizeUpdate(plan *UpdatePlan) {
+    if plan.IndexIsBeingBuilt() {
+        plan.fetchAllIndexColumns()
+        plan.keepPartialIndexWrite()
+        return
+    }
+    if plan.indexColumnsUnchanged() {
+        plan.dropUnneededFetchColumns()
+        plan.skipPartialIndexWrite()
+    }
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> the optimizer now keeps required columns and predicate evaluation for indexes being built. The production PR changed the catalog and normalization rules and added a larger regression test covering concurrent updates during the backfill.</p>
+            <p><strong>Why common tests passed:</strong> single-column-family tables fetched the whole family when any column changed, accidentally supplying the omitted values. Tests also need concurrent updates; a backfill over an idle table does not exercise the temporary-index merge path.</p>
+            <p><strong>Detection:</strong> compare the results in both directions: primary index minus partial index, then partial index minus primary index. The first comparison finds rows missing from the partial index; the second finds extra or incorrect partial-index rows.</p>
+            <p><strong>Teaching inference:</strong> an optimization is valid only under its stated conditions. When a mode such as migration, recovery, preview, or backfill changes what downstream code requires, make that mode visible in the plan and test it explicitly.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the public advisory states the required conditions, affected versions, repair releases, detection queries, and three forms of corruption. The issue and production PR explain the two optimizer rules and add the regression test. Read <a href="https://www.cockroachlabs.com/docs/advisories/a166122" rel="noreferrer">Technical Advisory 166122</a>, <a href="https://github.com/cockroachdb/cockroach/issues/166122" rel="noreferrer">issue #166122</a>, and <a href="https://github.com/cockroachdb/cockroach/pull/166123" rel="noreferrer">repair PR #166123</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune J / The Header That Survived Authentication</p>
+        <h3>Successful authentication can still let an attacker-controlled identity header through.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Trust boundaries</span><span>Intermediate</span><span>Source: March 2026</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>A reverse proxy accepts a valid token, and the authentication service returns <code>200 OK</code>. The service does not return an identity header. Even so, the backend receives <code>X-User-Role: superadmin</code>—the value supplied by the client.</p>
+          <cite>Teaching report — reconstructed from Caddy security advisory GHSA-7r4p-vjf4-gxv4</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Separate authentication from provenance</p>
+            <strong>What did the successful check establish?</strong>
+            <ul>
+              <li>The authentication service accepted the credential.</li>
+              <li>The authentication response contained no identity header.</li>
+              <li>The client’s identity header therefore remained untrusted.</li>
+              <li>The backend could not tell where the surviving value came from.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Follow one header across the boundary</p>
+            <strong>Compare the header at each boundary.</strong>
+            <ol>
+              <li>Record the client-supplied identity header.</li>
+              <li>Record whether the authentication response contains that header.</li>
+              <li>Record the value forwarded to the backend.</li>
+              <li>Repeat with a trusted value returned by the authentication service.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go middleware — not Caddy source</h4>
+        <div class="code-panel">
+          <div class="code-label">A conditional copy leaves the client’s value in place</div>
+          <pre><code>func copyIdentity(
+    request *http.Request,
+    authResponse *http.Response,
+    headers []string,
+) {
+    for _, name := range headers {
+        if value := authResponse.Header.Get(name); value != "" {
+            request.Header.Set(name, value)
+        }
+    }
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and trust-boundary test</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Caddy’s <code>forward_auth copy_headers</code> handling replaced a request header only when the authentication response supplied a value. If the response omitted the header, Caddy skipped the replacement and left the client’s value in place. The change that introduced this regression was intended to avoid copying empty placeholder values.</p>
+            <div class="code-panel good">
+              <div class="code-label">Remove untrusted state before conditionally adding trusted state</div>
+              <pre><code>func copyIdentity(
+    request *http.Request,
+    authResponse *http.Response,
+    headers []string,
+) {
+    for _, name := range headers {
+        request.Header.Del(name)
+        if value := authResponse.Header.Get(name); value != "" {
+            request.Header.Set(name, value)
+        }
+    }
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Caddy now deletes every header named in <code>copy_headers</code> before it conditionally copies the authentication service’s value. If the service returns a value, the backend receives that trusted value. If it returns nothing, the backend receives no header.</p>
+            <p><strong>Suggested verification:</strong> send an authenticated request with a forged identity header while the authentication response omits that header; assert that the backend receives no value. Then have the authentication service return an authoritative value and assert that it replaces the client’s value. Test both same-name copies and renamed destination headers.</p>
+            <p><strong>Teaching inference:</strong> absence matters at a trust boundary. Removing untrusted data and adding trusted data are separate operations. Remove the client’s value first; then decide whether an authoritative source should replace it.</p>
+            <p><strong>Source limit:</strong> the advisory and pull request document the vulnerability, the change that introduced it, the affected versions, and the repair. They do not report exploitation in the wild.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the advisory explains how a caller with a valid credential could preserve forged identity headers and identifies the regression. The repair PR adds the unconditional deletion, along with configuration and integration tests. Read <a href="https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4" rel="noreferrer">Caddy advisory GHSA-7r4p-vjf4-gxv4</a>, <a href="https://github.com/caddyserver/caddy/pull/6608" rel="noreferrer">introducing PR #6608</a>, and <a href="https://github.com/caddyserver/caddy/pull/7545" rel="noreferrer">repair PR #7545</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune K / Two Paths for One Request</p>
+        <h3>The router authorizes one path, but the backend receives another.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Canonical request identity</span><span>Advanced</span><span>Source: May 2025</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>A proxy exposes <code>/public</code> through one router and protects another path with different middleware. A request containing percent-encoded dot segments matches the public route. The backend later interprets the path differently and serves a resource that was not meant to be public.</p>
+          <cite>Teaching report — reconstructed from Traefik advisory GHSA-vrch-868g-9jx5</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Name every representation</p>
+            <strong>What does each component believe the path is?</strong>
+            <ul>
+              <li>The raw request contains percent-encoded characters.</li>
+              <li>The router uses one path to match its rules.</li>
+              <li>That match determines which middleware runs.</li>
+              <li>The backend interprets the forwarded path.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Choose the decisive trace</p>
+            <strong>Compare policy input with execution input.</strong>
+            <ol>
+              <li>Record the raw and decoded request path.</li>
+              <li>Record the path used to choose the router.</li>
+              <li>Record which middleware chain ran.</li>
+              <li>Record the path ultimately forwarded downstream.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go router — not Traefik source</h4>
+        <div class="code-panel">
+          <div class="code-label">Routing and forwarding interpret the path differently</div>
+          <pre><code>func serve(request *http.Request) error {
+    route := matchRoute(request.URL.EscapedPath())
+
+    forwardedPath := path.Clean(request.URL.Path)
+    return route.Forward(request.Context(), forwardedPath)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and boundary tests</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Traefik did not use the same canonical path for matching and forwarding. The encoded path could select a router before Traefik removed dot segments or decoded unreserved characters. The backend then received a path with a different meaning, so the middleware chosen for the first path did not necessarily protect the second.</p>
+            <div class="code-panel good">
+              <div class="code-label">Canonicalize once before routing policy</div>
+              <pre><code>func serve(request *http.Request) error {
+    routingPath, forwardedPath, err := canonicalPaths(request.URL)
+    if err != nil {
+        return fmt.Errorf("canonicalize request path: %w", err)
+    }
+
+    route := matchRoute(routingPath)
+    return route.Forward(request.Context(), forwardedPath)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> before routing, Traefik now decodes unreserved characters, normalizes the case of percent escapes, removes dot segments, and merges repeated slashes. It stores the resulting routing path in the request context. A follow-up changed the v3 matchers to use that path too.</p>
+            <p><strong>Suggested verification:</strong> exercise literal and encoded dot segments, upper- and lower-case percent escapes, repeated slashes, and reserved characters. Assert not only the status code but also the selected router, middleware chain, and forwarded path.</p>
+            <p><strong>Teaching inference:</strong> every component that makes a security decision must agree about which resource a request names. Validating one representation and acting on another creates a policy bypass, even when each transformation seems reasonable by itself.</p>
+            <p><strong>Source limit:</strong> the advisory provides a proof of concept and lists affected releases. It does not report exploitation in the wild or a public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the advisory demonstrates the middleware bypass with an encoded traversal. The v2 repair adds path normalization and sanitization before routing. The v3 follow-up makes its matchers use the same routing path. Read <a href="https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5" rel="noreferrer">Traefik advisory GHSA-vrch-868g-9jx5</a>, <a href="https://github.com/traefik/traefik/pull/11768" rel="noreferrer">repair PR #11768</a>, and <a href="https://github.com/traefik/traefik/pull/11790" rel="noreferrer">v3 follow-up PR #11790</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune L / The Neighbor’s ServiceEntry</p>
+        <h3>A global hostname map erases a namespace boundary.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Multi-tenant configuration</span><span>Advanced</span><span>Source: April–July 2019</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Two teams define the same external hostname in separate Kubernetes namespaces. One team expects its <code>ServiceEntry</code> to remain local, but proxies in the other namespace begin sending requests to the first team’s destination. A related conflict causes HTTP 503 responses from an internal service.</p>
+          <cite>Teaching report — reconstructed from Istio issue #13008</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Look for a lost part of identity</p>
+            <strong>Which fields distinguish the two declarations?</strong>
+            <ul>
+              <li>The hostname is deliberately the same.</li>
+              <li>The namespace and export scope are different.</li>
+              <li>The destination endpoints can be different.</li>
+              <li>The proxy that will use the entry has its own namespace and import scope.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Vary order and point of view</p>
+            <strong>Does resolution depend on who asks?</strong>
+            <ol>
+              <li>Create the entries in both possible orders.</li>
+              <li>Resolve the hostname from a proxy in each namespace.</li>
+              <li>Record the endpoints and cluster configuration delivered to each proxy.</li>
+              <li>Repeat with explicit local and cross-namespace imports.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go registry — not Istio source</h4>
+        <div class="code-panel">
+          <div class="code-label">The map key drops the namespace</div>
+          <pre><code>type Registry struct {
+    endpoints map[string][]Endpoint
+}
+
+func (r *Registry) Add(entry ServiceEntry) {
+    r.endpoints[entry.Host] = append(
+        r.endpoints[entry.Host],
+        entry.Endpoints...,
+    )
+}
+
+func (r *Registry) Resolve(_ Proxy, host string) []Endpoint {
+    return r.endpoints[host]
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and isolation contract</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> Pilot used the hostname alone as a service’s global identity. But namespace visibility also determined which <code>ServiceEntry</code> a proxy could use. With duplicate hostnames, some code paths chose a namespace arbitrarily while others combined services. Resolution did not consistently use the requesting proxy’s Sidecar scope.</p>
+            <div class="code-panel good">
+              <div class="code-label">Resolve within the requesting proxy’s visible configuration</div>
+              <pre><code>type ServiceKey struct {
+    Namespace string
+    Host      string
+}
+
+type Registry struct {
+    endpoints map[ServiceKey][]Endpoint
+}
+
+func (r *Registry) Resolve(proxy Proxy, host string) []Endpoint {
+    for _, namespace := range proxy.ImportedNamespaces() {
+        key := ServiceKey{Namespace: namespace, Host: host}
+        if endpoints := r.endpoints[key]; len(endpoints) != 0 {
+            return endpoints
+        }
+    }
+    return nil
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> Istio changed Pilot to resolve duplicate hostnames through the requesting proxy’s Sidecar scope. Where possible, it prefers the proxy’s own namespace. The PR also added an integration test. The real implementation handles more resolution modes than the sketch above.</p>
+            <p><strong>Suggested verification:</strong> create duplicate DNS and static ServiceEntries in several namespaces, vary their creation order, and inspect the configuration delivered to proxies with different scopes. Assert deterministic results and confirm that a local entry cannot affect an unrelated namespace.</p>
+            <p><strong>Teaching inference:</strong> namespace, tenant, account, region, and environment are not mere metadata when they control visibility. Include those fields in lookup, merge, cache, and deduplication keys.</p>
+            <p><strong>Source limit:</strong> the issue includes a concrete multi-namespace reproduction and shows how the conflict could disrupt production traffic. It does not describe the size or duration of a public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the issue shows cross-namespace routing interference, arbitrary endpoint selection, and a conflict with an internal service. The repair PR explains the previous undefined behavior, introduces Sidecar-scoped resolution, and adds integration coverage. Read <a href="https://github.com/istio/istio/issues/13008" rel="noreferrer">Istio issue #13008</a> and <a href="https://github.com/istio/istio/pull/13631" rel="noreferrer">repair PR #13631</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune M / The Rebalance That Overwrote Its Source</p>
+        <h3>Stopping work does not make every old worker harmless.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Stale asynchronous work</span><span>Advanced</span><span>Source: August 2024</span><span>30 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>An object-store cluster has several storage pools. An operator repeatedly starts and stops rebalancing while workers move existing objects. After the sequence, some objects are unreadable even though the stop commands have returned.</p>
+          <cite>Teaching report — reconstructed from the MinIO repair PR’s reproduction</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Find what outlives the command</p>
+            <strong>Which decisions happen at different times?</strong>
+            <ul>
+              <li>The worker chooses its source pool when it starts.</li>
+              <li>An operator can stop or restart rebalancing while it runs.</li>
+              <li>The write path chooses a destination later.</li>
+              <li>The old worker may still reach that write after the stop.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Inspect the commit boundary</p>
+            <strong>What must still be true immediately before writing?</strong>
+            <ol>
+              <li>Record the worker’s original source pool.</li>
+              <li>Record the selected destination pool.</li>
+              <li>Record which rebalance run created the worker.</li>
+              <li>Reject the move if its source and destination are the same.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go worker — not MinIO source</h4>
+        <div class="code-panel">
+          <div class="code-label">Destination selection forgets where the data came from</div>
+          <pre><code>type Move struct {
+    Object Object
+    Source int
+}
+
+func (s *Store) apply(move Move) error {
+    destination := s.choosePool(move.Object)
+    return s.pools[destination].Put(move.Object)
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and stale-work test</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> stopping a rebalance could race with workers that were already moving data. A worker could later choose the same pool it had read from as its destination. Treating that as a normal move allowed the write to overwrite the source object.</p>
+            <div class="code-panel good">
+              <div class="code-label">Carry the source identity to the final precondition</div>
+              <pre><code>var ErrSamePool = errors.New("source and destination pool are the same")
+
+func (s *Store) apply(move Move) error {
+    destination := s.choosePool(move.Object)
+    if destination == move.Source {
+        return ErrSamePool
+    }
+    return s.pools[destination].Put(move.Object)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> MinIO now carries <code>SrcPoolIdx</code> through normal and multipart data-movement writes. <code>PutObject</code> and <code>NewMultipartUpload</code> reject a write when the destination pool matches the source. They return a specific data-movement overwrite error, which the rebalance worker treats as an expected result of racing with a stop.</p>
+            <p><strong>Suggested verification:</strong> place a test barrier after reading from the source but before destination selection, stop and restart rebalance, and then release the stale worker. Assert that self-targeting movement is rejected and that every object remains readable. Also cover multipart objects.</p>
+            <p><strong>Teaching inference:</strong> cancellation asks work to stop; it does not prove that every worker has stopped. Destructive background work should carry its source pool—and, when needed, a run ID—all the way to the write. It must then check that the operation is still valid.</p>
+            <p><strong>Source limit:</strong> the PR provides the production repair and a repeatable start/stop stress test. It does not link to a separate operator report or public outage.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the PR describes the stop race, carries the source-pool index through each write path, and rejects moves back to the source pool. Its test recipe repeatedly starts and stops rebalancing, then checks that every object remains readable. Read <a href="https://github.com/minio/minio/pull/20233" rel="noreferrer">MinIO repair PR #20233</a>.</p>
+      </article>
+
+      <article class="paper wheel-case">
+        <p class="micro">Wheel of Misfortune N / The Three-Day Delete</p>
+        <h3>A cheap durability step becomes a multi-day delay when repeated millions of times.</h3>
+        <div class="case-meta" aria-label="Case metadata">
+          <span>Durability boundaries</span><span>Intermediate</span><span>Source: January 2026</span><span>25 minutes</span>
+        </div>
+        <blockquote class="report">
+          <p>Retention-policy deletion appears to hang on databases with more than ten million series. The process stays alive and the disk remains busy, but deletion makes almost no visible progress. At roughly 35 million series, the measured cost per series predicts several days of work.</p>
+          <cite>Teaching report — reconstructed from InfluxDB PR #27114</cite>
+        </blockquote>
+
+        <div class="packet-grid">
+          <div class="packet">
+            <p class="micro">Multiply the local cost</p>
+            <strong>What happens once per series?</strong>
+            <ul>
+              <li>Each deletion acquires a partition mutex.</li>
+              <li>It records one series as deleted.</li>
+              <li>It flushes the active segment with <code>fsync</code>.</li>
+              <li>The loop runs millions of times alongside other disk I/O.</li>
+            </ul>
+          </div>
+          <div class="packet">
+            <p class="micro">Measure work, not liveness</p>
+            <strong>Which evidence distinguishes deadlock from slow progress?</strong>
+            <ol>
+              <li>Count series completed and remaining.</li>
+              <li>Measure time per logical deletion and per flush.</li>
+              <li>Record mutex wait and disk latency separately.</li>
+              <li>Project completion time at production cardinality.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h4>Simplified Go deletion — not InfluxDB source</h4>
+        <div class="code-panel">
+          <div class="code-label">Every logical deletion becomes a durability barrier</div>
+          <pre><code>func (f *SeriesFile) Delete(ids []uint64) error {
+    for _, id := range ids {
+        partition := f.partitionFor(id)
+        if err := partition.DeleteSeriesID(id); err != nil {
+            return err
+        }
+        if err := partition.Flush(); err != nil {
+            return err
+        }
+    }
+    return nil
+}</code></pre>
+        </div>
+
+        <details class="debrief">
+          <summary>Open debrief — cause, repair, and durability contract</summary>
+          <div class="debrief-body">
+            <p><strong>Cause:</strong> <code>DeleteSeriesID</code> held a mutex and flushed its segment for every ID. The PR measured about 7.5 milliseconds per deletion in one test. At roughly 35 million series, that rate predicts almost three days of work—even before production lock contention and competing disk I/O.</p>
+            <div class="code-panel good">
+              <div class="code-label">Record the batch, then flush each touched partition</div>
+              <pre><code>func (f *SeriesFile) Delete(ids []uint64) error {
+    touched := make(map[int]struct{})
+    for _, id := range ids {
+        partition, err := f.DeleteSeriesID(id, NoFlush)
+        if err != nil {
+            return err
+        }
+        touched[partition.ID()] = struct{}{}
+    }
+    return f.FlushSegments(touched)
+}</code></pre>
+            </div>
+            <p><strong>Repair:</strong> InfluxDB made deletion and flushing separate operations. Bulk deletion records which partitions it touched, then flushes each partition’s active segment once, running those flushes in parallel. The change also logs progress every 10,000 series. In the revised test, the PR reports roughly two milliseconds for 10,000 deletions.</p>
+            <p><strong>Suggested verification:</strong> use a fake segment that counts flushes. Delete IDs spanning several partitions, then assert one final flush per touched partition rather than one per ID. Reopen the series file and confirm deletions remain durable. Benchmark at realistic cardinality rather than extrapolating from a small fixture alone.</p>
+            <p><strong>Teaching inference:</strong> durability needs an explicit boundary. Calling <code>fsync</code> after every small change is easy to reason about, but a batch can preserve the same recovery guarantee with far fewer flushes.</p>
+            <p><strong>Operational lesson:</strong> progress logs let responders distinguish a deadlock from slow forward progress. They also reveal the likely completion time while the team evaluates a deeper repair.</p>
+          </div>
+        </details>
+
+        <p class="source-note"><strong>Source trail:</strong> the PR describes the high-cardinality trigger, measures the cost per series, projects the multi-day runtime, and implements batched flushing and progress logs. It also tests deletion with and without an immediate flush. Read <a href="https://github.com/influxdata/influxdb/pull/27114" rel="noreferrer">InfluxDB repair PR #27114</a>.</p>
+      </article>
+    </section>
+
+    <section class="chapter shell" id="sources" aria-labelledby="sources-title">
+      <header class="chapter-head">
+        <div class="chapter-no" aria-hidden="true">//</div>
+        <div>
+          <h2 id="sources-title">Continue reading</h2>
+          <p class="chapter-intro">The project documents turn the chapter into practice. Books and operational manuals supply broader techniques; original reports show how those techniques behave under pressure.</p>
+        </div>
+      </header>
+
+      <div class="source-panel">
+        <p class="micro">Project practice</p>
+        <h3>go-crucible</h3>
+        <ol>
+          <li><a href="styleguide.html">Expanded Go Style and Readability Guide<span class="url">styleguide.html</span></a></li>
+          <li><a href="../exercises/wheel/README.md">Wheel of Misfortune track<span class="url">../exercises/wheel/README.md</span></a></li>
+          <li><a href="../exercises/wheel/01-replay-regression/REPORT.md">W01: Replay Regression — incoming report<span class="url">../exercises/wheel/01-replay-regression/REPORT.md</span></a></li>
+          <li><a href="../exercises/wheel/WORKSHEET.template.md">Wheel of Misfortune investigation worksheet<span class="url">../exercises/wheel/WORKSHEET.template.md</span></a></li>
+          <li><a href="../exercises/wheel/RUBRIC.md">Wheel of Misfortune process rubric<span class="url">../exercises/wheel/RUBRIC.md</span></a></li>
+        </ol>
+      </div>
+
+      <div class="source-panel">
+        <p class="micro">Books and field guides</p>
+        <h3>Building and shipping Go services</h3>
+        <ol>
+          <li><a href="https://www.manning.com/books/shipping-go" rel="noreferrer">Joel Holmes — <cite>Shipping Go</cite><span class="url">https://www.manning.com/books/shipping-go</span></a></li>
+          <li><a href="https://www.manning.com/books/go-in-practice-second-edition" rel="noreferrer">Nathan Kozyra, Matt Butcher, and Matt Farina — <cite>Go in Practice, Second Edition</cite><span class="url">https://www.manning.com/books/go-in-practice-second-edition</span></a></li>
+          <li><a href="https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them" rel="noreferrer">Teiva Harsanyi — <cite>100 Go Mistakes and How to Avoid Them</cite><span class="url">https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them</span></a></li>
+          <li><a href="https://www.manning.com/books/grpc-microservices-in-go" rel="noreferrer">H&uuml;seyin Babal — <cite>gRPC Microservices in Go</cite><span class="url">https://www.manning.com/books/grpc-microservices-in-go</span></a></li>
+          <li><a href="https://www.manning.com/books/go-in-action-second-edition" rel="noreferrer">Joel Holmes, Andrew Walker, and William Kennedy — <cite>Go in Action, Second Edition</cite> (Manning Early Access)<span class="url">https://www.manning.com/books/go-in-action-second-edition</span></a></li>
+          <li><a href="https://www.oreilly.com/library/view/cloud-native-go/9781098156411/" rel="noreferrer">Matthew A. Titmus — <cite>Cloud Native Go, Second Edition</cite><span class="url">https://www.oreilly.com/library/view/cloud-native-go/9781098156411/</span></a></li>
+          <li><a href="https://lets-go-further.alexedwards.net/" rel="noreferrer">Alex Edwards — <cite>Let&rsquo;s Go Further</cite><span class="url">https://lets-go-further.alexedwards.net/</span></a></li>
+          <li><a href="https://pragprog.com/titles/tjgo/distributed-services-with-go/" rel="noreferrer">Travis Jeffery — <cite>Distributed Services with Go</cite><span class="url">https://pragprog.com/titles/tjgo/distributed-services-with-go/</span></a></li>
+          <li><a href="https://www.oreilly.com/library/view/efficient-go/9781098105709/" rel="noreferrer">Bart&#322;omiej P&#322;otka — <cite>Efficient Go</cite><span class="url">https://www.oreilly.com/library/view/efficient-go/9781098105709/</span></a></li>
+          <li><a href="https://dave.cheney.net/practical-go" rel="noreferrer">Dave Cheney — <cite>Practical Go</cite><span class="url">https://dave.cheney.net/practical-go</span></a></li>
+        </ol>
+      </div>
+
+      <div class="source-panel">
+        <p class="micro">Operational manuals</p>
+        <h3>Signals, verification, lifecycle, and production feedback</h3>
+        <ol>
+          <li><a href="https://go.dev/doc/diagnostics" rel="noreferrer">Go Documentation — Diagnostics<span class="url">https://go.dev/doc/diagnostics</span></a></li>
+          <li><a href="https://pkg.go.dev/runtime/metrics" rel="noreferrer">Go package runtime/metrics<span class="url">https://pkg.go.dev/runtime/metrics</span></a></li>
+          <li><a href="https://go.dev/blog/slog" rel="noreferrer">Go Blog — Structured Logging with slog<span class="url">https://go.dev/blog/slog</span></a></li>
+          <li><a href="https://pkg.go.dev/net/http#Server" rel="noreferrer">Go package net/http — Server<span class="url">https://pkg.go.dev/net/http#Server</span></a></li>
+          <li><a href="https://pkg.go.dev/os/signal#NotifyContext" rel="noreferrer">Go package os/signal — NotifyContext<span class="url">https://pkg.go.dev/os/signal#NotifyContext</span></a></li>
+          <li><a href="https://go.dev/doc/articles/race_detector" rel="noreferrer">Go Documentation — Data Race Detector<span class="url">https://go.dev/doc/articles/race_detector</span></a></li>
+          <li><a href="https://go.dev/doc/security/fuzz/" rel="noreferrer">Go Documentation — Fuzzing<span class="url">https://go.dev/doc/security/fuzz/</span></a></li>
+          <li><a href="https://go.dev/doc/security/best-practices" rel="noreferrer">Go Documentation — Security Best Practices for Go Developers<span class="url">https://go.dev/doc/security/best-practices</span></a></li>
+          <li><a href="https://prometheus.io/docs/practices/instrumentation/" rel="noreferrer">Prometheus — Instrumentation practices<span class="url">https://prometheus.io/docs/practices/instrumentation/</span></a></li>
+          <li><a href="https://opentelemetry.io/docs/languages/go/" rel="noreferrer">OpenTelemetry — Go instrumentation<span class="url">https://opentelemetry.io/docs/languages/go/</span></a></li>
+          <li><a href="https://sre.google/workbook/monitoring/" rel="noreferrer">Google SRE Workbook — Monitoring<span class="url">https://sre.google/workbook/monitoring/</span></a></li>
+          <li><a href="https://go.dev/doc/pgo" rel="noreferrer">Go Documentation — Profile-guided optimization<span class="url">https://go.dev/doc/pgo</span></a></li>
+          <li><a href="https://www.datadoghq.com/blog/datadog-pgo-go/" rel="noreferrer">Datadog — Continuous PGO rollout, measurements, and memory regression<span class="url">https://www.datadoghq.com/blog/datadog-pgo-go/</span></a></li>
+          <li><a href="https://github.com/DataDog/datadog-pgo" rel="noreferrer">Datadog PGO — Open-source production-profile build tool<span class="url">https://github.com/DataDog/datadog-pgo</span></a></li>
+          <li><a href="https://github.com/golang/go/issues/65532" rel="noreferrer">Go issue #65532 — PGO can dramatically increase goroutine stack size<span class="url">https://github.com/golang/go/issues/65532</span></a></li>
+          <li><a href="https://www.uber.com/us/en/blog/automating-efficiency-of-go-programs-with-pgo/" rel="noreferrer">Uber — Automating Go PGO across production services<span class="url">https://www.uber.com/us/en/blog/automating-efficiency-of-go-programs-with-pgo/</span></a></li>
+        </ol>
+      </div>
+
+      <div class="source-panel">
+        <p class="micro">Original reports and other sources</p>
+        <h3>Go, SRE, safety investigations, and production reports</h3>
+        <ol>
+          <li><a href="https://google.github.io/styleguide/go/guide" rel="noreferrer">Google Go Style Guide<span class="url">https://google.github.io/styleguide/go/guide</span></a></li>
+          <li><a href="https://google.github.io/styleguide/go/best-practices" rel="noreferrer">Google Go Best Practices<span class="url">https://google.github.io/styleguide/go/best-practices</span></a></li>
+          <li><a href="https://go.dev/blog/go1.13-errors" rel="noreferrer">Go Blog — Working with Errors in Go 1.13<span class="url">https://go.dev/blog/go1.13-errors</span></a></li>
+          <li><a href="https://go.dev/blog/context-and-structs" rel="noreferrer">Go Blog — Contexts and structs<span class="url">https://go.dev/blog/context-and-structs</span></a></li>
+          <li><a href="https://pkg.go.dev/golang.org/x/sync/errgroup#Group.SetLimit" rel="noreferrer">Package errgroup — Group.SetLimit<span class="url">https://pkg.go.dev/golang.org/x/sync/errgroup#Group.SetLimit</span></a></li>
+          <li><a href="https://sre.google/sre-book/simplicity/" rel="noreferrer">Google SRE Book — Simplicity<span class="url">https://sre.google/sre-book/simplicity/</span></a></li>
+          <li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noreferrer">Google SRE Book — Monitoring Distributed Systems<span class="url">https://sre.google/sre-book/monitoring-distributed-systems/</span></a></li>
+          <li><a href="https://sre.google/sre-book/testing-reliability/" rel="noreferrer">Google SRE Book — Testing for Reliability<span class="url">https://sre.google/sre-book/testing-reliability/</span></a></li>
+          <li><a href="https://sre.google/sre-book/effective-troubleshooting/" rel="noreferrer">Google SRE Book — Effective Troubleshooting<span class="url">https://sre.google/sre-book/effective-troubleshooting/</span></a></li>
+          <li><a href="https://github.com/sarahmaeve/the-oldest-sins-in-the-newest-of-ways/blob/main/RELENG.md" rel="noreferrer">Sarah Murphy — Principles of Release Engineering<span class="url">https://github.com/sarahmaeve/the-oldest-sins-in-the-newest-of-ways/blob/main/RELENG.md</span></a></li>
+          <li><a href="https://www.ntsb.gov/investigations/AccidentReports/Reports/AIR2504.pdf?pubDate=20250711" rel="noreferrer">NTSB AIR-25-04 — Alaska Airlines Flight 1282<span class="url">https://www.ntsb.gov/investigations/AccidentReports/Reports/AIR2504.pdf?pubDate=20250711</span></a></li>
+          <li><a href="https://www.csb.gov/assets/1/20/exxonmobil_report_for_public_release.pdf?15813=" rel="noreferrer">US Chemical Safety Board — ExxonMobil Torrance Refinery Investigation Report<span class="url">https://www.csb.gov/assets/1/20/exxonmobil_report_for_public_release.pdf?15813=</span></a></li>
+          <li><a href="https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20030093634.pdf" rel="noreferrer">Columbia Accident Investigation Board Report, Volume I<span class="url">https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20030093634.pdf</span></a></li>
+          <li><a href="https://pckt.blog/b/jcalabro/april-2026-outage-post-mortem-219ebg2" rel="noreferrer">Jim’s Pckt — April 2026 Outage Post-Mortem<span class="url">https://pckt.blog/b/jcalabro/april-2026-outage-post-mortem-219ebg2</span></a></li>
+          <li><a href="https://blog.cloudflare.com/18-november-2025-outage/" rel="noreferrer">Cloudflare — November 18, 2025 outage<span class="url">https://blog.cloudflare.com/18-november-2025-outage/</span></a></li>
+          <li><a href="https://grafana.com/blog/how-we-responded-to-a-2-hour-partial-outage-in-grafana-cloud/" rel="noreferrer">Grafana Labs — February 18, 2025 partial outage<span class="url">https://grafana.com/blog/how-we-responded-to-a-2-hour-partial-outage-in-grafana-cloud/</span></a></li>
+          <li><a href="https://github.com/argoproj/gitops-engine/issues/623" rel="noreferrer">GitOps Engine issue #623 — Force replace changes resources during dry run<span class="url">https://github.com/argoproj/gitops-engine/issues/623</span></a></li>
+          <li><a href="https://github.com/argoproj/argo-cd/issues/23570" rel="noreferrer">Argo CD issue #23570 — Job remains in Progressing during force replace<span class="url">https://github.com/argoproj/argo-cd/issues/23570</span></a></li>
+          <li><a href="https://github.com/argoproj/gitops-engine/pull/633" rel="noreferrer">GitOps Engine PR #633 — Do not use force with dry run<span class="url">https://github.com/argoproj/gitops-engine/pull/633</span></a></li>
+          <li><a href="https://tailscale.com/blog/tls-outage-20240307" rel="noreferrer">Tailscale — March 7, 2024 TLS outage<span class="url">https://tailscale.com/blog/tls-outage-20240307</span></a></li>
+          <li><a href="https://kubernetes.io/blog/2024/12/17/kube-apiserver-api-streaming/" rel="noreferrer">Kubernetes — Enhancing API Server Efficiency with API Streaming<span class="url">https://kubernetes.io/blog/2024/12/17/kube-apiserver-api-streaming/</span></a></li>
+          <li><a href="https://kubernetes.io/blog/2025/05/09/kubernetes-v1-33-streaming-list-responses/" rel="noreferrer">Kubernetes v1.33 — Streaming LIST responses<span class="url">https://kubernetes.io/blog/2025/05/09/kubernetes-v1-33-streaming-list-responses/</span></a></li>
+          <li><a href="https://github.com/kubernetes/enhancements/issues/5116" rel="noreferrer">Kubernetes enhancement #5116 — Streaming response encoding<span class="url">https://github.com/kubernetes/enhancements/issues/5116</span></a></li>
+          <li><a href="https://github.com/kubernetes/kubernetes/pull/129334" rel="noreferrer">Kubernetes PR #129334 — Streaming JSON list encoder<span class="url">https://github.com/kubernetes/kubernetes/pull/129334</span></a></li>
+          <li><a href="https://github.com/kubernetes/kubernetes/pull/129407" rel="noreferrer">Kubernetes PR #129407 — Streaming Protocol Buffer list encoder<span class="url">https://github.com/kubernetes/kubernetes/pull/129407</span></a></li>
+          <li><a href="https://github.com/prometheus/prometheus/issues/17384" rel="noreferrer">Prometheus issue #17384 — Remote write fails to scale after 3.7 upgrade<span class="url">https://github.com/prometheus/prometheus/issues/17384</span></a></li>
+          <li><a href="https://github.com/prometheus/prometheus/pull/17407" rel="noreferrer">Prometheus PR #17407 — Diagnose the remote-write input measurement<span class="url">https://github.com/prometheus/prometheus/pull/17407</span></a></li>
+          <li><a href="https://github.com/prometheus/prometheus/pull/17412" rel="noreferrer">Prometheus PR #17412 — Revert queue scaling regression and add test<span class="url">https://github.com/prometheus/prometheus/pull/17412</span></a></li>
+          <li><a href="https://github.com/etcd-io/etcd/issues/20967" rel="noreferrer">etcd issue #20967 — Removed members return after upgrade<span class="url">https://github.com/etcd-io/etcd/issues/20967</span></a></li>
+          <li><a href="https://etcd.io/blog/2025/zombie_members_upgrade/" rel="noreferrer">etcd — Avoiding Zombie Cluster Members When Upgrading to v3.6<span class="url">https://etcd.io/blog/2025/zombie_members_upgrade/</span></a></li>
+          <li><a href="https://github.com/etcd-io/etcd/pull/20995" rel="noreferrer">etcd PR #20995 — Repair stored membership before upgrade<span class="url">https://github.com/etcd-io/etcd/pull/20995</span></a></li>
+          <li><a href="https://github.com/etcd-io/etcd/releases/tag/v3.5.26" rel="noreferrer">etcd v3.5.26 release<span class="url">https://github.com/etcd-io/etcd/releases/tag/v3.5.26</span></a></li>
+          <li><a href="https://etcd.io/blog/2025/upgrade_from_3.5_to_3.6_issue_followup/" rel="noreferrer">etcd — Follow-up on upgrade failures from v3.5 to v3.6<span class="url">https://etcd.io/blog/2025/upgrade_from_3.5_to_3.6_issue_followup/</span></a></li>
+          <li><a href="https://github.com/etcd-io/etcd/issues/20793" rel="noreferrer">etcd issue #20793 — Incorrect learner state survives rolling replacements<span class="url">https://github.com/etcd-io/etcd/issues/20793</span></a></li>
+          <li><a href="https://github.com/etcd-io/etcd/pull/20797" rel="noreferrer">etcd PR #20797 — Repair membership while applying snapshots<span class="url">https://github.com/etcd-io/etcd/pull/20797</span></a></li>
+          <li><a href="https://github.com/cilium/cilium/issues/35080" rel="noreferrer">Cilium issue #35080 — Agent restart timeout with active DNS policies<span class="url">https://github.com/cilium/cilium/issues/35080</span></a></li>
+          <li><a href="https://github.com/cilium/cilium/pull/35890" rel="noreferrer">Cilium PR #35890 — Delay DNS history trigger initialization<span class="url">https://github.com/cilium/cilium/pull/35890</span></a></li>
+          <li><a href="https://github.com/cilium/cilium/releases/tag/v1.16.4" rel="noreferrer">Cilium v1.16.4 release<span class="url">https://github.com/cilium/cilium/releases/tag/v1.16.4</span></a></li>
+          <li><a href="https://www.cockroachlabs.com/docs/advisories/a162085" rel="noreferrer">CockroachDB Technical Advisory 162085 — MVCC GC and range-split race<span class="url">https://www.cockroachlabs.com/docs/advisories/a162085</span></a></li>
+          <li><a href="https://github.com/cockroachdb/cockroach/issues/162085" rel="noreferrer">CockroachDB issue #162085 — MVCC GC inconsistency<span class="url">https://github.com/cockroachdb/cockroach/issues/162085</span></a></li>
+          <li><a href="https://github.com/cockroachdb/cockroach/pull/162271" rel="noreferrer">CockroachDB PR #162271 — Reject GC keys outside the request span<span class="url">https://github.com/cockroachdb/cockroach/pull/162271</span></a></li>
+          <li><a href="https://www.cockroachlabs.com/docs/advisories/a166122" rel="noreferrer">CockroachDB Technical Advisory 166122 — Partial-index corruption during backfill<span class="url">https://www.cockroachlabs.com/docs/advisories/a166122</span></a></li>
+          <li><a href="https://github.com/cockroachdb/cockroach/issues/166122" rel="noreferrer">CockroachDB issue #166122 — Partial-index data loss and phantom rows<span class="url">https://github.com/cockroachdb/cockroach/issues/166122</span></a></li>
+          <li><a href="https://github.com/cockroachdb/cockroach/pull/166123" rel="noreferrer">CockroachDB PR #166123 — Preserve complete rows for indexes being built<span class="url">https://github.com/cockroachdb/cockroach/pull/166123</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4" rel="noreferrer">Caddy advisory GHSA-7r4p-vjf4-gxv4 — Client-supplied identity header injection<span class="url">https://github.com/caddyserver/caddy/security/advisories/GHSA-7r4p-vjf4-gxv4</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/pull/6608" rel="noreferrer">Caddy PR #6608 — Conditionally copy response headers<span class="url">https://github.com/caddyserver/caddy/pull/6608</span></a></li>
+          <li><a href="https://github.com/caddyserver/caddy/pull/7545" rel="noreferrer">Caddy PR #7545 — Strip client identity before copying authenticated identity<span class="url">https://github.com/caddyserver/caddy/pull/7545</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5" rel="noreferrer">Traefik advisory GHSA-vrch-868g-9jx5 — Encoded path traversal bypass<span class="url">https://github.com/traefik/traefik/security/advisories/GHSA-vrch-868g-9jx5</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/pull/11768" rel="noreferrer">Traefik PR #11768 — Normalize request paths before routing<span class="url">https://github.com/traefik/traefik/pull/11768</span></a></li>
+          <li><a href="https://github.com/traefik/traefik/pull/11790" rel="noreferrer">Traefik PR #11790 — Use the normalized routing path in v3 matchers<span class="url">https://github.com/traefik/traefik/pull/11790</span></a></li>
+          <li><a href="https://github.com/istio/istio/issues/13008" rel="noreferrer">Istio issue #13008 — ServiceEntry cross-namespace interference<span class="url">https://github.com/istio/istio/issues/13008</span></a></li>
+          <li><a href="https://github.com/istio/istio/pull/13631" rel="noreferrer">Istio PR #13631 — Resolve ServiceEntries through Sidecar scope<span class="url">https://github.com/istio/istio/pull/13631</span></a></li>
+          <li><a href="https://github.com/minio/minio/pull/20233" rel="noreferrer">MinIO PR #20233 — Prevent rebalance from overwriting its source<span class="url">https://github.com/minio/minio/pull/20233</span></a></li>
+          <li><a href="https://github.com/influxdata/influxdb/pull/27114" rel="noreferrer">InfluxDB PR #27114 — Batch segment flushes during retention deletion<span class="url">https://github.com/influxdata/influxdb/pull/27114</span></a></li>
+          <li><a href="https://medium.com/@sogol.hedayatmanesh/goroutine-leaks-in-go-root-causes-real-world-examples-and-ironclad-detection-strategies-435c938d66ed" rel="noreferrer">Background article — common goroutine leak patterns<span class="url">https://medium.com/@sogol.hedayatmanesh/goroutine-leaks-in-go-root-causes-real-world-examples-and-ironclad-detection-strategies-435c938d66ed</span></a></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span>GO-CRUCIBLE / READING &amp; WRITING PRODUCTION GO</span>
+    <span>REPORT → EVIDENCE → CONTRACT → REPAIR → HANDOFF</span>
+  </footer>
+</body>
+</html>

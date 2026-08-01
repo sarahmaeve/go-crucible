@@ -131,8 +131,8 @@ if err != nil {
 slog.Info("drain complete", "spilled", n)
 ```
 
-(If `drainDone` later gains more close sites, guard it with
-`sync.Once` — this file has been burned by double-close before.)
+(If `drainDone` later gains more close sites, give completion one explicit
+owner or guard the close with `sync.Once`.)
 
 ## Suggestions
 

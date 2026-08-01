@@ -43,7 +43,9 @@ func main() {
 	for i := 0; i < 50; i++ {
 		src := ingest.NewFakeSourceN(fmt.Sprintf("target-%d", i), 1.0, 100)
 		out := make(chan types.Metric) // nobody ever reads
-		_ = ingest.ReadMetrics(context.Background(), src, out)
+		go func() {
+			_ = ingest.ReadMetrics(context.Background(), src, out)
+		}()
 	}
 
 	time.Sleep(2 * time.Second)
@@ -65,7 +67,7 @@ Format facts (validated):
 
 - **debug=1** buckets symbolise the user frames (and `runtime.main`)
   but NOT the parking machinery — the leaked bucket is 5 raw PCs in
-  the `@` line and exactly one `#` line for `ReadMetrics.func1`.
+  the `@` line and frames for `ReadMetrics` plus its caller.
   `created by` does not appear in debug=1 at all.
 - **debug=2 wait durations** (`[chan send, 1129 minutes]`) only
   appear once the runtime has stamped the goroutine's `waitsince`,
@@ -75,9 +77,9 @@ Format facts (validated):
   one minute never show). Live services GC constantly, so production
   dumps always have them. The format is `N minutes` — never
   singularised (`1 minutes` is what the runtime prints).
-- **No `gowrap` frame** for `reader.go:12`'s `go func() {...}()` —
-  wrapper frames (`X.gowrap1`) are only generated when the `go`
-  statement passes arguments (compare D02).
+- A harness that launches an anonymous caller normally shows its caller frame
+  beneath `ReadMetrics`; a fictional production capture can rename that frame
+  to the embedding scheduler while preserving the real stack shape.
 
 ## D02 — race detector report
 

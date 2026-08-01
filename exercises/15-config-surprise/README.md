@@ -4,7 +4,12 @@
 
 ## Symptoms
 
-A workflow is configured with `concurrency.cancel-in-progress: false` — a deliberate choice meaning "queue runs in order, do not cancel the in-progress one". After a round-trip through `RoundTripWorkflow` (parse → re-serialize), the output YAML no longer contains the `cancel-in-progress` field at all. Downstream consumers treat the absent field as the default (which may be `true`), silently changing the workflow's behaviour.
+The public workflow model distinguishes an absent
+`concurrency.cancel-in-progress` setting from explicit `false` and explicit
+`true`. After a round trip through `RoundTripWorkflow` (parse → re-serialize),
+the intermediate representation collapses absence and false into the same Go
+zero value, so an explicit choice disappears. That loss matters to tools that
+audit, diff, or enforce the written form.
 
 ## Reproduce
 
@@ -20,10 +25,12 @@ Examine the JSON struct tag on that field carefully.
 
 ## What You Will Learn
 
-- `omitempty` in JSON/YAML tags omits the field when it equals the Go zero value for its type
-- For `bool`, the zero value is `false` — so `omitempty` silently drops `false` values even when they are semantically meaningful
-- This is a common footgun when the zero value of a type carries a distinct meaning (disabled, off, queue-mode)
-- The fix: remove `omitempty` from fields where the zero value is a valid, meaningful configuration choice
+- `omitempty` on a plain boolean collapses absence and false during serialization
+- A pointer boolean can represent nil, false, and true when presence matters
+- This is a common footgun when explicit presence matters to configuration
+  provenance, or when another schema gives absence and the zero value different meanings
+- Presence information must survive every intermediate model in a round-trip pipeline
+- The fix: keep `*bool` rather than flattening the setting to `bool` in the JSON intermediate
 
 ## Fixing It
 

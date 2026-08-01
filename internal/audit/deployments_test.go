@@ -35,7 +35,13 @@ func TestExercise02_UnwrittenLabels(t *testing.T) {
 				panicVal = r
 			}
 		}()
-		_, _ = audit.AuditDeploymentLabels(t.Context(), fc, "default", []string{"app", "version", "team"})
+		findings, err := audit.AuditDeploymentLabels(t.Context(), fc, "default", []string{"app", "version", "team"})
+		if err != nil {
+			t.Errorf("AuditDeploymentLabels returned unexpected error: %v", err)
+		}
+		if len(findings) != 3 {
+			t.Errorf("AuditDeploymentLabels returned %d findings, want 3 missing-label findings", len(findings))
+		}
 	}()
 
 	if panicked {
@@ -64,7 +70,7 @@ func TestAuditDeploymentLabels_DetectsMissingLabels(t *testing.T) {
 	fc := client.NewFakeClient(dep)
 
 	// Wrap in recover so the test doesn't crash.
-	var findings []interface{}
+	var findings []any
 	panicked := false
 	func() {
 		defer func() {
@@ -88,6 +94,6 @@ func TestAuditDeploymentLabels_DetectsMissingLabels(t *testing.T) {
 
 	// Expect 2 findings: missing "version" and "team".
 	if len(findings) != 2 {
-		t.Errorf("expected 2 findings for 2 missing labels, got %d", len(findings))
+		t.Errorf("findings count = %d, want 2", len(findings))
 	}
 }

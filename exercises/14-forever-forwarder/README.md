@@ -4,7 +4,10 @@
 
 ## Symptoms
 
-`ForwardMetrics` is called with a channel that is eventually closed by the producer. After the channel is closed, the function should return. Instead it spins at 100% CPU forever. The test times out waiting for `ForwardMetrics` to exit. No goroutine leak detector is needed — the CPU spike makes it obvious.
+`ForwardMetrics` has two lifecycle failures. When the producer closes the input,
+it spins at 100% CPU instead of returning. When the downstream consumer stops
+receiving, it can block forever on the output send even after its context is
+cancelled.
 
 ## Reproduce
 
@@ -16,14 +19,20 @@ go test ./internal/ingest/ -run TestExercise14 -v
 
 `internal/ingest/reader.go` — look at the `ForwardMetrics` function
 
-Study the `select` statement inside the `for` loop. When `in` is closed, what does the `case m, ok := <-in:` branch return for `ok`? What does the code do with that information?
+Study the `select` statement inside the `for` loop. When `in` is closed, what
+does the `case m, ok := <-in:` branch return for `ok`? Then inspect the send to
+`out`: can cancellation interrupt it?
 
 ## What You Will Learn
 
 - Reading from a closed channel in Go returns immediately with the channel's zero value and `ok == false`
 - If the code ignores `ok` and `continue`s, the loop spins indefinitely — every iteration the closed channel case fires instantly
 - The fix: when `!ok`, return from the function (the channel is exhausted)
-- Always check the `ok` boolean when ranging over or selecting from channels that can be closed
+- A plain channel send is a blocking operation; wrap it in a `select` with
+  `ctx.Done()` when cancellation must remain effective
+- Check the `ok` boolean for explicit receives from channels that can be
+  closed, including receives inside `select`; a `for range` loop handles
+  closure automatically
 
 ## Fixing It
 

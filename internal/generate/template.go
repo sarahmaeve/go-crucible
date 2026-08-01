@@ -110,9 +110,10 @@ func (a AdvancedTemplate) Generate() (types.Workflow, error) {
 	}
 
 	if a.ConcurrencyGroup != "" {
+		cancelInProgress := true
 		wf.Concurrency = &types.WorkflowConcurrency{
 			Group:            a.ConcurrencyGroup,
-			CancelInProgress: true,
+			CancelInProgress: &cancelInProgress,
 		}
 	}
 

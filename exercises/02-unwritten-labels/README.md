@@ -10,7 +10,10 @@ Calling `AuditDeploymentLabels` against a namespace that contains a deployment m
 panic: assignment to entry in nil map
 ```
 
-The panic occurs even though the code declares `missingLabels` as a variable. The companion struct method `DeploymentAuditor.Audit` works perfectly — only the standalone function panics.
+The panic occurs while a two-pass audit records missing deployment/label pairs
+before reading that complete scratch result to build findings. The companion
+struct method `DeploymentAuditor.Audit` works — only the standalone function
+panics.
 
 ## Reproduce
 
@@ -22,7 +25,8 @@ go test ./internal/audit/ -run TestExercise02 -v
 
 `internal/audit/deployments.go` — look at the `AuditDeploymentLabels` function
 
-Find where `missingLabels` is declared and compare it with how the same map is initialized inside `NewDeploymentAuditor`.
+Follow both the writes and reads of `missingLabels`, then compare how the two
+public entry points initialize that scratch state.
 
 ## What You Will Learn
 

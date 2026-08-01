@@ -9,10 +9,8 @@ import (
 )
 
 // CacheStore persists metric identities so the pipeline can recognise
-// replays. Implementations return [types.ErrDuplicate] — wrapped with %w so
-// the chain is intact — when asked to write a key that has already been
-// recorded. Implementations may use whatever surrounding message they like;
-// the wording is not part of the contract.
+// replays. Implementations report an error matching [types.ErrDuplicate] when
+// asked to write a key that has already been recorded.
 type CacheStore interface {
 	Put(ctx context.Context, key string, metric types.Metric) error
 }

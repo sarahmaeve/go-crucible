@@ -23,3 +23,8 @@ for _, auditor := range auditors {
 ```
 
 This guarantees `wg.Wait()` sees the correct count regardless of scheduling order.
+
+On Go 1.25 or later, `wg.Go(func() { ... })` is another idiomatic option: it
+registers the task before launching it and calls `Done` when the function
+returns. Its function must not panic, so moving `Add` remains the clearest
+minimal repair when that stronger contract is not appropriate.

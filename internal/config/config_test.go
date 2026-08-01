@@ -103,7 +103,7 @@ func TestLoad_InvalidSeverity(t *testing.T) {
 	path := writeTemp(t, yaml)
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("Load() expected error for invalid severity, got nil")
+		t.Fatal("Load() error = nil, want an error for invalid severity")
 	}
 }
 
@@ -112,7 +112,7 @@ func TestLoad_UnknownField(t *testing.T) {
 	path := writeTemp(t, yaml)
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("Load() expected error for unknown field, got nil")
+		t.Fatal("Load() error = nil, want an error for unknown field")
 	}
 }
 
@@ -120,7 +120,7 @@ func TestLoad_FileNotFound(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "does-not-exist.yaml")
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("Load() expected error for missing file, got nil")
+		t.Fatal("Load() error = nil, want an error for missing file")
 	}
 }
 
@@ -128,7 +128,7 @@ func TestLoad_MalformedYAML(t *testing.T) {
 	path := writeTemp(t, "namespaces: [\n") // unclosed bracket
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("Load() expected error for malformed YAML, got nil")
+		t.Fatal("Load() error = nil, want an error for malformed YAML")
 	}
 }
 

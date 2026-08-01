@@ -6,11 +6,21 @@
 diff --git a/internal/audit/pods.go b/internal/audit/pods.go
 --- a/internal/audit/pods.go
 +++ b/internal/audit/pods.go
-@@ -17,6 +17,7 @@ func AuditPodLimits(ctx context.Context, c client.AuditClient, namespace string)
+@@ -3,7 +3,7 @@ package audit
+ 
+ import (
+ 	"context"
+-	"log/slog"
++	"fmt"
+ 
+ 	corev1 "k8s.io/api/core/v1"
+ 
+@@ -16,7 +16,7 @@ import (
+ func AuditPodLimits(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
  	pods, err := c.ListPods(ctx, namespace)
  	if err != nil {
- 		slog.Error("AuditPodLimits: failed to list pods", "err", err)
-+		return nil, err
+-		slog.Error("AuditPodLimits: failed to list pods", "err", err)
++		return nil, fmt.Errorf("audit pod limits: listing pods: %w", err)
  	}
-
+ 
  	var findings []types.Finding

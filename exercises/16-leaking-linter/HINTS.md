@@ -10,11 +10,7 @@ Open `internal/lint/linter.go` and find the `defer f.Close()` line inside the `f
 
 ## Hint 3: Almost There
 
-There are two clean fixes:
-
-**Option A — explicit close (no defer):** Replace `defer f.Close()` with `f.Close()` at the end of the loop body (after the YAML is decoded and linted).
-
-**Option B — extract a helper function:** Move the open-decode-lint logic into a helper:
+Extract the open-decode-lint logic into a helper:
 
 ```go
 func lintFile(path string, rules []lintRule) ([]types.LintFinding, error) {
@@ -28,3 +24,8 @@ func lintFile(path string, rules []lintRule) ([]types.LintFinding, error) {
 ```
 
 Call the helper from the loop. Each call returns and the deferred close fires before the next iteration opens the next file.
+
+Explicit close calls can also work, but not as a single call at the bottom of
+the current loop: decoding and other operations can return early. Every exit
+path would need to close the file, and production code should decide how to
+surface a close error. The helper keeps that lifetime structurally obvious.

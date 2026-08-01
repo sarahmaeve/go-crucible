@@ -4,25 +4,28 @@
 # Function: PushHandler.ServeHTTP
 #
 diff --git a/internal/ingest/http.go b/internal/ingest/http.go
-index 6512fed..5b5499f 100644
+index 6512fed..960f13a 100644
 --- a/internal/ingest/http.go
 +++ b/internal/ingest/http.go
-@@ -3,6 +3,7 @@ package ingest
+@@ -3,6 +3,8 @@ package ingest
  import (
  	"context"
  	"encoding/json"
 +	"errors"
++	"io"
  	"net/http"
-
+ 
  	"github.com/go-crucible/go-crucible/internal/types"
-@@ -47,8 +48,15 @@ func (h *PushHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+@@ -47,11 +49,28 @@ func (h *PushHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
  		return
  	}
-
+ 
 +	r.Body = http.MaxBytesReader(w, r.Body, h.maxBytes)
 +
  	var req PushRequest
- 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
++	dec := json.NewDecoder(r.Body)
++	if err := dec.Decode(&req); err != nil {
 +		var maxErr *http.MaxBytesError
 +		if errors.As(err, &maxErr) {
 +			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
@@ -31,3 +34,15 @@ index 6512fed..5b5499f 100644
  		http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
  		return
  	}
++	if err := dec.Decode(&struct{}{}); err != io.EOF {
++		var maxErr *http.MaxBytesError
++		if errors.As(err, &maxErr) {
++			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
++			return
++		}
++		http.Error(w, "request body must contain a single JSON value", http.StatusBadRequest)
++		return
++	}
+ 
+ 	for _, m := range req.Metrics {
+ 		if err := h.sink.Publish(r.Context(), m); err != nil {

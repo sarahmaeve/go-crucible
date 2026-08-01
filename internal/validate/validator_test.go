@@ -10,7 +10,7 @@ import (
 func TestValidateWorkflow_NilWorkflow(t *testing.T) {
 	_, err := validate.ValidateWorkflow(nil)
 	if err == nil {
-		t.Fatal("expected error for nil workflow, got nil")
+		t.Fatal("ValidateWorkflow(nil) error = nil, want non-nil")
 	}
 }
 
@@ -32,7 +32,7 @@ func TestValidateWorkflow_ValidWorkflow(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(errs) != 0 {
-		t.Errorf("expected no validation errors for valid workflow, got %d: %v", len(errs), errs)
+		t.Errorf("validation errors for valid workflow = %d (%v), want 0", len(errs), errs)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestValidateWorkflow_MissingName(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(errs) == 0 {
-		t.Error("expected validation error for missing name, got none")
+		t.Error("validation errors for missing name = 0, want at least 1")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestValidateWorkflow_NoJobs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(errs) == 0 {
-		t.Error("expected validation error for empty jobs, got none")
+		t.Error("validation errors for empty jobs = 0, want at least 1")
 	}
 }
 
@@ -93,7 +93,7 @@ func TestValidateWorkflow_JobMissingRunsOn(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("expected error for missing runs-on, got: %v", errs)
+		t.Errorf("missing runs-on error absent from %v", errs)
 	}
 }
 
@@ -115,16 +115,17 @@ func TestValidateWorkflow_StepMissingAction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(errs) == 0 {
-		t.Error("expected validation error for step without uses or run, got none")
+		t.Error("validation errors for step without uses or run = 0, want at least 1")
 	}
 }
 
 func TestValidateWorkflow_ConcurrencyMissingGroup(t *testing.T) {
+	cancelInProgress := true
 	wf := &types.Workflow{
 		Name: "CI",
 		Concurrency: &types.WorkflowConcurrency{
 			Group:            "",
-			CancelInProgress: true,
+			CancelInProgress: &cancelInProgress,
 		},
 		Jobs: map[string]types.Job{
 			"test": {
@@ -145,6 +146,6 @@ func TestValidateWorkflow_ConcurrencyMissingGroup(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("expected error for empty concurrency.group, got: %v", errs)
+		t.Errorf("empty concurrency.group error absent from %v", errs)
 	}
 }

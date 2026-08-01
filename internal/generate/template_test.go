@@ -1,6 +1,7 @@
 package generate_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/go-crucible/go-crucible/internal/generate"
@@ -32,19 +33,23 @@ func TestExercise11_TemplateTrap(t *testing.T) {
 		t.Errorf("test job Strategy is nil; expected a matrix strategy with os and go axes")
 	} else {
 		matrix := testJob.Strategy.Matrix
-		if len(matrix["os"]) < 2 {
-			t.Errorf("matrix.os has %d entries; want at least 2 (ubuntu-latest, macos-latest)", len(matrix["os"]))
+		if got, want := matrix["os"], []string{"ubuntu-latest", "macos-latest"}; !slices.Equal(got, want) {
+			t.Errorf("matrix.os = %v; want %v", got, want)
 		}
-		if len(matrix["go"]) < 2 {
-			t.Errorf("matrix.go has %d entries; want at least 2 (1.21, 1.22)", len(matrix["go"]))
+		if got, want := matrix["go"], []string{"1.21", "1.22"}; !slices.Equal(got, want) {
+			t.Errorf("matrix.go = %v; want %v", got, want)
 		}
 	}
 
 	// --- Assert concurrency block is present ---
 	if wf.Concurrency == nil {
 		t.Errorf("workflow Concurrency is nil; expected concurrency group to be set")
-	} else if wf.Concurrency.Group == "" {
-		t.Errorf("Concurrency.Group is empty; expected 'ci-${{ github.ref }}'")
+	} else if got, want := wf.Concurrency.Group, "ci-${{ github.ref }}"; got != want {
+		t.Errorf("Concurrency.Group = %q; want %q", got, want)
+	}
+
+	if got, want := wf.Name, "Advanced CI"; got != want {
+		t.Errorf("workflow name = %q; want %q", got, want)
 	}
 
 	// --- Assert the runner uses the matrix variable ---

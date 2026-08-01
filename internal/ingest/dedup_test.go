@@ -12,9 +12,7 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// legacyStore is an in-memory CacheStore whose duplicate-write error text
-// happens to contain the literal phrase "already recorded". It wraps the
-// types.ErrDuplicate sentinel via %w.
+// legacyStore is an in-memory CacheStore with legacy diagnostic wording.
 type legacyStore struct {
 	mu   sync.Mutex
 	seen map[string]bool
@@ -34,14 +32,19 @@ func (s *legacyStore) Put(_ context.Context, key string, _ types.Metric) error {
 	return nil
 }
 
-// modernStore is an in-memory CacheStore that wraps the same
-// types.ErrDuplicate sentinel but phrases its surrounding message
-// differently. Any classifier that inspects the error chain treats this
-// identically to legacyStore; a classifier that inspects the error text
-// does not.
+// modernStore reports the same duplicate condition with newer diagnostic
+// wording.
 type modernStore struct {
 	mu   sync.Mutex
 	seen map[string]bool
+}
+
+type failingStore struct {
+	err error
+}
+
+func (s failingStore) Put(context.Context, string, types.Metric) error {
+	return s.err
 }
 
 func newModernStore() *modernStore {
@@ -60,11 +63,9 @@ func (s *modernStore) Put(_ context.Context, key string, _ types.Metric) error {
 
 // TestExercise20_BrittleMatch verifies that Deduplicator.Ingest treats a
 // duplicate-key error from any CacheStore implementation as idempotent
-// success. Both stores below wrap the same sentinel (types.ErrDuplicate)
-// via %w, so a classifier that inspects the error chain handles them
-// identically.
+// success regardless of which conforming store produced the error.
 func TestExercise20_BrittleMatch(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	metric := types.Metric{
 		Name:      "cpu_usage",
 		Value:     87.0,
@@ -88,10 +89,7 @@ func TestExercise20_BrittleMatch(t *testing.T) {
 				t.Fatalf("first ingest: unexpected error: %v", err)
 			}
 
-			// A replay of the same metric must be absorbed as idempotent
-			// success. Both stores signal the duplicate by wrapping
-			// types.ErrDuplicate; the Deduplicator should recognise it
-			// regardless of the surrounding message.
+			// A replay of the same metric must be absorbed as idempotent success.
 			err := dedup.Ingest(ctx, metric)
 			if err == nil {
 				return
@@ -103,4 +101,13 @@ func TestExercise20_BrittleMatch(t *testing.T) {
 			t.Errorf("replay: unexpected error: %v", err)
 		})
 	}
+
+	t.Run("unrelated store failure is preserved", func(t *testing.T) {
+		storeErr := errors.New("storage unavailable")
+		dedup := ingest.NewDeduplicator(failingStore{err: storeErr})
+		err := dedup.Ingest(ctx, metric)
+		if !errors.Is(err, storeErr) {
+			t.Errorf("Ingest error = %v; want wrapped storage error", err)
+		}
+	})
 }

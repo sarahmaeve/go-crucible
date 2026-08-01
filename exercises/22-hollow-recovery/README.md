@@ -23,7 +23,8 @@ go test ./internal/worker/ -run TestExercise22 -v
 The exercise test passes a three-element batch through the pool. The
 middle element triggers a `panic` inside the supplied processor. The
 test asserts that all three `Result`s come back, with `Err` populated on
-the middle one and `nil` on the other two.
+the middle one and `nil` on the other two. It also captures the structured
+logger and requires the recovery record to contain a stack trace.
 
 The test wraps the call to `Pool.Process` in an inner closure with its
 own `recover`, so when the bug fires you get a clean assertion failure
@@ -82,9 +83,9 @@ has to be called to take effect.
   because `defer` is function-scoped rather than loop-scoped. Together
   with this exercise it forms a pair on subtle defer misuse.
 - [Exercise 19: The Graceless Shutdown](../19-graceless-shutdown/README.md)
-  — one of its three bugs is a panic on closing a closed channel.
-  Reasoning about who recovers from process-level panics overlaps with
-  the worker pattern here.
+  — another advanced lifecycle exercise, focused on signal cancellation,
+  context propagation, and joining owned goroutines rather than containing
+  panics within them.
 
 ## Fixing It
 

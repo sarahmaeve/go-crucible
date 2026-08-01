@@ -29,10 +29,13 @@ func TestExercise01_SilentFailure(t *testing.T) {
 			sentinelErr,
 		)
 	}
+	if err != nil && !errors.Is(err, sentinelErr) {
+		t.Errorf("AuditPodLimits error = %v; want it to wrap the client error", err)
+	}
 
 	if len(findings) > 0 {
 		t.Errorf(
-			"expected 0 findings when client errors, got %d",
+			"findings when client errors = %d, want 0",
 			len(findings),
 		)
 	}
@@ -49,8 +52,8 @@ func TestAuditPodLimits_FindsMissingLimits(t *testing.T) {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  "app",
-					Image: "nginx",
+					Name:      "app",
+					Image:     "nginx",
 					Resources: corev1.ResourceRequirements{
 						// No limits set
 					},
@@ -65,7 +68,7 @@ func TestAuditPodLimits_FindsMissingLimits(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(findings) == 0 {
-		t.Error("expected findings for pod with missing resource limits, got none")
+		t.Error("findings for pod with missing resource limits = 0, want at least 1")
 	}
 }
 
@@ -99,6 +102,6 @@ func TestAuditPodLimits_NoFindingsWhenLimitsSet(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(findings) != 0 {
-		t.Errorf("expected 0 findings for pod with proper limits, got %d", len(findings))
+		t.Errorf("findings for pod with proper limits = %d, want 0", len(findings))
 	}
 }

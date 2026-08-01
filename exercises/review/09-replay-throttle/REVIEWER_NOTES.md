@@ -2,9 +2,8 @@
 
 This is one reasonable review of the replay-throttle PR. Yours will
 differ in tone and emphasis. Compare the *substance*: did you catch
-the watchdog's timer churn next to a correct ticker, derive the
-Shutdown bug from the API contract rather than a memorised pattern,
-and connect the two in your overall assessment?
+the watchdog's timer churn next to a correct ticker and derive the
+Shutdown bug from the API contract rather than a memorised pattern?
 
 ## Overall assessment
 
@@ -12,16 +11,13 @@ and connect the two in your overall assessment?
 
 The replay design is solid — decoder goroutine feeding a throttled
 loop, correct ticker for the rate limit, body cap on the endpoint.
-Two issues block it, and they compound each other: the idle watchdog
-allocates an abandoned 30-second timer on every iteration (so a
-healthy high-volume replay steadily grows the timer heap — and the
-watchdog never actually measures idleness, since every metric resets
-it), and `srv.Shutdown(ctx)` is called with the already-cancelled
+Two independent issues block it: the idle watchdog allocates an
+abandoned 30-second timer on every iteration, creating needless GC
+pressure under healthy high-volume replay, and `srv.Shutdown(ctx)` is
+called with the already-cancelled
 daemon context, so "graceful" shutdown returns immediately and kills
-in-flight replays. Together: the replay load creates the memory
-growth that gets the daemon restarted, and every restart truncates
-the replay that caused it. Fixes are small; both have correct
-siblings to copy from.
+in-flight replays. Fixes are small; both have correct siblings to copy
+from.
 
 ## Blockers
 
@@ -36,14 +32,11 @@ case <-time.After(rp.idleTimeout):
 ```
 
 `time.After` allocates a fresh timer every time the `select` is
-entered — every loop iteration. During a healthy replay at the
-configured rate (one metric per 10ms), another case wins ~100 times
-per second, and each loser timer sits in the runtime's timer heap
-until its full 30 seconds elapse: roughly **3,000 live timers per
-replay stream at steady state**, times however many concurrent
-replays, for the entire duration of a multi-million-line replay.
-That's sustained allocation pressure in the very scenario this
-endpoint was built for.
+entered. During a healthy replay at the configured rate, another case
+wins roughly 100 times per second. Since Go 1.23, each unreachable
+timer is eligible for collection immediately; this is not retained
+timer growth. It is still sustained allocation and GC pressure in the
+very scenario this endpoint was built for.
 
 Note the rate limiter three lines up does it right —
 `time.NewTicker` with a deferred `Stop`. So does
@@ -110,15 +103,14 @@ if err := srv.Shutdown(shutCtx); err != nil {
 }
 ```
 
-### The interaction belongs in the merge decision
+### Keep the findings independent
 
-Neither bug is exotic alone. Together they form a loop: blocker 1's
-timer growth is the kind of slow memory climb that gets a daemon
-restarted (by ops or the OOM killer), and every restart goes through
-blocker 2, which truncates the in-flight replay — whose re-run then
-rebuilds the timer pressure. The system's failure mode isn't either
-bug; it's the cycle. Worth stating in the PR so the fixes land
-together rather than one-at-a-time.
+Both findings block the PR, but they have different evidence and
+consequences. The replay-loop issue creates avoidable allocation and
+GC pressure under sustained load. The shutdown issue abandons
+in-flight work because it passes an already-cancelled context.
+Do not claim that the first necessarily causes restarts or that it
+causes the second; report and test each issue on its own terms.
 
 ## Suggestions
 
@@ -209,9 +201,10 @@ case where blocker 2 has nothing to truncate. Two asks:
   ticker three lines above the wrong `time.After`, and the same
   package contains `ticker.go`. Pointing at the in-tree correct form
   makes the fix cheap to accept and hard to argue with.
-- **Naming the interaction.** Two medium bugs that feed each other
-  are a severe system, and the merge decision should hear that story,
-  not two disconnected findings.
+- **Keeping independent findings independent.** The hot-path
+  allocation and shutdown truncation have different triggers and
+  effects. A review should not invent a causal cycle merely to make
+  the overall assessment sound more dramatic.
 - **Positive verification with specifics.** The `ErrServerClosed`
   idiom, the body cap, the clean producer-goroutine — each verified
   with the reason it's right. On an advanced diff, what you *cleared*

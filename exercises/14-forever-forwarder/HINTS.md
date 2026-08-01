@@ -2,22 +2,34 @@
 
 ## Hint 1: Direction
 
-After the input channel is closed, `ForwardMetrics` should return. Instead it loops forever. Reading from a closed channel in Go does not block — it returns immediately. If the loop keeps going, there must be something in the loop body that does not detect the closed channel and exit.
+There are two places this forwarder can get stuck: repeatedly receiving from a
+closed input, and sending to an output whose consumer has stopped. Both exit
+paths are part of the function's context-aware contract.
 
 ## Hint 2: Narrower
 
-Open `internal/ingest/reader.go` and look at `ForwardMetrics`. The `select` case is `case m, ok := <-in:`. The `ok` variable is captured — but look at what the code does when `!ok`. It hits `continue`, which starts the next loop iteration, which immediately reads from the (still-closed) channel again, repeating forever.
+Open `internal/ingest/reader.go` and look at `ForwardMetrics`. When `!ok`, the
+code hits `continue`, immediately reads the closed channel again, and repeats
+forever. The later `out <- m` is also a bare blocking send with no cancellation
+case.
 
 ## Hint 3: Almost There
 
 When `ok` is `false`, the channel is closed and there is nothing more to read. Return from the function:
 
 ```go
+case <-ctx.Done():
+    return ctx.Err()
 case m, ok := <-in:
     if !ok {
-        return nil  // channel closed; we are done
+        return nil
     }
-    out <- m
+    select {
+    case out <- m:
+    case <-ctx.Done():
+        return ctx.Err()
+    }
 ```
 
-Remove the `_ = m` and `continue` lines and replace them with this check.
+The inner `select` is necessary: once the outer input case has been selected,
+the outer context case can no longer interrupt a blocked output send.

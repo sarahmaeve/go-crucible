@@ -46,7 +46,7 @@ func (f *FakeSource) Read(_ context.Context) (types.Metric, error) {
 }
 
 // BlockingSource is a MetricSource that blocks until its context is cancelled,
-// then returns types.ErrSourceDrained. Useful for leak-detection tests.
+// then returns types.ErrSourceDrained.
 type BlockingSource struct{}
 
 // Read blocks until ctx is done.
@@ -55,10 +55,8 @@ func (b *BlockingSource) Read(ctx context.Context) (types.Metric, error) {
 	return types.Metric{}, types.ErrSourceDrained
 }
 
-// InfiniteSource is a MetricSource that never drains — it always returns the
-// same metric immediately without blocking. Useful for goroutine-leak tests
-// where the goroutine must be blocked trying to send on a full channel rather
-// than blocked reading from the source.
+// InfiniteSource is a MetricSource that never drains and always has another
+// metric ready.
 type InfiniteSource struct {
 	name string
 }

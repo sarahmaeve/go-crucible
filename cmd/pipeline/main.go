@@ -4,21 +4,17 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/go-crucible/go-crucible/internal/ingest"
-	"github.com/go-crucible/go-crucible/internal/types"
 )
 
 func main() {
-	// signal.NotifyContext (Go 1.16+) gives us a context that cancels on
-	// SIGINT/SIGTERM. stop() deregisters the signal handlers — call it via
-	// defer so the process is a good citizen even on normal exit.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := shutdownContext(context.Background())
 	defer stop()
 
 	src := ingest.NewFakeSourceN("pipeline.metrics", 1.0, 100)
@@ -31,9 +27,11 @@ func main() {
 	slog.Info("pipeline stopped")
 }
 
-// doneCh is a package-level channel used to signal pipeline completion.
-// It is reset at the start of each RunPipeline call. Tests may also reset it.
-var doneCh = make(chan struct{})
+// shutdownContext returns a child context cancelled by either interactive
+// interruption or the termination signal used by process supervisors.
+func shutdownContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+}
 
 // RunPipeline starts the ingestion pipeline and blocks until ctx is cancelled
 // or an unrecoverable error occurs.
@@ -42,28 +40,22 @@ var doneCh = make(chan struct{})
 func RunPipeline(ctx context.Context, sources []ingest.MetricSource) error {
 	slog.Info("pipeline starting", "sources", len(sources))
 
-	doneCh = make(chan struct{})
-	defer close(doneCh)
-
-	go func() {
-		for _, src := range sources {
+	var workers sync.WaitGroup
+	for _, src := range sources {
+		workers.Add(1)
+		go func(src ingest.MetricSource) {
+			defer workers.Done()
 			for {
 				m, err := src.Read(ctx)
 				if err != nil {
-					break
+					return
 				}
 				_ = m
 			}
-		}
-	}()
-
-	out := make(chan types.Metric, 64)
-	for _, src := range sources {
-		if err := ingest.ReadMetrics(ctx, src, out); err != nil {
-			return fmt.Errorf("pipeline: failed to start reader: %w", err)
-		}
+		}(src)
 	}
 
 	<-ctx.Done()
+	workers.Wait()
 	return nil
 }

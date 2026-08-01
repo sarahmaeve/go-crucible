@@ -1,85 +1,62 @@
 # Exercise 19 — Maintainer Notes
 
-## Solved in main as of 2026-04-16
+## Solved in main
 
-`cmd/pipeline/main.go` on the default branch carries the canonical fix. To
-reintroduce the buggy form for learners:
+`cmd/pipeline/main.go` carries the canonical modern implementation. To
+reintroduce the exercise form:
 
 ```bash
 git apply -R solutions/19-graceless-shutdown.patch
 ```
 
-Run `go test ./cmd/pipeline/ -run TestExercise19 -v` to confirm the exercise
-now fails.
+The inverse patch deliberately stays within the current
+`signal.NotifyContext` idiom. It no longer resurrects the older manual
+`signal.Notify` channel implementation.
 
-## Why the canonical fix uses `signal.NotifyContext`
+## Why the exercise was rewritten
 
-The original (pre-2026-04-16) solution taught three bug fixes in the old
-manual-channel form:
+The historical exercise said that failing to register SIGINT or SIGTERM made
+the signals have no effect. That premise was inaccurate: by default, Go exits
+on SIGINT and SIGTERM. The missing registration bypassed graceful cleanup; it
+did not make the process unstoppable.
 
-```go
-sigCh := make(chan os.Signal, 1)
-signalNotify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-go func() {
-    <-sigCh
-    cancel()
-}()
-```
+The historical form also used an otherwise-unused package-global `doneCh`
+which panicked on a second `RunPipeline` call. Although double-close failures
+are real, that particular state existed mainly to create a test-shaped bug.
 
-The modernized fix collapses that into one call:
+The rewritten exercise keeps the advanced compound-shutdown goal while using
+three failures that plausibly survive happy-path testing and reach production:
 
-```go
-ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-defer stop()
-```
+1. `shutdownContext` registers `os.Interrupt` but omits SIGTERM. Ctrl-C works
+   locally, while the supervisor's SIGTERM takes the default immediate-exit
+   path and skips cleanup.
+2. An owned worker calls `src.Read(context.Background())`, severing
+   cancellation propagation.
+3. The worker `WaitGroup` is maintained but never waited, so `RunPipeline`
+   does not uphold the ownership boundary implied by starting the goroutines.
 
-`signal.NotifyContext` has been in the standard library since Go 1.16. We
-switched to it for three reasons:
+## Test design
 
-1. **It's the idiom learners will see in real codebases.** Every mature Go
-   daemon written in the last few years uses `NotifyContext`. Teaching the
-   old form as canonical trains learners to write code that looks dated in
-   code review.
+The signal subtest re-executes the test binary as a subprocess. The child
+creates the real shutdown context and sends itself SIGTERM. With the exercise
+form, the child is terminated by the default signal action; with the solution,
+the context is cancelled and the child returns normally. This tests graceful
+handling without risking the parent test process.
 
-2. **One of the original three sub-bugs becomes structurally inexpressible.**
-   The "signal.Notify was never called" bug only exists because the old form
-   separates channel creation from registration. With `NotifyContext` there
-   is no separate registration step — if the call compiles, the signals are
-   registered. We dropped the `signal_notify_called` subtest accordingly.
+The context subtest uses a source that exits only when its received context is
+cancelled. The join subtest uses a source whose current read is released by the
+test, allowing it to prove that `RunPipeline` remains active until the owned
+worker finishes.
 
-3. **`defer stop()` is a cleaner lifecycle than a hand-rolled handler
-   goroutine.** The old form leaked a goroutine waiting on `sigCh` if the
-   pipeline exited via any path other than a signal. `stop()` deregisters
-   cleanly.
+Avoid returning to goroutine-count assertions. Explicit lifecycle signals are
+deterministic and state the contract more precisely.
 
-## What the exercise still teaches after modernization
+## Relationship to the review track
 
-Two of the three original bugs remain in the patch:
+R07 remains a deliberate transfer exercise. Its `setupSignals` helper calls
+`defer stop()` in the wrong scope, restoring default SIGTERM behavior before
+the returned context can observe a signal. That is a different mechanism with
+the same production consequence as this exercise's omitted SIGTERM.
 
-- **Bug 19-2 (double-close panic):** the package-level `doneCh` is closed
-  without being reset between calls. Solution resets it at the start of
-  `RunPipeline` and uses `defer close(doneCh)` directly instead of a
-  wrapping deferred func. Lesson: closing an already-closed channel panics.
-
-- **Bug 19-3 (goroutine ignores caller context):** a background goroutine
-  inside `RunPipeline` calls `src.Read(context.Background())` instead of
-  `src.Read(ctx)`. Lesson: every goroutine must honor the caller's context
-  or you leak on shutdown. (This is the same lesson as Exercise 10, in a
-  different surface.)
-
-If you expand this exercise in the future, consider adding a fourth bug
-that `signal.NotifyContext` *can* still express incorrectly: forgetting
-`defer stop()` leaks the signal-handler goroutine until process exit. That
-would be a good advanced variant.
-
-## Test coverage
-
-The exercise retains two subtests:
-
-- `bug19-2_double_close_panic` — calls `RunPipeline` twice in sequence,
-  panics on the second call if `doneCh` isn't reset.
-- `goroutine_exits_on_context_cancellation` — uses `BlockingSource` and
-  `runtime.NumGoroutine()` to detect leaks after cancellation.
-
-The old third subtest (`signal_notify_called`) was removed because its
-assertion became tautological under `NotifyContext` (see point 2 above).
+R07's double-close finding is now a neighboring shutdown-ownership problem,
+not a direct repetition of exercise 19's retired package-global channel.

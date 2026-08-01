@@ -7,9 +7,9 @@ Go code and run commands in a terminal.
 
 ## What You Need Installed
 
-- **Go** (1.25 or later) — [install instructions](https://go.dev/doc/install).
-  Verify with `go version`. The `k8s.io/client-go` dependency pins the floor at
-  Go 1.25; earlier toolchains will fail at `go mod download`.
+- **Go** (1.26 or later) — [install instructions](https://go.dev/doc/install).
+  Verify with `go version`. The module's declared minimum is Go 1.26, so earlier
+  toolchains will reject it.
 - **Git** — for cloning the repo and optionally applying solution patches.
 - **A text editor** you're comfortable navigating code in. VS Code with the Go
   extension is a good default, but anything that lets you jump to definitions

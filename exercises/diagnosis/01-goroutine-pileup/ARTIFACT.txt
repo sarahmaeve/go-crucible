@@ -5,7 +5,8 @@ Binary embeds: github.com/go-crucible/go-crucible (ingest package)
 $ curl -s http://localhost:6060/debug/pprof/goroutine?debug=1
 goroutine profile: total 3871
 3848 @ 0x43e96e 0x40764d 0x4071b8 0x4cf3a5 0x46c041
-#	0x4cf3a4	github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1+0x52	/build/go-crucible/internal/ingest/reader.go:18
+#	0x4cf3a4	github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics+0x52	/build/go-crucible/internal/ingest/reader.go:18
+#	0x6e2b30	main.(*scheduler).runTarget.func1+0x90			/srv/metrics-scheduler/scheduler.go:219
 
 8 @ 0x43e96e 0x437a17 0x46f9c5 0x4e58e7 0x4e6bcd 0x4e6bbb 0x57a4ce 0x58c3e5 0x46c041
 #	0x46f9c4	internal/poll.runtime_pollWait+0x84		/usr/local/go/src/runtime/netpoll.go:351
@@ -32,22 +33,28 @@ goroutine profile: total 3871
 
 $ curl -s 'http://localhost:6060/debug/pprof/goroutine?debug=2' | head -60
 goroutine 81442 [chan send, 1129 minutes]:
-github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics({0x73a440, 0xc00041c050}, {0x738ee0, 0xc0003a6240}, 0xc00043a000)
 	/build/go-crucible/internal/ingest/reader.go:18 +0x53
-created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
+main.(*scheduler).runTarget.func1()
+	/srv/metrics-scheduler/scheduler.go:219 +0x91
+created by main.(*scheduler).runTarget in goroutine 412
+	/srv/metrics-scheduler/scheduler.go:212 +0x190
 
 goroutine 81519 [chan send, 1127 minutes]:
-github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics({0x73a440, 0xc00041c190}, {0x738ee0, 0xc0003a63c0}, 0xc00043a070)
 	/build/go-crucible/internal/ingest/reader.go:18 +0x53
-created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
+main.(*scheduler).runTarget.func1()
+	/srv/metrics-scheduler/scheduler.go:219 +0x91
+created by main.(*scheduler).runTarget in goroutine 412
+	/srv/metrics-scheduler/scheduler.go:212 +0x190
 
 goroutine 82201 [chan send, 1102 minutes]:
-github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics.func1()
+github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics({0x73a440, 0xc00041c2d0}, {0x738ee0, 0xc0003a6540}, 0xc00043a0e0)
 	/build/go-crucible/internal/ingest/reader.go:18 +0x53
-created by github.com/go-crucible/go-crucible/internal/ingest.ReadMetrics in goroutine 412
-	/build/go-crucible/internal/ingest/reader.go:12 +0x9d
+main.(*scheduler).runTarget.func1()
+	/srv/metrics-scheduler/scheduler.go:219 +0x91
+created by main.(*scheduler).runTarget in goroutine 412
+	/srv/metrics-scheduler/scheduler.go:212 +0x190
 
 [snip: 3,845 further goroutines with this exact stack, wait durations
  ranging from 2 minutes to 9,841 minutes. Oldest entries date to the

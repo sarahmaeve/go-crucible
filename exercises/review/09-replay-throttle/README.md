@@ -17,9 +17,9 @@ is a bug shape you have *not* met in any numbered exercise. The
 review track's promise was never "spot the patterns you memorised" —
 at some point the patterns run out and what's left is reading the
 code against the documented behaviour of the APIs it calls. This is
-that exercise. The two problems also interact: each one makes the
-other one's consequences worse. A review that finds both should say
-so.
+that exercise. The two problems are independent and should be
+reported separately: one is hot-path allocation pressure and the
+other is incorrect shutdown behaviour.
 
 Your deliverable is a review. Open `REVIEW_TEMPLATE.md`, fill it in,
 then compare against `REVIEWER_NOTES.md`.
@@ -228,11 +228,11 @@ If you get stuck, see [HINTS.md](./HINTS.md) for progressive hints.
 
 This exercise's planted bugs draw on:
 
-- **Exercise 18: The Ticking Leak** — `time.After` allocates a fresh
-  timer per call; in a loop where another case usually wins, the
-  abandoned timers accumulate until each one's full duration elapses.
+- **Exercise 18: The Ticking Allocation** — `time.After` allocates a
+  fresh timer per call. On Go 1.23+ abandoned timers are collectable,
+  but a hot loop still creates avoidable allocation and GC pressure.
   Compare `internal/ingest/ticker.go` in this very package — the
-  correct pattern is already on `main`.
+  reusable-timer pattern is already on `main`.
 - **Exercise 19: The Graceless Shutdown** — shutdown paths deserve
   adversarial reading. But the specific bug here is **not** one you
   have met: it lives in how `http.Server.Shutdown` treats the context
@@ -241,8 +241,7 @@ This exercise's planted bugs draw on:
 
 ## One note before you start
 
-The two problems in this diff feed each other: one of them needs
-sustained load to matter, and the other decides what happens to that
-load when the daemon stops. After you find each one, ask what the
-*other* one does to its blast radius — the combined story belongs in
-your overall assessment.
+The two problems appear under different conditions: one needs
+sustained load to matter, while the other decides what happens to
+in-flight work when the daemon stops. Keep their mechanisms and
+operational effects distinct in your overall assessment.

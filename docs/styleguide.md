@@ -1,7 +1,37 @@
-# Google Go Style Guide — Précis
+# Go Style and Readability Guide
 
-> Sources: [guide](https://google.github.io/styleguide/go/guide.html) · [decisions](https://google.github.io/styleguide/go/decisions) · [best-practices](https://google.github.io/styleguide/go/best-practices) · [cc-skills-golang](https://github.com/samber/cc-skills-golang)
+> Prefer a guided, example-rich presentation? Open the
+> [expanded HTML companion](./styleguide.html). It covers the same project
+> guidance with additional explanation, production notes, and a full source
+> index. For the incident-response reasoning behind the guide, continue with
+> [Reading and Writing Production Go](./production-go.html).
+
+> Primary references: [Google's guide](https://google.github.io/styleguide/go/guide.html),
+> [decisions](https://google.github.io/styleguide/go/decisions), and
+> [best practices](https://google.github.io/styleguide/go/best-practices). The
+> [cc-skills-golang](https://github.com/samber/cc-skills-golang) repository was
+> consulted as a secondary source; its advice is adapted here rather than
+> adopted wholesale.
+>
 > Five ranked properties: **Clarity > Simplicity > Concision > Maintainability > Consistency**
+
+This is the go-crucible project guide, not a verbatim précis of Google's
+rules. Interpret its language using these levels:
+
+- **Requirement** — enforced by the language, tooling, or a documented project
+  contract. Code should not violate it.
+- **Strong convention** — the normal choice; depart when the local context makes
+  another choice clearer or safer.
+- **Project convention** — consistency chosen for this repository, not a claim
+  about all Go programs.
+- **Technique** — useful when its stated problem exists, not a default dependency
+  or mandatory mechanism.
+- **Teaching exception** — starter code may deliberately contain the defect an
+  exercise teaches. Tests, supporting code, pre-solved implementations, and the
+  eventual repair should still follow the guide.
+
+When rules compete, follow the ranked properties above. Do not add complexity,
+dependencies, comments, or abstraction merely to satisfy a checklist.
 
 ---
 
@@ -14,7 +44,9 @@ gofmt -w .           # run on all hand-written .go files
 format.Source(b)     # use in code generators
 ```
 
-All Go files must match `gofmt` output. No exceptions, including generated code.
+All hand-written Go files must match `gofmt` output. Generated code should be
+formatted by its generator when the generator is under our control; do not hand
+edit externally generated output merely to restyle it.
 
 ---
 
@@ -33,7 +65,10 @@ const MAX_RETRIES = 3
 var buffer_size = 64
 ```
 
-Use `MixedCaps` (exported) or `mixedCaps` (unexported). This applies to constants too, even if other languages use `ALL_CAPS`.
+Use `MixedCaps` (exported) or `mixedCaps` (unexported). This applies to
+constants too, even if other languages use `ALL_CAPS`. Conventional test-name
+separators, generated identifiers, and operating-system or cgo interop are
+reasonable exceptions.
 
 ---
 
@@ -72,7 +107,9 @@ Variables used close to their declaration can be short (`i`, `v`, `b`). Function
 
 ## 5. Naming: Boolean Field Names
 
-**Why:** An unexported field named `connected` or `errors` could be a bool, an int, or a status — the type isn't visible at the usage site. The `is`/`has`/`can` prefix makes it unambiguous and reads as a question.
+**Why:** A predicate should read naturally and make its meaning clear at the use
+site. `is`/`has`/`can` often helps, especially where a bare noun or adjective is
+ambiguous.
 
 ```go
 // Good
@@ -84,20 +121,28 @@ type Worker struct {
 
 func (w *Worker) IsRunning() bool { return w.isRunning }
 
-// Bad — type is ambiguous at the usage site
+// Potentially ambiguous at the usage site
 type Worker struct {
     running bool
     errors  bool
 }
 ```
 
+This is a naming aid, not a universal prefix requirement. Preserve established
+domain terms and external schema vocabulary: fields such as `Enabled`,
+`FailFast`, and `CancelInProgress` may be clearer than mechanically prefixed
+alternatives.
+
 Exported methods keep the prefix: `IsRunning() bool`, not `Running() bool`.
 
 ---
 
-## 6. Naming: Enum Zero Values
+## 6. Naming: Useful Enum Zero Values
 
-**Why:** The zero value of a numeric type is `0`. If a real state (like "ready") lives at `iota` position 0, a freshly declared variable silently appears to be in that state without being explicitly set — a common source of bugs.
+**Why:** The zero value of a numeric type is `0`, so it should be safe and
+meaningful. When no state is a natural default, reserve zero for an explicit
+unknown or invalid sentinel. When the domain has a correct zero-value default,
+using it is preferable to manufacturing an unnecessary sentinel.
 
 ```go
 // Good — zero value is an explicit sentinel
@@ -112,7 +157,7 @@ const (
 
 var s Status // s == StatusUnknown — visibly unset
 
-// Bad — zero value is a real state
+// Risky when "ready" is not the intended default
 const (
     StatusReady Status = iota // var s Status silently means "ready"
     StatusRunning
@@ -121,9 +166,12 @@ const (
 
 ---
 
-## 7. Comments: Explain Why, Not What
+## 7. Comments: Document Contracts and Explain Why
 
-**Why:** Code already shows *what* happens; comments add value by explaining *why* or highlighting surprises.
+**Why:** Inline code usually shows *what* happens, so inline comments add value
+by explaining *why*, constraints, ownership, or surprises. Doc comments must
+also state the public contract: what the symbol provides, when to use it, and
+what can go wrong.
 
 ```go
 // Bad — restates the obvious
@@ -144,6 +192,10 @@ if err == nil {
     …
 }
 ```
+
+In an exercise fixture, document the intended contract without identifying the
+planted violation or prescribing its repair. The omission is deliberate: fault
+localisation is part of the exercise.
 
 ---
 
@@ -240,7 +292,10 @@ if err := doSomething(); err != nil {
 }
 ```
 
-Repeated boilerplate → table-driven tests. Repeated setup/teardown → `TestMain` or helpers. Repeated logic → helper function, not copy-paste.
+Repeated boilerplate may benefit from table-driven tests. Repeated setup and
+teardown usually belongs in helpers or `t.Cleanup`; reserve `TestMain` for
+genuinely package-wide lifecycle control. Extract repeated logic once the
+abstraction makes the test easier to read.
 
 ---
 
@@ -358,12 +413,12 @@ func (u *User) GetAge() int {}
 
 ```go
 // Good — package name is meaningful at call site
-import "myapp/iohelp"
-f.Seek(0, iohelp.SeekStart)
+import "myapp/backoff"
+d := backoff.Exponential(attempt)
 
 // Bad
 import "myapp/common"
-f.Seek(0, common.SeekStart)
+d := common.ExponentialBackoff(attempt)
 ```
 
 ---
@@ -433,11 +488,16 @@ if err != nil {
 // %w — caller can inspect the underlying error type
 return fmt.Errorf("loading config: %w", err)
 
-// %v — discard chain; use at system/package boundaries or when callers won't inspect
+// %v — deliberately make the cause opaque when callers must not inspect it
 return fmt.Errorf("request failed: %v", err)
 ```
 
-Place `%w` at the end of the message (`...: %w`). Exception: sentinel errors put it at the front to identify the category first (`fmt.Errorf("%w: invalid header", ErrParse)`).
+A package boundary alone is not a reason to discard an error chain. Use `%v`
+only when opacity is part of the API contract, such as translating an internal
+failure to a public error category. Otherwise preserve inspectability with
+`%w`. Place `%w` at the end of the message (`...: %w`). Exception: sentinel
+errors may go first when the category should lead
+(`fmt.Errorf("%w: invalid header", ErrParse)`).
 
 ---
 
@@ -477,7 +537,11 @@ func fetch(url string) ([]byte, error) {
 }
 ```
 
-Errors are either **logged** (at the top of the call stack, with full context) or **returned** (with wrapping context added). Never both at the same call site.
+As a strong default, an error is either **logged** at the point that owns the
+failure or **returned** with context for a caller to handle. Logging and
+returning the same failure is justified only when the log records information
+that cannot travel with the error and duplicate reporting is deliberately
+prevented or accepted. Prefer structured error context over such exceptions.
 
 ---
 
@@ -496,28 +560,39 @@ func NewIndexer(s Storer) *Indexer { … }
 func NewClient() *Client { … }  // not func NewClient() ClientInterface
 ```
 
-"Accept interfaces, return concrete types." Don't define an interface until there are at least two concrete implementations or a clear testing need.
+"Accept interfaces, return concrete types" is a useful starting heuristic, not
+an API law. Define the smallest interface at the point where a consumer needs
+substitution or a reduced capability. A shared interface may live in a neutral
+package when several consumers need the same contract. Constructors normally
+return concrete types, but returning an interface can be appropriate when
+hiding implementations is itself part of the contract.
 
 ---
 
-## 26. Interfaces: Don't Copy Sync Types
+## 26. Don't Copy Synchronisation Types After Use
 
-**Why:** Copying a `sync.Mutex`, `sync.WaitGroup`, or `bytes.Buffer` aliases the internal state, causing races and undefined behaviour.
+**Why:** Types such as `sync.Mutex` and `sync.WaitGroup` explicitly must not be
+copied after first use. Copying them splits or aliases bookkeeping that callers
+expect to represent one synchronisation object.
 
 ```go
-// Bad
-b1 := bytes.Buffer{}
-b2 := b1  // b2 shares b1's underlying array
+// Bad — mu has already participated in synchronization.
+mu.Lock()
+mu.Unlock()
+useByValue(mu) // copies mu
 
-// Good
-b := &bytes.Buffer{}
+// Good — retain one synchronization object and pass its address.
+use(&mu)
 ```
 
-Pass by pointer or use `new()`.
+Pass synchronization-bearing values by pointer. `bytes.Buffer` is not a sync
+type: copying a zero-value buffer is safe, while copying a used buffer can make
+the copies share backing bytes and should be avoided unless that aliasing is
+intentional and controlled.
 
 ---
 
-## 27. Context: First Param, Never in Struct
+## 27. Context: First Parameter; Normally Not Stored
 
 **Why:** Keeping context in the call chain makes cancellation and deadline propagation explicit and auditable. Storing context in a struct hides the lifetime.
 
@@ -531,7 +606,11 @@ type Worker struct {
 }
 ```
 
-Exceptions: HTTP handlers get `ctx` from `req.Context()`; test functions use `t.Context()`. Entrypoints use `context.Background()`.
+HTTP handlers get a context from `req.Context()`; tests normally start from
+`t.Context()`; entrypoints use `context.Background()`. Storing a context in a
+struct is rarely appropriate, but compatibility adapters and types whose entire
+lifetime represents one operation can justify it when the lifetime semantics
+are explicit and per-call contexts are impossible.
 
 ---
 
@@ -557,9 +636,13 @@ Document when a spawned goroutine exits. Use context cancellation or a `sync.Wai
 
 ---
 
-## 29. Don't Panic; Use `MustXYZ` Sparingly
+## 29. Don't Panic for Expected Failures; Use `MustXYZ` Sparingly
 
-**Why:** Panics skip deferred cleanup, make callers' error handling impossible, and are appropriate only for unrecoverable programmer errors.
+**Why:** A panic runs deferred functions while unwinding, but it removes normal
+error handling from callers and may terminate the process. Reserve it for
+programmer errors, broken invariants, or package-internal control flow that is
+recovered before crossing the package boundary. `os.Exit` and `log.Fatal`, not
+panic, skip deferred cleanup.
 
 ```go
 // Good — library returns error
@@ -575,13 +658,17 @@ func MustParse(s string) *Config {
 }
 ```
 
-`MustXYZ` is acceptable only at program startup or in test helpers — never on user input or request-time code.
+`MustXYZ` is appropriate when failure proves a programmer-controlled invariant
+is broken—for example a constant expression at startup or a test fixture. Do
+not apply it to user input or ordinary request-time failures.
 
 ---
 
 ## 30. Variable Declarations: Match Form to Intent
 
-**Why:** `:=` with a value and `var` for zero/empty convey different intent; using the wrong one is misleading.
+**Why:** `:=` with a value and `var` for a zero value can convey different
+intent. This is a readability heuristic, not a semantic distinction; be locally
+consistent when either form is equally clear.
 
 ```go
 // := when value is known
@@ -600,23 +687,29 @@ var names []string
 
 ## 31. Nil Slice vs Empty Slice
 
-**Why:** For internal types, `nil` is the idiomatic zero value: it costs nothing and works identically to an empty slice for `len`, `range`, and `append`. However, when a slice will be JSON-serialised, `nil` marshals to `null` while `[]T{}` marshals to `[]` — use the explicit form for any type that crosses an API or wire boundary.
+**Why:** For internal types, `nil` is an idiomatic zero value and works like an
+empty slice for `len`, `range`, and `append`. On a wire boundary, choose nil or
+empty according to the documented contract. With `encoding/json` v1, a nil
+slice marshals to `null` and a non-nil empty slice to `[]`; other encoders and
+future APIs may differ.
 
 ```go
 // Good — internal type; nil is idiomatic, no allocation needed
 var findings []Finding
 // len, range, append all work on nil
 
-// Good — JSON API response: must serialize as [] not null
+// Good when this API contract requires [] rather than null
 results := []Result{}         // or make([]Result, 0)
 json.Marshal(results)         // → "[]"
-json.Marshal([]Result(nil))   // → "null" ← wrong for an API
+json.Marshal([]Result(nil))   // → "null" with encoding/json v1
 
-// Bad — internal type; wastes a heap allocation
+// Also valid internally when non-nil identity matters
 findings := []Finding{}
 ```
 
-Do not design APIs that require callers to distinguish `nil` from empty — that contract is easy to violate silently.
+An empty literal does not inherently require a heap allocation; allocation is a
+compiler and escape-analysis decision. Avoid APIs that distinguish nil from
+empty unless that distinction carries real domain meaning and is tested.
 
 ---
 
@@ -653,15 +746,22 @@ type ReplicationOptions struct {
 }
 func EnableReplication(ctx context.Context, cfg *Config, opts ReplicationOptions) {}
 
-// Also good — variadic functional options (for library APIs with rare options)
+// Sometimes useful — variadic functional options for genuinely optional,
+// extensible library configuration
 func EnableReplication(ctx context.Context, cfg *Config, opts ...ReplicationOption) {}
 ```
 
+Prefer the option struct when it is sufficient. Functional options add types,
+closures, and documentation surface; use them only when those costs buy a
+clearer or more stable API.
+
 ---
 
-## 34. `%q` for String Values in Output
+## 34. `%q` When String Boundaries Matter
 
-**Why:** `%q` quotes and escapes automatically; manual quoting with `\"` is fragile and obscures empty strings.
+**Why:** `%q` quotes and escapes automatically, making empty strings,
+whitespace, and control characters visible in diagnostics. Use `%s` for normal
+human-facing prose where quoting would be noise; avoid manual `\"%s\"` quoting.
 
 ```go
 // Good
@@ -696,15 +796,22 @@ func Marshal(v interface{}) ([]byte, error)
 if needsTimeout {
     ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
     defer cancel()
+    use(ctx)
 }
 // ctx here is still the original — the timeout is lost
 
-// Good — stomp the outer variable intentionally
-ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-defer cancel()
+// Good — preserve the condition and assign to the outer ctx.
+if needsTimeout {
+    var cancel context.CancelFunc
+    ctx, cancel = context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+}
 ```
 
-Use simple `=` assignment to intentionally overwrite an existing variable without creating a new scope.
+Use simple `=` assignment to intentionally overwrite an existing variable
+without creating a new scope. Unconditional stomping with
+`ctx, cancel := context.WithTimeout(ctx, ...)` is also clear when the original
+context must not be used again.
 
 ---
 
@@ -713,13 +820,12 @@ Use simple `=` assignment to intentionally overwrite an existing variable withou
 **Why:** Consistent import grouping makes diffs cleaner; `import .` hides where identifiers come from.
 
 ```go
-// Good — four groups: stdlib | third-party | internal | proto | side-effect
+// Good — four groups: stdlib | other | proto | side-effect
 import (
     "fmt"
     "os"
 
     "github.com/some/lib"
-
     mypkg "myproject/internal/foo"
 
     foopb "myproject/proto/foo_go_proto"
@@ -774,8 +880,8 @@ if diff := cmp.Diff(want, got); diff != "" {
     t.Errorf("Frobnicate(%q) mismatch (-want +got):\n%s", input, diff)
 }
 
-// t.Fatal only for setup failures that make continuing meaningless
-// t.Error for assertion failures — let the test run to completion
+// t.Fatal when continuing this test or subtest would be meaningless or unsafe
+// t.Error when later assertions can still provide useful independent evidence
 ```
 
 Test helpers must call `t.Helper()` so failure lines point to the call site, not inside the helper.
@@ -787,7 +893,7 @@ Test helpers must call `t.Helper()` so failure lines point to the call site, not
 **Why:** `t.FailNow` and `t.Fatal` work by calling `runtime.Goexit()`, which only exits the *current* goroutine — not the test goroutine.
 
 ```go
-// Bad — t.Fatalf from a non-test goroutine is undefined behaviour
+// Bad — FailNow methods must run in the test goroutine
 go func() {
     if err := doWork(); err != nil {
         t.Fatalf("doWork: %v", err)  // wrong goroutine
@@ -805,7 +911,7 @@ go func() {
 
 ---
 
-## 41. Tests: Detect Goroutine Leaks
+## 41. Tests: Make Goroutine Exit Observable
 
 **Why:** Tests that start goroutines but don't verify they exit pass even when the code under test leaks goroutines in production. Without detection, goroutine leaks are silent until memory exhaustion.
 
@@ -824,13 +930,21 @@ func TestWorker(t *testing.T) {
 }
 ```
 
-`goleak` fails the test if any goroutine started during the test is still running when it exits. Use `goleak.IgnoreCurrent()` to exclude goroutines that pre-date the test (background library goroutines).
+`goleak` is one useful technique for packages whose goroutine ownership is too
+broad for targeted assertions. It detects unexpected live goroutines rather
+than proving the origin of each one; `IgnoreCurrent` and library exclusions can
+also hide defects. Prefer direct completion signals, cancellation assertions,
+`WaitGroup` ownership, or `testing/synctest` when they can express the contract
+deterministically. Do not add `goleak` merely because a package uses a
+goroutine.
 
 ---
 
 ## 42. Tests: `t.Parallel()` and `t.Context()`
 
-**Why:** Independent tests can run concurrently, reducing suite time. `t.Context()` (Go 1.24+) returns a context that is cancelled when the test ends, preventing goroutines launched during the test from leaking past its boundary.
+**Why:** Independent tests can run concurrently when suite runtime benefits.
+`t.Context()` (Go 1.24+) gives work a lifecycle tied to the test and should
+normally be the root context for operations started by that test.
 
 ```go
 func TestProcess(t *testing.T) {
@@ -856,7 +970,10 @@ func TestProcess(t *testing.T) {
 }
 ```
 
-`t.Parallel()` marks a test as safe to run concurrently with other parallel tests. Call it at the top of the subtest function, before any shared-state access.
+Use `t.Parallel()` only after verifying that the test does not share process
+state, environment, working directories, signals, resource limits, ports,
+timing assumptions, or mutable fixtures. Call it at the top of the subtest,
+before shared-state access. Parallelism is an optimisation, not a style goal.
 
 ---
 
@@ -864,18 +981,18 @@ func TestProcess(t *testing.T) {
 
 | # | Topic | Rule |
 |---|---|---|
-| 1 | Formatting | Always `gofmt` |
-| 2 | MixedCaps | No underscores; `mixedCaps`/`MixedCaps` everywhere |
+| 1 | Formatting | `gofmt` all hand-written Go; format owned generators |
+| 2 | MixedCaps | Use `mixedCaps`/`MixedCaps`; allow conventional interop/test exceptions |
 | 3 | Name repetition | Don't repeat package/type in identifier |
 | 4 | Name length | Short locals, descriptive params/returns |
-| 5 | Boolean fields | `isConnected`, `hasErrors` — not bare `connected` |
-| 6 | Enum zero values | `StatusUnknown` at iota 0; never a real state at 0 |
-| 7 | Comments | Explain *why*; signal-boost surprising patterns |
+| 5 | Boolean fields | Use `is`/`has`/`can` when it clarifies; preserve domain vocabulary |
+| 6 | Enum zero values | Make zero safe; use `Unknown` when no natural default exists |
+| 7 | Comments | State contracts; explain *why* and non-obvious constraints |
 | 8 | Clarity | Readable > clever; split complex expressions |
 | 9 | Switch vs if-else | Same variable → `switch`; assign default then override |
 | 10 | Simplicity | Least mechanism; language > stdlib > libs |
 | 11 | Deliberate complexity | Document it, test it, benchmark it |
-| 12 | Concision | Remove noise; table-driven tests for repetition |
+| 12 | Concision | Remove noise; use tables/helpers when they improve readability |
 | 13 | Maintainability | Named intermediates; auditable logic |
 | 14 | Line length | No hard limit; break on meaning, not columns |
 | 15 | Consistency | Closest scope wins; never justifies anti-patterns |
@@ -886,23 +1003,23 @@ func TestProcess(t *testing.T) {
 | 20 | Error strings | Lowercase, no trailing period |
 | 21 | In-band errors | Return `(T, error)` or `(T, bool)`, never `-1`/`""` |
 | 22 | Error flow indent | Handle error first; no `else` after early return |
-| 23 | `%w` vs `%v` | `%w` to preserve chain; `%v` at system boundaries |
-| 24 | Single handling rule | Log OR return — never both at the same call site |
-| 25 | Interfaces | Small, consumer-defined; accept interfaces, return concrete |
-| 26 | Sync types | Never copy `sync.Mutex`, `bytes.Buffer`, etc. |
-| 27 | Context | First param; never in struct |
+| 23 | `%w` vs `%v` | Preserve chains unless opacity is an intentional API contract |
+| 24 | Single handling rule | Normally log OR return; justify deliberate exceptions |
+| 25 | Interfaces | Keep small; normally consumer-defined and concrete-returning |
+| 26 | Sync types | Do not copy synchronization types after first use |
+| 27 | Context | First parameter; store only for a documented lifetime exception |
 | 28 | Goroutine lifetimes | Exit must be clear; use `WaitGroup`/cancellation |
-| 29 | Panic / `MustXYZ` | No panic for normal errors; `Must*` only at startup |
-| 30 | Var declarations | `:=` for known values; `var` for zero/unmarshal targets |
-| 31 | Nil vs empty slice | `var s []T` internally; `[]T{}` for JSON-serialised API responses |
+| 29 | Panic / `MustXYZ` | No panic for expected failures; `Must*` signals programmer invariants |
+| 30 | Var declarations | Prefer `:=` for known values and `var` for zero targets when clearer |
+| 31 | Nil vs empty slice | Nil internally by default; wire representation follows the API contract |
 | 32 | Channel direction | Annotate `chan<-` / `<-chan` in signatures |
-| 33 | Long arg lists | Option struct or variadic options |
-| 34 | `%q` | Use `%q` to quote strings, not `\"%s\"` |
+| 33 | Long arg lists | Prefer option structs; use functional options when their flexibility pays |
+| 34 | `%q` | Use `%q` when boundaries matter; do not manually quote `%s` |
 | 35 | `any` | Use `any`, not `interface{}` |
 | 36 | Shadowing | Use `=` to stomp; `:=` in nested scope creates a new var |
-| 37 | Import grouping | stdlib / external / internal / proto / side-effect; no `.` imports |
+| 37 | Import grouping | stdlib / other / proto / side-effect; no `.` imports |
 | 38 | Struct literals | Field names for external types; omit redundant type names |
-| 39 | Test failures | `got` before `want`; `t.Error` not `t.Fatal` for assertions; `t.Helper()` |
+| 39 | Test failures | Prefer `got` before `want`; fatal only when continuation is meaningless |
 | 40 | Goroutine in tests | `t.Errorf` + `return` from goroutines, never `t.Fatalf` |
-| 41 | Goroutine leaks | `goleak.VerifyTestMain` or `defer goleak.VerifyNone(t)` |
-| 42 | Parallel tests | `t.Parallel()` for independent subtests; `t.Context()` for scoped ctx |
+| 41 | Goroutine leaks | Assert exit directly; use `synctest` or `goleak` when they fit |
+| 42 | Test lifecycle | Prefer `t.Context()`; parallelise only safe tests when worthwhile |

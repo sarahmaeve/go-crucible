@@ -7,18 +7,16 @@ import (
 )
 
 // ReadMetrics reads from source and sends each Metric to out until the source
-// is drained or the context is cancelled.
+// is drained, an error occurs, or the context is cancelled. It runs
+// synchronously; callers that want asynchronous delivery own the goroutine.
 func ReadMetrics(ctx context.Context, source MetricSource, out chan<- types.Metric) error {
-	go func() {
-		for {
-			m, err := source.Read(ctx)
-			if err != nil {
-				return
-			}
-			out <- m
+	for {
+		m, err := source.Read(ctx)
+		if err != nil {
+			return err
 		}
-	}()
-	return nil
+		out <- m
+	}
 }
 
 // ForwardMetrics copies metrics from in to out until in is closed or the

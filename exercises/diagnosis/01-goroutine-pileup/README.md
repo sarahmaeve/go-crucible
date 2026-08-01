@@ -5,7 +5,8 @@
 ## Scenario
 
 The metrics-scheduler team runs a service that embeds this repo's
-`ingest` package: it starts one metrics reader per scrape target and
+`ingest` package: it starts one caller-owned goroutine per scrape target to run
+the synchronous metrics reader and
 cancels that target's context when the target is removed from the
 config. After a fleet-wide config migration that churned targets for
 a week, their dashboards show the scheduler's goroutine count at
@@ -49,7 +50,8 @@ progressive hints.
 - The single most useful leak signature in Go: **many goroutines, one
   stack** — and how the bucket count, the wait reason, and the wait
   duration together tell you it's a leak rather than a burst.
-- How `created by` frames let you walk from a parked goroutine back to
-  the code that started it.
+- How caller frames and `created by` frames establish which component owns a
+  parked goroutine while the blocked library frame identifies the operation
+  that needs a cancellation path.
 - Why "the caller cancels the context" is not enough — the goroutine
   has to be *listening*.

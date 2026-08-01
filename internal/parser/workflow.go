@@ -15,12 +15,12 @@ import (
 // the parser can do field-level normalization (e.g. coercing on: triggers,
 // expanding env variable references) before handing off to callers.
 type rawWorkflow struct {
-	Name        string                       `yaml:"name"`
+	Name        string `yaml:"name"`
 	on          map[string]any
 	env         map[string]string
-	Jobs        map[string]rawJob            `yaml:"jobs"`
-	Concurrency *types.WorkflowConcurrency   `yaml:"concurrency,omitempty"`
-	Permissions map[string]string            `yaml:"permissions,omitempty"`
+	Jobs        map[string]rawJob          `yaml:"jobs"`
+	Concurrency *types.WorkflowConcurrency `yaml:"concurrency,omitempty"`
+	Permissions map[string]string          `yaml:"permissions,omitempty"`
 }
 
 type rawJob struct {
@@ -78,13 +78,13 @@ func ParseWorkflow(data []byte) (*types.Workflow, error) {
 // roundTripIntermediate is used internally by RoundTripWorkflow to serialize
 // a Workflow through JSON before re-encoding as YAML.
 type roundTripIntermediate struct {
-	Name  string         `json:"name"`
-	On    map[string]any `json:"on"`
-	Env   map[string]string `json:"env,omitempty"`
-	Jobs  map[string]types.Job `json:"jobs"`
+	Name string               `json:"name"`
+	On   map[string]any       `json:"on"`
+	Env  map[string]string    `json:"env,omitempty"`
+	Jobs map[string]types.Job `json:"jobs"`
 	// Concurrency is embedded inline so individual sub-fields can have their own tags.
 	Concurrency *concurrencyIntermediate `json:"concurrency,omitempty"`
-	Permissions map[string]string `json:"permissions,omitempty"`
+	Permissions map[string]string        `json:"permissions,omitempty"`
 }
 
 type concurrencyIntermediate struct {
@@ -110,9 +110,13 @@ func RoundTripWorkflow(data []byte) ([]byte, error) {
 		Permissions: wf.Permissions,
 	}
 	if wf.Concurrency != nil {
+		var cancelInProgress bool
+		if wf.Concurrency.CancelInProgress != nil {
+			cancelInProgress = *wf.Concurrency.CancelInProgress
+		}
 		inter.Concurrency = &concurrencyIntermediate{
 			Group:            wf.Concurrency.Group,
-			CancelInProgress: wf.Concurrency.CancelInProgress,
+			CancelInProgress: cancelInProgress,
 		}
 	}
 

@@ -10,23 +10,29 @@
 //     .crucible/exercises.yaml has its directory, docs, patch, target
 //     file, and a TestExerciseNN function — and every exercise
 //     directory and solution patch in the tree is registered.
-//  2. Review and diagnosis exercises have their full file sets, and
+//  2. Review, diagnosis, and Wheel exercises have their full file sets, and
 //     their draws_on/localizes fields point at real numbered exercises.
 //  3. Diagnosis artifact pins: every {file, line, contains} pin in the
 //     registry matches the tree, and every go-crucible file:line
 //     mentioned inside an ARTIFACT.txt names a file that exists and is
 //     long enough.
-//  4. Spoiler lint: non-test .go files under internal/ and cmd/ must
-//     not carry comments that reveal bugs (BUG/FIXME/TODO/XXX/HACK
-//     markers, exercise numbers, "planted", "spoiler").
+//  4. Spoiler lint: comments under internal/ and cmd/ must not reveal
+//     exact diagnoses or fixes. Production comments also reject exercise
+//     numbers and planted-spoiler markers.
 //  5. Makefile drift: the EXERCISES and PRESOLVED lists match the
 //     registry's exercise numbers and solved_in_main fields.
+//  6. Formatting: every Go file under cmd/, internal/, and tools/ matches
+//     gofmt output.
 //
 // Run from the repository root: go run ./tools/verify
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -41,6 +47,7 @@ import (
 type registry struct {
 	Exercises          []exercise          `yaml:"exercises"`
 	ReviewExercises    []reviewExercise    `yaml:"review_exercises"`
+	WheelExercises     []wheelExercise     `yaml:"wheel_exercises"`
 	DiagnosisExercises []diagnosisExercise `yaml:"diagnosis_exercises"`
 }
 
@@ -56,6 +63,18 @@ type reviewExercise struct {
 	Number    string   `yaml:"number"`
 	Directory string   `yaml:"directory"`
 	DrawsOn   []string `yaml:"draws_on"`
+}
+
+type wheelExercise struct {
+	Number           string   `yaml:"number"`
+	Directory        string   `yaml:"directory"`
+	DrawsOn          []string `yaml:"draws_on"`
+	Report           string   `yaml:"report"`
+	Candidate        string   `yaml:"candidate"`
+	Evidence         []string `yaml:"evidence"`
+	Facilitator      string   `yaml:"facilitator"`
+	Debrief          string   `yaml:"debrief"`
+	ProductionEscape string   `yaml:"production_escape"`
 }
 
 type pin struct {
@@ -109,6 +128,8 @@ func main() {
 		func() []string { return checkNumbered(reg.Exercises) })
 	run(fmt.Sprintf("review exercises (%d)", len(reg.ReviewExercises)),
 		func() []string { return checkReview(reg) })
+	run(fmt.Sprintf("Wheel exercises (%d)", len(reg.WheelExercises)),
+		func() []string { return checkWheel(reg) })
 	run(fmt.Sprintf("diagnosis exercises (%d)", len(reg.DiagnosisExercises)),
 		func() []string { return checkDiagnosis(reg) })
 	run("artifact file:line references",
@@ -116,6 +137,7 @@ func main() {
 	run("spoiler lint (internal/, cmd/)", checkSpoilers)
 	run("Makefile EXERCISES/PRESOLVED drift",
 		func() []string { return checkMakefile(reg.Exercises) })
+	run("gofmt (cmd/, internal/, tools/)", checkFormatting)
 
 	if total > 0 {
 		fmt.Printf("\nverify-quick: %d problem(s)\n", total)
@@ -220,6 +242,78 @@ func checkReview(reg registry) []string {
 	return ps
 }
 
+func checkWheel(reg registry) []string {
+	var ps []string
+	numbered := numberSet(reg.Exercises)
+	dirs := map[string]bool{}
+
+	for _, path := range []string{
+		filepath.Join("exercises", "wheel", "README.md"),
+		filepath.Join("exercises", "wheel", "WORKSHEET.template.md"),
+		filepath.Join("exercises", "wheel", "RUBRIC.md"),
+	} {
+		if !fileExists(path) {
+			ps = append(ps, fmt.Sprintf("Wheel track: %s missing", path))
+		}
+	}
+
+	for _, w := range reg.WheelExercises {
+		dir := strings.TrimSuffix(w.Directory, "/")
+		dirs[filepath.Base(dir)] = true
+		if w.Number == "" || w.Directory == "" {
+			ps = append(ps, fmt.Sprintf("Wheel %q: number and directory are required", w.Number))
+		}
+		if strings.TrimSpace(w.ProductionEscape) == "" {
+			ps = append(ps, fmt.Sprintf("Wheel %s: production_escape is required", w.Number))
+		}
+		for _, path := range []string{
+			w.Report,
+			w.Candidate,
+			filepath.Join(dir, "evidence", "README.md"),
+			w.Facilitator,
+			w.Debrief,
+		} {
+			if path == "" || !fileExists(path) {
+				ps = append(ps, fmt.Sprintf("Wheel %s: %s missing", w.Number, path))
+			}
+		}
+		if len(w.Evidence) == 0 {
+			ps = append(ps, fmt.Sprintf("Wheel %s: no evidence packets registered", w.Number))
+		}
+		for _, path := range w.Evidence {
+			if !fileExists(path) {
+				ps = append(ps, fmt.Sprintf("Wheel %s: evidence packet %s missing", w.Number, path))
+			}
+		}
+		for _, n := range w.DrawsOn {
+			if !numbered[n] {
+				ps = append(ps, fmt.Sprintf("Wheel %s: draws_on %q is not a numbered exercise", w.Number, n))
+			}
+		}
+		if !pathWithin(w.Report, dir) || !pathWithin(w.Candidate, dir) {
+			ps = append(ps, fmt.Sprintf("Wheel %s: report and candidate guide must stay under %s", w.Number, dir))
+		}
+		for _, path := range w.Evidence {
+			if !pathWithin(path, filepath.Join(dir, "evidence")) {
+				ps = append(ps, fmt.Sprintf("Wheel %s: evidence packet %s is outside the candidate evidence directory", w.Number, path))
+			}
+		}
+		if !pathWithin(w.Facilitator, filepath.Join(".crucible", "wheel")) {
+			ps = append(ps, fmt.Sprintf("Wheel %s: facilitator truth must live under .crucible/wheel", w.Number))
+		}
+		if !pathWithin(w.Debrief, filepath.Join("solutions", "wheel")) {
+			ps = append(ps, fmt.Sprintf("Wheel %s: debrief must live under solutions/wheel", w.Number))
+		}
+	}
+
+	for _, ent := range readDir(filepath.Join("exercises", "wheel")) {
+		if ent.IsDir() && numberedDir.MatchString(ent.Name()) && !dirs[ent.Name()] {
+			ps = append(ps, fmt.Sprintf("exercises/wheel/%s/ has no registry entry", ent.Name()))
+		}
+	}
+	return ps
+}
+
 func checkDiagnosis(reg registry) []string {
 	var ps []string
 	numbered := numberSet(reg.Exercises)
@@ -302,38 +396,54 @@ func checkArtifactScan(diags []diagnosisExercise) []string {
 	return ps
 }
 
-var spoilerPatterns = []*regexp.Regexp{
+var commonSpoilerPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\b(BUG|FIXME|TODO|XXX|HACK)\b`), // case-sensitive markers
-	regexp.MustCompile(`(?i)\bexercise\s*\d`),           // "exercise 13"
+	regexp.MustCompile(`\b(BUGGY|FIXED)\b`),
+	regexp.MustCompile(`(?i)\bFAILS?\s+because\b`),
+	regexp.MustCompile(`(?i)\b(the\s+fix\s+is|fix\s+is|replace\s+.+\s+with|change\s+.+\s+to)\b`),
+	regexp.MustCompile(`(?i)\bprefer\s+\[?errors\.Is\]?\s+over\s+string\s+comparison\b`),
+	regexp.MustCompile(`(?i)\bwrap(?:ped|ping|s)?\b[^\n]*%w\b`),
+	regexp.MustCompile(`(?i)\bblocked\s+trying\s+to\s+(?:send|receive)\b`),
+	regexp.MustCompile(`(?i)\baccumulat\w*\b[^\n]*\buntil\b[^\n]*\b(?:function|returns?)\b`),
+}
+
+var productionSpoilerPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\bexercise\s*\d`), // "exercise 13"
 	regexp.MustCompile(`(?i)\b(planted|spoiler)\b`),
 }
 
-// checkSpoilers scans comments in non-test .go files. Test files are
-// exempt: exercise tests reference exercise numbers by convention.
-// Comment extraction is line-based and naive about "//" inside string
-// literals; the patterns are chosen so that false positives from URLs
-// or prose are unlikely.
+// checkSpoilers scans comments in every .go file. Test comments may name their
+// exercise and describe observable behavior, but they must not label exact
+// implementations as buggy/fixed or state the repair. Production comments
+// additionally may not mention exercise numbers or planted spoilers.
+// Comments are parsed with the Go parser so block comments are covered and
+// comment-like text inside string literals is ignored.
 func checkSpoilers() []string {
 	var ps []string
 	for _, root := range []string{"internal", "cmd"} {
 		filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
 				return nil
 			}
-			data, err := os.ReadFile(path)
+			patterns := commonSpoilerPatterns
+			if !strings.HasSuffix(path, "_test.go") {
+				patterns = append(patterns, productionSpoilerPatterns...)
+			}
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
 			if err != nil {
+				ps = append(ps, fmt.Sprintf("%s: cannot parse comments: %v", path, err))
 				return nil
 			}
-			for i, line := range strings.Split(string(data), "\n") {
-				_, comment, ok := strings.Cut(line, "//")
-				if !ok {
-					continue
-				}
-				for _, re := range spoilerPatterns {
-					if re.MatchString(comment) {
-						ps = append(ps, fmt.Sprintf("%s:%d: comment matches spoiler pattern %s: %q",
-							path, i+1, re.String(), strings.TrimSpace(comment)))
-						break
+			for _, group := range file.Comments {
+				for _, comment := range group.List {
+					for _, re := range patterns {
+						if re.MatchString(comment.Text) {
+							pos := fset.Position(comment.Slash)
+							ps = append(ps, fmt.Sprintf("%s:%d: comment matches spoiler pattern %s: %q",
+								path, pos.Line, re.String(), strings.TrimSpace(comment.Text)))
+							break
+						}
 					}
 				}
 			}
@@ -374,6 +484,37 @@ func checkMakefile(exercises []exercise) []string {
 	return ps
 }
 
+func checkFormatting() []string {
+	var ps []string
+	for _, root := range []string{"cmd", "internal", "tools"} {
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			formatted, err := format.Source(data)
+			if err != nil {
+				ps = append(ps, fmt.Sprintf("%s cannot be formatted: %v", path, err))
+				return nil
+			}
+			if !bytes.Equal(data, formatted) {
+				ps = append(ps, path+" is not gofmt-formatted")
+			}
+			return nil
+		})
+		if err != nil {
+			ps = append(ps, fmt.Sprintf("walking %s: %v", root, err))
+		}
+	}
+	return ps
+}
+
 func setDiff(want map[string]bool, got []string) string {
 	gotSet := map[string]bool{}
 	for _, g := range got {
@@ -405,6 +546,12 @@ func setDiff(want map[string]bool, got []string) string {
 func fileExists(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && !st.IsDir()
+}
+
+func pathWithin(path, directory string) bool {
+	path = filepath.Clean(path)
+	directory = filepath.Clean(directory)
+	return path == directory || strings.HasPrefix(path, directory+string(filepath.Separator))
 }
 
 func readDir(p string) []fs.DirEntry {

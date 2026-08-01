@@ -2,18 +2,18 @@ package types
 
 // Workflow represents a GitHub Actions workflow file.
 type Workflow struct {
-	Name        string                `yaml:"name" json:"name"`
-	On          map[string]any        `yaml:"on" json:"on"`
-	Env         map[string]string     `yaml:"env,omitempty" json:"env,omitempty"`
-	Jobs        map[string]Job        `yaml:"jobs" json:"jobs"`
-	Concurrency *WorkflowConcurrency  `yaml:"concurrency,omitempty" json:"concurrency,omitempty"`
-	Permissions map[string]string     `yaml:"permissions,omitempty" json:"permissions,omitempty"`
+	Name        string               `yaml:"name" json:"name"`
+	On          map[string]any       `yaml:"on" json:"on"`
+	Env         map[string]string    `yaml:"env,omitempty" json:"env,omitempty"`
+	Jobs        map[string]Job       `yaml:"jobs" json:"jobs"`
+	Concurrency *WorkflowConcurrency `yaml:"concurrency,omitempty" json:"concurrency,omitempty"`
+	Permissions map[string]string    `yaml:"permissions,omitempty" json:"permissions,omitempty"`
 }
 
 // WorkflowConcurrency controls concurrent workflow runs.
 type WorkflowConcurrency struct {
 	Group            string `yaml:"group" json:"group"`
-	CancelInProgress bool   `yaml:"cancel-in-progress" json:"cancel-in-progress"`
+	CancelInProgress *bool  `yaml:"cancel-in-progress,omitempty" json:"cancel-in-progress,omitempty"`
 }
 
 // Job represents a single job in a workflow.

@@ -4,10 +4,9 @@
 # Function: AuditDeploymentLabels
 #
 diff --git a/internal/audit/deployments.go b/internal/audit/deployments.go
-index b666166..c98e23e 100644
 --- a/internal/audit/deployments.go
 +++ b/internal/audit/deployments.go
-@@ -40,7 +40,7 @@ func AuditDeploymentLabels(c client.AuditClient, namespace string, requiredLabel
+@@ -42,7 +42,7 @@ func AuditDeploymentLabels(ctx context.Context, c client.AuditClient, namespace
  		return nil, err
  	}
 

@@ -2,7 +2,7 @@ package ingest_test
 
 import (
 	"context"
-	"runtime"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,65 +10,53 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// TestExercise18_TickingLeak checks that TickerForwarder does not grow heap
-// allocations unboundedly when run with a short interval over many iterations.
-func TestExercise18_TickingLeak(t *testing.T) {
-	const (
-		// Use an interval shorter than the timer fire delay to ensure many
-		// concurrent time.After timers are alive during the test.
-		interval   = 5 * time.Millisecond
-		iterations = 300
-	)
+type finiteMetricSource struct {
+	remaining int
+}
 
-	// Build a source with exactly `iterations` metrics.
-	src := ingest.NewFakeSourceN("tick", 1.0, iterations)
-	out := make(chan types.Metric, iterations)
+type panicMetricSource struct{}
 
-	// Drain goroutine so out never blocks.
-	go func() {
-		for range out {
-		}
-	}()
+func (*panicMetricSource) Read(context.Context) (types.Metric, error) {
+	panic("source must not be read for an invalid interval")
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+func (s *finiteMetricSource) Read(context.Context) (types.Metric, error) {
+	if s.remaining == 0 {
+		return types.Metric{}, types.ErrSourceDrained
+	}
+	s.remaining--
+	return types.Metric{Name: "tick"}, nil
+}
 
+// TestExercise18_TickingAllocation places an allocation budget on recurring
+// polling so per-poll setup cannot grow linearly with throughput.
+func TestExercise18_TickingAllocation(t *testing.T) {
+	const iterations = 100
 	tf := &ingest.TickerForwarder{}
 
-	// Warm up the runtime allocator.
-	runtime.GC()
-	runtime.GC()
-	var before runtime.MemStats
-	runtime.ReadMemStats(&before)
+	allocs := testing.AllocsPerRun(5, func() {
+		src := &finiteMetricSource{remaining: iterations}
+		out := make(chan types.Metric, iterations)
+		err := tf.Run(t.Context(), time.Nanosecond, src, out)
+		if !errors.Is(err, types.ErrSourceDrained) {
+			panic("TickerForwarder returned an unexpected error")
+		}
+	})
 
-	done := make(chan error, 1)
-	go func() {
-		done <- tf.Run(ctx, interval, src, out)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(30 * time.Second):
-		t.Fatal("exercise 18: TickerForwarder did not finish within timeout")
+	// Allow enough headroom for stable runtime and fixture allocations while
+	// rejecting implementations whose allocation count scales with every poll.
+	const maxAllocs = 25
+	if allocs > maxAllocs {
+		t.Errorf("TickerForwarder allocated %.0f objects for %d polls; want <= %d (reuse one ticker)",
+			allocs, iterations, maxAllocs)
 	}
-	close(out)
+}
 
-	// Do NOT run GC here — we want to see live leaked timers in HeapInuse.
-	var after runtime.MemStats
-	runtime.ReadMemStats(&after)
-
-	allocDelta := after.Mallocs - before.Mallocs
-	t.Logf("exercise 18: Mallocs delta = %d over %d iterations", allocDelta, iterations)
-
-	heapGrowth := int64(after.HeapInuse) - int64(before.HeapInuse)
-	t.Logf("exercise 18: HeapInuse delta = %d bytes", heapGrowth)
-
-	totalAllocDelta := after.TotalAlloc - before.TotalAlloc
-	t.Logf("exercise 18: TotalAlloc delta = %d bytes", totalAllocDelta)
-
-	const leakThreshold = 40 * 1024 // 40 KiB
-	if totalAllocDelta > leakThreshold {
-		t.Errorf("TotalAlloc growth %d bytes exceeds threshold %d bytes over %d iterations",
-			totalAllocDelta, leakThreshold, iterations)
+func TestTickerForwarderRejectsNonpositiveInterval(t *testing.T) {
+	tf := &ingest.TickerForwarder{}
+	for _, interval := range []time.Duration{0, -time.Second} {
+		if err := tf.Run(t.Context(), interval, &panicMetricSource{}, make(chan types.Metric)); err == nil {
+			t.Errorf("Run(interval=%s) returned nil error; want validation error", interval)
+		}
 	}
 }

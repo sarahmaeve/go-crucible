@@ -22,8 +22,9 @@ Find where `wg.Add(1)` is called relative to the `go func(...)` statement.
 
 - `sync.WaitGroup.Add` must be called before the `go` statement, not inside the goroutine body
 - If `Add` is inside the goroutine, the scheduler may run `wg.Wait()` before any goroutine starts — `Wait` sees a counter of zero and returns immediately
-- This bug is intermittent and load-dependent, making it hard to catch without the race detector or repeated runs (`-count=N`)
+- Go 1.25's `go vet` includes a `waitgroup` analyzer that reports this exact misuse; repeated test runs still demonstrate the runtime consequence
 - The fix is one line: move `wg.Add(1)` to just before `go func(...)`
+- In Go 1.25+, `WaitGroup.Go` combines task registration, goroutine launch, and `Done`; use it when its contract fits, including its requirement that the function must not panic
 
 ## Fixing It
 
@@ -31,6 +32,7 @@ Apply your fix, then run:
 
 ```bash
 go test -race ./internal/audit/ -run TestExercise13 -v -count=10
+go vet ./internal/audit/
 ```
 
 See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.

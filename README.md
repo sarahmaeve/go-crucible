@@ -4,13 +4,13 @@ A Go debugging training repository. Each exercise contains a real, runnable bug 
 
 ## Who This Is For
 
-Go developers who want to sharpen their debugging instincts across the full spectrum of common Go pitfalls — from beginner mistakes like nil map writes and swallowed errors, through intermediate concurrency bugs and context misuse, up to advanced issues like timer leaks and compound shutdown failures.
+Go developers who want to sharpen their debugging instincts across the full spectrum of common Go pitfalls — from beginner mistakes like nil map writes and swallowed errors, through intermediate concurrency bugs and context misuse, up to advanced issues like timer allocation churn and compound shutdown failures.
 
 No Kubernetes cluster is required. All tests run locally against in-process fakes.
 
 ## Prerequisites
 
-- Go 1.25 or later (`go version`) — required by the pinned `k8s.io/client-go`
+- Go 1.26 or later (`go version`)
 - Git
 
 ## Getting Started
@@ -89,6 +89,18 @@ Two further entry paths to the same 22 bugs:
   the on-call skill: most production bugs arrive as an artifact, not
   as a failing test.
 
+## Wheel of Misfortune Track
+
+The [Wheel of Misfortune track](./exercises/wheel/README.md) starts earlier
+than the other modes: an incomplete production report contains observations,
+missing facts, and an unproven causal theory. You clarify the report, choose
+staged evidence, manage competing hypotheses, localize the first contract
+violation, make a bounded repair, and deliver a concise handoff.
+
+Wheel scenarios reuse numbered bugs rather than introducing new Go subjects.
+The first scenario, W01, places exercise 20's deduplication failure inside a
+cache-store migration and retry incident.
+
 ## Extensions
 
 A few exercises carry an optional **extension** that revisits the *testing*
@@ -119,6 +131,7 @@ exercises/      One subdirectory per exercise — README.md and HINTS.md
   HARD_MODE.md  Symptom-only cards for all 22 exercises (no file pointers)
   review/       Review track — simulated PRs to review (R01, R02, ...)
   diagnosis/    Diagnosis track — artifact-first debugging (D01, D02, ...)
+  wheel/        Wheel track — report-first investigation (W01, W02, ...)
 solutions/      Reference solutions (consult only after you have tried)
 docs/           Supporting docs (Go style précis, testing/synctest guide)
 testdata/       Sample YAML files used by tests

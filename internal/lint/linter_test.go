@@ -24,18 +24,15 @@ jobs:
       - uses: actions/checkout@v4
 `
 
-// TestExercise16_LeakingLinter creates 550 YAML files in a temp directory,
-// lowers the open-file-descriptor limit to 256, runs LintWorkflows, and
-// asserts no "too many open files" error is returned. The test verifies that
-// LintWorkflows closes file descriptors promptly during iteration rather than
-// accumulating them all until the function returns.
+// TestExercise16_LeakingLinter runs a large workflow batch with a constrained
+// descriptor limit and requires LintWorkflows to complete successfully.
 func TestExercise16_LeakingLinter(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("fd-limit test not applicable on Windows")
 	}
 
 	// --- Lower the open-file descriptor limit ---
-	// We set both soft and hard limits to a modest value so the test is
+	// We set the soft limit to a modest value so the test is
 	// self-contained. Any value comfortably below 550 (our file count) but
 	// comfortably above what the test process itself needs (stdin/stdout/stderr
 	// + a handful of runtime fds) works.
@@ -109,7 +106,7 @@ jobs:
 		}
 	}
 	if !found {
-		t.Errorf("expected 'workflow-name-required' finding for nameless workflow, got findings: %v", findings)
+		t.Errorf("findings = %v, want rule %q", findings, "workflow-name-required")
 	}
 }
 
@@ -121,6 +118,44 @@ func TestLintWorkflows_EmptyDir(t *testing.T) {
 		t.Fatalf("LintWorkflows on empty dir returned error: %v", err)
 	}
 	if len(findings) != 0 {
-		t.Errorf("expected no findings for empty dir, got %d", len(findings))
+		t.Errorf("findings for empty dir = %d, want 0", len(findings))
 	}
+}
+
+func TestLintWorkflows_MalformedYAMLReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "broken.yml"), []byte("jobs: [\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := lint.LintWorkflows(dir); err == nil {
+		t.Fatal("LintWorkflows returned nil error for malformed YAML")
+	}
+}
+
+func TestLintWorkflows_PinRequiresHexSHA(t *testing.T) {
+	dir := t.TempDir()
+	const workflow = `name: Invalid Pin
+on:
+  push:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+`
+	if err := os.WriteFile(filepath.Join(dir, "invalid-pin.yml"), []byte(workflow), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings, err := lint.LintWorkflows(dir)
+	if err != nil {
+		t.Fatalf("LintWorkflows returned unexpected error: %v", err)
+	}
+	for _, finding := range findings {
+		if finding.Rule == "pin-actions-version" {
+			return
+		}
+	}
+	t.Fatalf("findings = %v, want rule %q", findings, "pin-actions-version")
 }

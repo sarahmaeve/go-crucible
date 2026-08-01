@@ -9,14 +9,14 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
-// DeploymentAuditor holds state for deployment auditing.
+// DeploymentAuditor holds reusable scratch state for deployment auditing.
 type DeploymentAuditor struct {
 	requiredLabels []string
-	// missingLabels tracks which labels were absent per deployment name.
+	// missingLabels tracks which labels were absent during the current audit.
 	missingLabels map[string]bool
 }
 
-// NewDeploymentAuditor creates a DeploymentAuditor with an initialised label map.
+// NewDeploymentAuditor creates a DeploymentAuditor for requiredLabels.
 func NewDeploymentAuditor(requiredLabels []string) *DeploymentAuditor {
 	return &DeploymentAuditor{
 		requiredLabels: requiredLabels,
@@ -24,13 +24,13 @@ func NewDeploymentAuditor(requiredLabels []string) *DeploymentAuditor {
 	}
 }
 
-// Audit is a method on DeploymentAuditor that uses the pre-allocated map — this
-// path works correctly.
+// Audit checks every deployment using the auditor's accumulated state.
 func (da *DeploymentAuditor) Audit(ctx context.Context, c client.AuditClient, namespace string) ([]types.Finding, error) {
 	deployments, err := c.ListDeployments(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
+	clear(da.missingLabels)
 	return checkDeploymentLabels(deployments, da.requiredLabels, da.missingLabels), nil
 }
 
@@ -52,13 +52,22 @@ func checkDeploymentLabels(
 	requiredLabels []string,
 	missingLabels map[string]bool,
 ) []types.Finding {
-	var findings []types.Finding
-
+	// First record the complete result. Keeping discovery separate from
+	// reporting mirrors auditors that retain scratch state for later output.
 	for _, dep := range deployments {
 		for _, label := range requiredLabels {
 			key := dep.Name + "/" + label
 			if _, ok := dep.Labels[label]; !ok {
 				missingLabels[key] = true
+			}
+		}
+	}
+
+	var findings []types.Finding
+	for _, dep := range deployments {
+		for _, label := range requiredLabels {
+			key := dep.Name + "/" + label
+			if missingLabels[key] {
 				findings = append(findings, types.Finding{
 					Resource:  "Deployment",
 					Namespace: dep.Namespace,

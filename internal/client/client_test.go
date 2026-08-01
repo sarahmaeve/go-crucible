@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/go-crucible/go-crucible/internal/client"
@@ -9,38 +10,22 @@ import (
 // TestExercise05_NilCheckThatLies verifies that NewAuditClient with an invalid
 // kubeconfig returns a usable nil interface or a non-nil error.
 //
-// The test exposes two facets of the expected behavior:
-//  1. Checks that the returned interface is nil when an error occurs.
-//  2. Attempts to call ListPods on the returned client to confirm it does not
-//     panic and properly propagates errors.
+// The returned interface must be nil when construction fails; any non-nil
+// interface violates the constructor contract, whether or not a method call
+// happens to panic.
 func TestExercise05_NilCheckThatLies(t *testing.T) {
 	// Use a guaranteed-nonexistent kubeconfig path. An empty string would
 	// fall back to ~/.kube/config or in-cluster config, which may succeed
 	// on a developer machine and silently hide the issue.
-	c, err := client.NewAuditClient("/tmp/go-crucible-nonexistent-kubeconfig-test")
+	missingPath := filepath.Join(t.TempDir(), "missing-kubeconfig")
+	c, err := client.NewAuditClient(missingPath)
 
 	// When config loading fails, the function must return a non-nil error.
 	if err == nil {
 		t.Fatal("NewAuditClient with an invalid kubeconfig returned nil error; expected non-nil")
 	}
 
-	// A nil interface is the correct return value when an error occurs.
-	if c == nil {
-		return // correct behavior
-	}
-
-	// The interface is non-nil — check whether it panics on use.
-	panicked := func() (didPanic bool) {
-		defer func() {
-			if r := recover(); r != nil {
-				didPanic = true
-			}
-		}()
-		_, _ = c.ListPods(t.Context(), "default") //nolint:errcheck
-		return false
-	}()
-
-	if panicked {
-		t.Errorf("NewAuditClient returned a non-nil client that panics on use")
+	if c != nil {
+		t.Errorf("NewAuditClient returned non-nil interface %T after construction failed; want nil", c)
 	}
 }

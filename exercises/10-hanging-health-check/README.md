@@ -2,6 +2,9 @@
 
 **Application:** pipeline | **Difficulty:** Intermediate
 
+> **Pre-solved on `main`.** Reintroduce the exercise before reproducing it:
+> `git apply -R solutions/10-hanging-health-check.patch`
+
 ## Symptoms
 
 A health-check request arrives with a context that has a short deadline. The slow dependency check takes longer than that deadline. The request context times out — but the health checker does not notice and continues waiting for the slow check to complete. The handler hangs until the slow check finishes on its own, ignoring the caller's deadline entirely.
@@ -35,9 +38,9 @@ go test ./internal/health/ -run TestExercise10 -v
 
 See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.
 
-## Extension
+## Deterministic timing
 
-See [EXTENSION.md](./EXTENSION.md) for a `testing/synctest` rewrite of this
-exercise's test that uses a fake clock to assert the deadline behaviour exactly
-and instantly — replacing the real 0.5–1 s wall-clock wait and the "returned
-within a second" proxy assertion.
+The canonical test uses `testing/synctest`, available under this repository's
+Go 1.26 floor, to assert the deadline at exactly 500 ms of fake time without a
+wall-clock wait. See [EXTENSION.md](./EXTENSION.md) for why this is more reliable
+than timeout races in tests.
