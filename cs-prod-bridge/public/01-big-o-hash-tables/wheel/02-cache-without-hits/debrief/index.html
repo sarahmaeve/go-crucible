@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Diagnosis, repair, and verification for W02.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/02-cache-without-hits/debrief/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="W02 debrief">
+	<meta property="og:description" content="Diagnosis, repair, and verification for W02.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="01-big-o-hash-tables">
+
+
+	<meta itemprop="name" content="W02 debrief">
+	<meta itemprop="description" content="Diagnosis, repair, and verification for W02.">
+	<meta itemprop="wordCount" content="254">
+
+<title>W02 debrief • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../../../favicon.png" >
+<link rel="manifest" href="../../../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/01-big-o-hash-tables/wheel/02-cache-without-hits/debrief/">
+<link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../../../en.search.min.e2fadc9b90d4b60fb3ee7dab7fd31a60bea1a4ba4cd1c74144d051ab51e10666.js" integrity="sha256-4vrcm5DUtg&#43;z7n2rf9MaYL6hpLpM0cdBRNBRq1HhBmY=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-01-big-o-hash-tables">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle" checked />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle" checked />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>W02 debrief</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="w02-debrief">W02 Debrief</h1>
+<p>Read this only after completing the handoff.</p>
+<h2 id="diagnosis">Diagnosis</h2>
+<p>Expected constant-time map operations say nothing about hit ratio or the number
+of keys retained. The semantic object being cached is endpoint metadata, whose
+identity is the endpoint IP during one resolver lifetime. <code>cacheKey</code> also
+contains observation time, which changes on almost every event.</p>
+<p>As a result, distinct key count is <code>Theta(o)</code> for observations rather than
+<code>Theta(p)</code> for active endpoint IPs. Each operation can remain expected <code>O(1)</code>
+while total loader work and retained space grow linearly with observations.
+Retries of exactly the same observation explain the few cache hits.</p>
+<p>The Go 1.24 implementation theory does not fit the evidence: no deletion occurs,
+and the map retains live entries reachable from the resolver.</p>
+<h2 id="bounded-repair">Bounded repair</h2>
+<p>Key the cache only by IP:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>cache <span style="color:#ff5c57">map</span>[<span style="color:#9aedfe">string</span>]Metadata</span></span></code></pre></div><p>Look up and assign with <code>observation.IP</code>. Do not add timestamp expiry inside
+this boundary; the loader contract says metadata is stable for the resolver&rsquo;s
+lifetime and publication replaces the resolver.</p>
+<p>The corrected workload has expected <code>Theta(o)</code> lookup time, at most <code>p</code> loader
+calls, and <code>Theta(p)</code> retained cache space.</p>
+<h2 id="verification">Verification</h2>
+<p>Run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/wheel/02-cache-without-hits -v
+</span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel2 <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  ./cs-prod-bridge/01-big-o-hash-tables/wheel/02-cache-without-hits <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The ordinary tests retain error and enrichment semantics. The tagged check
+uses repeated observations of stable endpoints and asserts both loader calls
+and retained entries, avoiding a machine-specific heap or latency threshold.</p>
+<h2 id="production-follow-up">Production follow-up</h2>
+<p>Measure cache entries, requests, hits, misses, and meaningful domain
+cardinality together. A map-length metric without endpoint cardinality would
+show growth but not explain whether that growth was legitimate.</p>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

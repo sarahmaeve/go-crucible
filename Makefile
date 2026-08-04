@@ -1,5 +1,11 @@
 .PHONY: test test-race test-exercise vet status status-race verify-solution \
-	verify verify-quick verify-vet verify-sanity verify-failures verify-patches
+	verify verify-quick verify-vet verify-sanity verify-failures verify-patches \
+	bridge bridge-check bridge-serve
+
+HUGO ?= hugo
+BRIDGE_BIND ?= 127.0.0.1
+BRIDGE_PORT ?= 1313
+BRIDGE_BASE_URL ?= http://localhost:$(BRIDGE_PORT)/
 
 # All exercise numbers, in order. Add new exercises here (used by the
 # status and verify targets; tools/verify checks this list against the
@@ -28,6 +34,27 @@ test-exercise:
 
 vet:
 	go vet ./...
+
+bridge:
+	$(HUGO) --source cs-prod-bridge --cleanDestinationDir
+
+bridge-check:
+	@tmpdir=$$(mktemp -d); \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	$(HUGO) --source cs-prod-bridge --destination "$$tmpdir" --quiet \
+	&& diff -r cs-prod-bridge/public "$$tmpdir"
+
+# Hugo's development server renders to memory by default, so this does not
+# replace the committed production build under cs-prod-bridge/public. The
+# local base URL is supplied only here; Cloudflare supplies its deployment URL.
+bridge-serve:
+	$(HUGO) server \
+		--source cs-prod-bridge \
+		--bind $(BRIDGE_BIND) \
+		--port $(BRIDGE_PORT) \
+		--baseURL $(BRIDGE_BASE_URL) \
+		--renderToMemory \
+		--disableFastRender
 
 status:
 	@echo "=== Go Crucible Exercise Status ==="

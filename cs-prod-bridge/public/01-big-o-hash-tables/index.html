@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Big-O and hash tables">
+	<meta property="og:description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="website">
+
+
+	<meta itemprop="name" content="Big-O and hash tables">
+	<meta itemprop="description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
+	<meta itemprop="wordCount" content="1632">
+
+<title>Big-O and hash tables • Computer Science Through Production Systems</title>
+<link rel="icon" href="../favicon.png" >
+<link rel="manifest" href="../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/01-big-o-hash-tables/">
+<link rel="stylesheet" href="../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../en.search.min.e2fadc9b90d4b60fb3ee7dab7fd31a60bea1a4ba4cd1c74144d051ab51e10666.js" integrity="sha256-4vrcm5DUtg&#43;z7n2rf9MaYL6hpLpM0cdBRNBRq1HhBmY=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-section book-type-01-big-o-hash-tables">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/" class="active">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Big-O and hash tables</h3>
+
+  <label for="toc-control">
+    
+    <img src="../icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#start-with-a-prediction">Start with a prediction</a></li>
+    <li><a href="#what-the-notation-means">What the notation means</a></li>
+    <li><a href="#how-a-hash-table-changes-the-work">How a hash table changes the work</a>
+      <ul>
+        <li><a href="#required-cs-sources">Required CS sources</a></li>
+      </ul>
+    </li>
+    <li><a href="#what-go-promises-about-maps">What Go promises about maps</a></li>
+    <li><a href="#go-124-and-swiss-tables">Go 1.24 and Swiss Tables</a></li>
+    <li><a href="#where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</a>
+      <ul>
+        <li><a href="#failure-modes-to-check">Failure modes to check</a></li>
+      </ul>
+    </li>
+    <li><a href="#work-the-unit">Work the unit</a></li>
+    <li><a href="#translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><p><strong>Unit 01 · Foundations</strong></p>
+<h1 id="big-o-and-hash-tables">Big-O and hash tables</h1>
+<p class="book-lead">Learn to spot three production signals: code that repeatedly scans
+the same data, workloads dominated by exact-key lookups, and maps whose retained
+keys grow without a bound.</p>
+
+<blockquote class="book-hint important">
+  <p><strong>Incoming reports</strong></p>
+  <div class="markdown-inner"><ul>
+<li>An inventory reconciler is fast with 50 test objects but consumes a full CPU
+core in a 50,000-object cluster.</li>
+<li>A network collector spends most of its CPU time matching each event to an
+endpoint record it has already searched many times.</li>
+<li>A map-backed cache performs fast lookups, yet its heap grows throughout the
+day because almost every request creates a new key.</li>
+</ul>
+</div>
+</blockquote>
+
+<p>All three failures involve growth. The reconciler and collector repeat more
+work as their inputs grow. The cache retains more state as new keys arrive.
+Big-O describes how the work grows; distinct-key count and entry lifetime
+explain the retained state.</p>
+<p>This unit connects those ideas to Go maps. By the end, you should be able to:</p>
+<ul>
+<li>derive the work performed by one scan, repeated scans, and a prebuilt index;</li>
+<li>distinguish worst-case, expected, and amortized costs;</li>
+<li>state the assumptions behind expected constant-time hash-table operations;</li>
+<li>separate Go&rsquo;s map contract from its current implementation;</li>
+<li>include construction cost, update rate, memory, distinct-key count, and
+ownership in a design decision; and</li>
+<li>test a scaling claim with benchmarks and profiles.</li>
+</ul>
+<h2 id="start-with-a-prediction">Start with a prediction</h2>
+<p>The running example is a batch enrichment service. Its workload has three
+relevant quantities:</p>
+<ul>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> is the number of events in one batch.</li>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> is the number of endpoint records in the metadata snapshot.</li>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> is the number of distinct endpoint keys, so <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>≤</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">u \le m</annotation></semantics></math></span></span>.</li>
+</ul>
+<p>Each event asks one exact-key question: which metadata record has this IP
+address? Before choosing a data structure, answer four questions:</p>
+<ol>
+<li>If every event scans the metadata slice, how many key comparisons can the
+batch perform?</li>
+<li>What work and storage does a one-time index add?</li>
+<li>When might the simpler scan still be faster?</li>
+<li>What changes if the metadata snapshot is replaced continuously?</li>
+</ol>
+<blockquote class="book-hint note">
+  <p><strong>Count the operations first</strong></p>
+  <div class="markdown-inner"><p>A scan can find a match after one comparison, but a missing key or a match at
+the far end requires <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> comparisons. Repeating that worst case for <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>
+events produces <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>×</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">e \times m</annotation></semantics></math></span></span> comparisons.</p>
+<p>Building an index examines the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records once and stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span>
+entries. Enriching the batch then performs <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> index lookups. This count
+does not yet prove how long a lookup takes; that requires the hash-table model
+and its assumptions.</p>
+</div>
+</blockquote>
+
+<h2 id="what-the-notation-means">What the notation means</h2>
+<p><strong>Asymptotic notation</strong> describes how resource use grows as inputs become
+large. It ignores constant factors and small-input effects, so it can
+distinguish one pass through the metadata from a metadata pass repeated for
+every event. It does not predict milliseconds on a particular machine.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Notation</th>
+					<th>Meaning</th>
+					<th>Plain-language interpretation</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(f(n))</annotation></semantics></math></span></span></td>
+					<td>An upper bound on growth</td>
+					<td>For sufficiently large inputs, growth is no faster than this bound, apart from a constant factor.</td>
+			</tr>
+			<tr>
+					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Ω</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Omega(f(n))</annotation></semantics></math></span></span></td>
+					<td>A lower bound on growth</td>
+					<td>For sufficiently large inputs, growth is at least this fast, apart from a constant factor.</td>
+			</tr>
+			<tr>
+					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(f(n))</annotation></semantics></math></span></span></td>
+					<td>Matching upper and lower bounds</td>
+					<td>This describes the growth tightly, apart from constant factors.</td>
+			</tr>
+	</tbody>
+</table>
+<p>The worst-case repeated scan is:</p>
+<div class="math-block"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\Theta(e \times m)
+</annotation></semantics></math></span></div><p>If event count and metadata count both grow in proportion to a common input
+size <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span></span>, then <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> becomes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(n^2)</annotation></semantics></math></span></span>. Keeping
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> separate avoids assuming that traffic and metadata grow
+together. A traffic increase changes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>; onboarding a large region may
+change <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>.</p>
+<p>Under the assumptions described in the next section, building the index and
+enriching the batch take expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo>+</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m + e)</annotation></semantics></math></span></span> time. The completed index
+contains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> logical entries, so its additional logical storage is
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span>.</p>
+<blockquote class="book-hint note">
+  <p><strong>A formula is not a timing result</strong></p>
+  <div class="markdown-inner">The formula predicts how work changes when <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>, <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>, or <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> changes.
+A benchmark finds the input sizes at which one implementation becomes faster
+than another on a particular machine. A profile identifies the code consuming
+the measured CPU time or memory. These are different questions.</div>
+</blockquote>
+
+<h2 id="how-a-hash-table-changes-the-work">How a hash table changes the work</h2>
+<p>Each event makes a slice scan revisit metadata records examined for earlier
+events. A hash table examines the metadata once while building an index. For
+each key, it computes a hash and uses that hash to select a small group of
+candidate entries. Different keys can select the same group; this is a
+<strong>collision</strong>, and the table must compare candidate keys to find the right one.</p>
+<p>Three cost descriptions matter:</p>
+<ul>
+<li><strong>Expected cost:</strong> if the hash function spreads keys across the table and the
+table is resized before it becomes too full, a lookup examines only a small
+number of candidate entries on average. For bounded-size keys, this is
+expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(1)</annotation></semantics></math></span></span>.</li>
+<li><strong>Amortized cost:</strong> one insertion may trigger a resize and move many entries.
+Across a long sequence of insertions, those occasional resizes can still add
+only constant average work per insertion.</li>
+<li><strong>Worst-case cost:</strong> if many keys collide, one lookup may compare against as
+many as <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> entries in the index.</li>
+</ul>
+<p>Key size is part of the assumption. Hashing and comparing an arbitrary string
+takes time proportional to the string&rsquo;s length. This unit uses textual IP
+addresses, whose length is bounded, so it treats hashing and comparison as
+constant-size work.</p>
+<p>This is why “hash lookup is <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span>” is incomplete. The useful claim is
+expected constant time for bounded-size keys under assumptions about hashing,
+collisions, and table growth.</p>
+<h3 id="required-cs-sources">Required CS sources</h3>
+<p>Read the language-neutral model before treating a particular language
+implementation as a general guarantee:</p>
+<ul>
+<li><a href="https://live.ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/c6d8f06c6f11e3342633dec85498f551_MIT6_006S20_r01.pdf">MIT 6.006: asymptotic complexity notes</a> — formal definitions and comparison rules.</li>
+<li><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/ce9e94705b914598ce78a00a70a1f734_MIT6_006S20_lec4.pdf">MIT 6.006: hashing lecture</a> — collisions, table occupancy, chaining, open addressing, and expected cost.</li>
+<li><a href="https://opendatastructures.org/ods-python/5_Hash_Tables.html">Open Data Structures: Hash Tables</a> — a second free treatment of collision handling and resizing.</li>
+</ul>
+<h2 id="what-go-promises-about-maps">What Go promises about maps</h2>
+<p>The CS model describes hash tables in general. The
+<a href="https://go.dev/ref/spec#Map_types">Go specification</a> separately defines what
+Go programs may rely on. It specifies map behavior but promises no time bound
+for lookup, insertion, or deletion.</p>
+<blockquote class="book-hint tip">
+  <p><strong>Language and API contract</strong></p>
+  <div class="markdown-inner"><ul>
+<li>Each key identifies at most one map entry.</li>
+<li>The key type must be <em>comparable</em>: its values must support <code>==</code> and <code>!=</code>.</li>
+<li>Slices, maps, and functions are not comparable and therefore cannot be map
+keys.</li>
+<li>A nil map can be read; assigning an entry to it panics.</li>
+<li>Iteration order is unspecified and may differ from one iteration to the next.</li>
+<li>The comma-ok lookup form distinguishes a missing key from a stored zero value.</li>
+</ul>
+</div>
+</blockquote>
+
+<p>The official <a href="https://go.dev/blog/maps">Go maps in action</a> article covers zero
+values, struct keys, and concurrent access. The same map may be read by
+multiple goroutines if none of them writes to it. Access involving a write
+requires synchronization or a design in which one goroutine owns mutation.</p>
+<blockquote class="book-hint warning">
+  <p><strong>Not guaranteed by Go</strong></p>
+  <div class="markdown-inner">The Go specification does not guarantee that every map lookup takes constant
+time.</div>
+</blockquote>
+
+<h2 id="go-124-and-swiss-tables">Go 1.24 and Swiss Tables</h2>
+<p>Go 1.24 replaced the earlier built-in map implementation with Swiss Tables.
+The Go team&rsquo;s
+<a href="https://go.dev/blog/swisstable">Swiss Table implementation article</a> explains
+control bytes, groups of candidate slots, probing, table growth, and the
+constraints created by Go&rsquo;s iteration rules.</p>
+<p>The examples in this repository target Go 1.26. Check <code>go version</code> when
+interpreting a profile because runtime implementation details can change
+between releases. Swiss Tables remain an <strong>implementation detail</strong>, not part
+of the language contract.</p>
+<p>The current
+<a href="https://go.dev/src/internal/runtime/maps/map.go"><code>internal/runtime/maps</code> source</a>
+is an optional deep read after the higher-level article.</p>
+<h2 id="where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</h2>
+<p>A map is useful here because the service repeatedly looks up one exact key in
+the same collection:</p>
+<ul>
+<li>Which owner and region correspond to this IP address?</li>
+<li>Have we already seen this event ID?</li>
+<li>What counter belongs to this bounded label set?</li>
+<li>Which cached object has this UID?</li>
+</ul>
+<p>Order, range, prefix, and minimum-value queries need different operations and
+may need different structures. Choose the structure from the queries the
+service performs, not from familiarity.</p>
+<h3 id="failure-modes-to-check">Failure modes to check</h3>
+<p>Even when exact-key lookup is appropriate, the surrounding design can erase
+the CPU benefit or move the failure to memory:</p>
+<ul>
+<li>A batch scans the same collection once for every input item.</li>
+<li>Code rebuilds the index for every lookup instead of once per snapshot.</li>
+<li>A cache key includes a request ID or timestamp, creating a new retained entry
+for almost every request.</li>
+<li>Entries have no owner, expiry rule, or other removal policy.</li>
+<li>The scan and index implement different duplicate-key behavior.</li>
+<li>A benchmark uses key sizes or distributions unlike production traffic.</li>
+<li>Lower CPU use is offset by retained memory and garbage-collection work.</li>
+<li>Multiple goroutines access the same ordinary map while one of them writes.</li>
+</ul>
+<p>For a live map or cache, <strong>cardinality</strong> means the number of distinct keys
+currently retained, or retained within a stated time window. That count is
+often more useful than request count because it determines how many entries
+remain reachable.</p>
+<h2 id="work-the-unit">Work the unit</h2>
+<p>The reading supplies the vocabulary; the exercises make the predicted growth
+observable. Preserve the opportunity to predict before measuring:</p>
+<ol>
+<li>Run the <a href="lab/">enrichment lab</a>. Compare a
+scan, an index built for one batch, and an index reused across batches.</li>
+<li>Read the <a href="case-study/">network-enrichment case study</a> and challenge its
+workload and correctness assumptions.</li>
+<li>Attempt the <a href="wheel/">Wheel scenarios</a>
+from their incoming reports before opening source.</li>
+</ol>
+<h2 id="translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</h2>
+<p>Avoid stopping at “use a hash map for <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span> lookup.” Name the workload,
+the cost claim, its assumptions, and the added storage:</p>
+<blockquote class='book-hint '>
+<p>With <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> events and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records, repeated scanning performs
+worst-case <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> comparisons. Building an index examines
+the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> records once and stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> distinct keys. For bounded-size
+keys and normal hashing behavior, construction takes expected
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m)</annotation></semantics></math></span></span>, the event pass takes expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e)</annotation></semantics></math></span></span>, and the
+index uses <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> logical storage. I would clarify reuse, update
+rate, duplicate handling, cardinality bounds, and then benchmark the relevant
+workload.</p>
+</blockquote><p>Finish by saying which measurement could disprove the choice. That turns the
+notation into an engineering argument rather than a memorized answer.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../" class="flex align-center">
+        <img src="../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Computer Science Through Production Systems</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../01-big-o-hash-tables/case-study/" class="flex align-center">
+        <span>Indexing a network-enrichment stream</span>
+        <img src="../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#start-with-a-prediction">Start with a prediction</a></li>
+    <li><a href="#what-the-notation-means">What the notation means</a></li>
+    <li><a href="#how-a-hash-table-changes-the-work">How a hash table changes the work</a>
+      <ul>
+        <li><a href="#required-cs-sources">Required CS sources</a></li>
+      </ul>
+    </li>
+    <li><a href="#what-go-promises-about-maps">What Go promises about maps</a></li>
+    <li><a href="#go-124-and-swiss-tables">Go 1.24 and Swiss Tables</a></li>
+    <li><a href="#where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</a>
+      <ul>
+        <li><a href="#failure-modes-to-check">Failure modes to check</a></li>
+      </ul>
+    </li>
+    <li><a href="#work-the-unit">Work the unit</a></li>
+    <li><a href="#translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

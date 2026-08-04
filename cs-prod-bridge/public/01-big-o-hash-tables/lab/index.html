@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Benchmark and profile repeated scans, one-use indexes, and reused indexes.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/lab/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Exploration lab: scan or index?">
+	<meta property="og:description" content="Benchmark and profile repeated scans, one-use indexes, and reused indexes.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="website">
+
+
+	<meta itemprop="name" content="Exploration lab: scan or index?">
+	<meta itemprop="description" content="Benchmark and profile repeated scans, one-use indexes, and reused indexes.">
+	<meta itemprop="wordCount" content="332">
+
+<title>Exploration lab: scan or index? • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../favicon.png" >
+<link rel="manifest" href="../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/01-big-o-hash-tables/lab/">
+<link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../en.search.min.e2fadc9b90d4b60fb3ee7dab7fd31a60bea1a4ba4cd1c74144d051ab51e10666.js" integrity="sha256-4vrcm5DUtg&#43;z7n2rf9MaYL6hpLpM0cdBRNBRq1HhBmY=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-section book-type-01-big-o-hash-tables">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/lab/" class="active">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Exploration lab: scan or index?</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="exploration-lab-scan-or-index">Exploration Lab: Scan or Index?</h1>
+<p>The lab contains two correct enrichment implementations:</p>
+<ul>
+<li><code>EnrichWithScan</code> searches the metadata slice for every event.</li>
+<li><code>MetadataIndex.Enrich</code> performs exact-key lookups in a prebuilt map.</li>
+</ul>
+<p>Both use an explicit last-record-wins policy for duplicate IP metadata. Missing
+metadata is represented by <code>Found == false</code>.</p>
+<h2 id="1-confirm-semantics">1. Confirm semantics</h2>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/lab -v</span></span></code></pre></div><p>Read the table tests. Identify which assertions concern correctness and which,
+if any, concern scalability.</p>
+<h2 id="2-predict-growth">2. Predict growth</h2>
+<p>The benchmarks name event and metadata cardinality separately. Before running
+them, predict the relative change for each implementation from <code>small</code> to
+<code>medium</code> to <code>large</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench . -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>There are three measurements per workload:</p>
+<ul>
+<li><code>scan</code> performs the event-to-metadata nested work.</li>
+<li><code>index-end-to-end</code> builds an index and uses it once.</li>
+<li><code>index-reused</code> measures event enrichment with an already-built index.</li>
+</ul>
+<p>The reused benchmark is useful but incomplete. Quoting it alone would hide
+construction and retention costs.</p>
+<p>If <code>benchstat</code> is installed, save two runs and compare them. The official
+<a href="https://pkg.go.dev/testing#hdr-Benchmarks"><code>testing</code> benchmark documentation</a>
+explains the harness; <a href="https://pkg.go.dev/golang.org/x/perf/cmd/benchstat"><code>benchstat</code></a>
+compares distributions rather than relying on one run.</p>
+<h2 id="3-change-one-dimension">3. Change one dimension</h2>
+<p>In <code>enrichment_bench_test.go</code>, hold events constant and double only metadata.
+Then hold metadata constant and double only events. Relate each result to
+<code>Theta(e*m)</code> versus expected <code>Theta(e+m)</code>.</p>
+<p>Try a metadata size of one or two. Does the simpler scan win? Big-O predicts
+growth, not the crossover point or constant factors.</p>
+<h2 id="4-profile-the-large-scan">4. Profile the large scan</h2>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench <span style="color:#5af78e">&#39;BenchmarkEnrichment/large/scan$&#39;</span> <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -benchtime<span style="color:#ff6ac1">=</span>2s -cpuprofile /tmp/cs-bridge-scan.pprof
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-scan.pprof</span></span></code></pre></div><p>Predict which function will dominate before opening the profile. A profile
+localizes work; the complexity model explains why that work grows.</p>
+<h2 id="5-challenge-the-index">5. Challenge the index</h2>
+<p>Answer without changing code:</p>
+<ul>
+<li>If the metadata snapshot is rebuilt for every single event, what happened to
+the advantage?</li>
+<li>If a timestamp is added to the map key, what controls retained cardinality?</li>
+<li>If callers need every IP in a prefix, is exact-key hashing still the natural
+operation?</li>
+<li>If updates and reads occur concurrently, what ownership or synchronization
+contract is missing?</li>
+</ul>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../01-big-o-hash-tables/case-study/" class="flex align-center">
+        <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Indexing a network-enrichment stream</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../01-big-o-hash-tables/wheel/" class="flex align-center">
+        <span>Wheels of Misfortune</span>
+        <img src="../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

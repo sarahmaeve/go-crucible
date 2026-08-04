@@ -1,0 +1,9 @@
++++
+title = 'W01 debrief'
+description = 'Diagnosis, repair, and verification for W01.'
+bookHidden = true
+bookSearchExclude = true
+bookToC = false
++++
+
+{{< include-markdown path="01-big-o-hash-tables/wheel/01-innocent-nested-loop/DEBRIEF.md" >}}

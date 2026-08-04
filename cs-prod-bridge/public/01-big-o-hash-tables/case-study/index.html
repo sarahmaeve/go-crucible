@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A production case study of replacing repeated metadata scans with a reusable Go map index.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/case-study/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Indexing a network-enrichment stream">
+	<meta property="og:description" content="A production case study of replacing repeated metadata scans with a reusable Go map index.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="01-big-o-hash-tables">
+
+
+	<meta itemprop="name" content="Indexing a network-enrichment stream">
+	<meta itemprop="description" content="A production case study of replacing repeated metadata scans with a reusable Go map index.">
+	<meta itemprop="wordCount" content="1568">
+
+<title>Indexing a network-enrichment stream • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../favicon.png" >
+<link rel="manifest" href="../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/01-big-o-hash-tables/case-study/">
+<link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../en.search.min.e2fadc9b90d4b60fb3ee7dab7fd31a60bea1a4ba4cd1c74144d051ab51e10666.js" integrity="sha256-4vrcm5DUtg&#43;z7n2rf9MaYL6hpLpM0cdBRNBRq1HhBmY=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-01-big-o-hash-tables">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/case-study/" class="active">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Indexing a network-enrichment stream</h3>
+
+  <label for="toc-control">
+    
+    <img src="../../icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#production-source-and-teaching-boundary">Production source and teaching boundary</a></li>
+    <li><a href="#the-workload">The workload</a></li>
+    <li><a href="#first-design-scan-the-slice">First design: scan the slice</a></li>
+    <li><a href="#second-design-build-one-index">Second design: build one index</a></li>
+    <li><a href="#define-equivalent-results-before-comparing-speed">Define equivalent results before comparing speed</a>
+      <ul>
+        <li><a href="#duplicate-ip-addresses">Duplicate IP addresses</a></li>
+        <li><a href="#missing-metadata">Missing metadata</a></li>
+        <li><a href="#snapshot-replacement-and-ownership">Snapshot replacement and ownership</a></li>
+        <li><a href="#memory-and-distinct-key-count">Memory and distinct-key count</a></li>
+        <li><a href="#concurrent-access">Concurrent access</a></li>
+      </ul>
+    </li>
+    <li><a href="#measure-the-decision">Measure the decision</a></li>
+    <li><a href="#a-production-hash-table-failure">A production hash-table failure</a></li>
+    <li><a href="#decision-and-limits">Decision and limits</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><p><strong>Unit 01 · Production case study</strong></p>
+<h1 id="indexing-a-network-enrichment-stream">Indexing a network-enrichment stream</h1>
+<p class="book-lead">Building one IP index per metadata snapshot removes a repeated
+scan. It also requires explicit rules for duplicates, missing records, updates,
+memory, and concurrent access.</p>
+
+<h2 id="production-source-and-teaching-boundary">Production source and teaching boundary</h2>
+<p>Dropbox&rsquo;s
+<a href="https://dropbox.tech/infrastructure/netflash-tracking-dropbox-network-traffic-in-real-time-with-elasticsearch">NetFlash engineering report</a>
+describes Go collectors that process billions of network-log entries per day
+and enrich those entries with metadata associated with IP addresses. This case
+borrows that event-to-metadata relationship.</p>
+<blockquote class="book-hint note">
+  <p><strong>What is real, and what is synthetic</strong></p>
+  <div class="markdown-inner">The NetFlash report supplies the production setting. The batch API,
+<code>Metadata</code> type, owner and region fields, duplicate policy, fixtures, and
+benchmarks in this repository are synthetic. They neither reproduce Dropbox&rsquo;s
+implementation nor claim its performance results.</div>
+</blockquote>
+
+<h2 id="the-workload">The workload</h2>
+<p>The teaching service receives network events and one metadata snapshot. Each
+event contains a source IP address and a byte count. Before aggregation and
+storage, the service adds the endpoint&rsquo;s owner and region.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>event:    {source_ip: 10.20.3.7, bytes: 8192}
+</span></span><span style="display:flex;"><span>metadata: {ip: 10.20.3.7, owner: payments, region: us-west}</span></span></code></pre></div><p>The cost model uses three quantities:</p>
+<ul>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> is the number of events in the batch.</li>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> is the number of metadata records in the snapshot.</li>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> is the number of distinct IP keys in those records, so <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>≤</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">u \le m</annotation></semantics></math></span></span>.</li>
+</ul>
+<p>The operation is an exact match: find the metadata record whose IP equals the
+event&rsquo;s source IP.</p>
+<p>The lab uses canonical textual IPv4 addresses, so key length is bounded. A
+production system accepting IPv6 text must canonicalize equivalent spellings
+or use a comparable address value such as
+<a href="https://pkg.go.dev/net/netip#Addr"><code>netip.Addr</code></a>. Otherwise two strings can
+denote the same address while behaving as different map keys.</p>
+<blockquote class="book-hint important">
+  <p><strong>Representative activation condition</strong></p>
+  <div class="markdown-inner">Suppose a batch contains 100,000 events and a newly expanded metadata snapshot
+contains 50,000 records. A worst-case scan can perform five billion key
+comparisons. The example is synthetic, but the arithmetic identifies the
+workload size that activates the design problem.</div>
+</blockquote>
+
+<h2 id="first-design-scan-the-slice">First design: scan the slice</h2>
+<p>The simplest implementation scans the metadata slice from newest to oldest
+until it finds the event&rsquo;s IP. The code is direct, allocates no index, and can
+be fastest when a small snapshot is searched only a few times.</p>
+<p>A match in the first position needs one comparison. A missing key or a match in
+the final position needs <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> comparisons. Repeating that worst case for
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> events gives:</p>
+<div class="math-block"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\Theta(e \times m)
+</annotation></semantics></math></span></div><p>If <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> both grow in proportion to a common size <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span></span>, this
+becomes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(n^2)</annotation></semantics></math></span></span>. Keeping the variables separate avoids assuming that
+event traffic and metadata size grow together.</p>
+<h2 id="second-design-build-one-index">Second design: build one index</h2>
+<p>The scan becomes expensive because every event revisits metadata examined for
+earlier events. The alternative builds one <code>map[string]Metadata</code> from the
+snapshot, then reuses it for all events in the batch.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Stage</th>
+					<th style="text-align: right">Expected time</th>
+					<th style="text-align: right">Additional storage</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Build the index</td>
+					<td style="text-align: right"><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m)</annotation></semantics></math></span></span></td>
+					<td style="text-align: right"><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> logical entries, where <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>≤</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">u \le m</annotation></semantics></math></span></span></td>
+			</tr>
+			<tr>
+					<td>Enrich all events</td>
+					<td style="text-align: right"><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e)</annotation></semantics></math></span></span></td>
+					<td style="text-align: right">Result storage common to both designs</td>
+			</tr>
+			<tr>
+					<td>Complete batch</td>
+					<td style="text-align: right"><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo>+</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m + e)</annotation></semantics></math></span></span></td>
+					<td style="text-align: right"><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> beyond the scan</td>
+			</tr>
+	</tbody>
+</table>
+<p>These expected time bounds assume that hashing distributes keys well and that
+hashing and comparing one key are constant-size operations. The bounded textual
+IP keys in this teaching workload satisfy the key-size assumption. The Go
+language itself does not guarantee these time bounds for maps.</p>
+<p>The index constructor examines all <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> records even when some IPs are
+duplicates. The completed map contains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> entries. The lab also passes
+<code>m</code> as the map&rsquo;s capacity hint, so the runtime may reserve capacity based on
+the record count rather than the final number of distinct keys.</p>
+<p>Constant factors still determine the measured crossover. Allocation, string
+hashing, CPU-cache behavior, and garbage collection can make the scan faster
+for a small snapshot used only once. Big-O predicts how the alternatives grow;
+a benchmark shows where one wins for a particular workload and machine.</p>
+<blockquote class="book-hint warning">
+  <p><strong>Include index construction</strong></p>
+  <div class="markdown-inner">A benchmark of a prebuilt index measures lookup cost but excludes construction.
+If the service builds an <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>-record map inside the event loop, it repeats
+that construction <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> times and returns to expected
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> work.</div>
+</blockquote>
+
+<h2 id="define-equivalent-results-before-comparing-speed">Define equivalent results before comparing speed</h2>
+<p>The index is an optimization only if it returns the same result as the scan.
+Both implementations therefore need explicit rules for duplicate IPs, missing
+metadata, and snapshot lifetime.</p>
+<h3 id="duplicate-ip-addresses">Duplicate IP addresses</h3>
+<p>In Go, <code>index[record.IP] = record</code> replaces the current value for that key.
+The lab uses <strong>last record wins</strong>: the map processes records from first to last,
+and the scan searches from last to first.</p>
+<p>That rule is meaningful only if input order is stable and “last” has a
+documented meaning, such as newest version. A production service could instead
+reject a snapshot containing conflicting records. What matters is that both
+implementations apply the same conflict rule deliberately.</p>
+<h3 id="missing-metadata">Missing metadata</h3>
+<p>A lookup can also find no record. The lab returns <code>Found == false</code>, keeping
+absence distinct from metadata whose owner or region happens to be an empty
+string.</p>
+<p>A production collector must then decide what to do with the unenriched event:
+retain it, drop it, retry after a metadata refresh, or emit an error metric.
+The map cannot choose that service behavior.</p>
+<h3 id="snapshot-replacement-and-ownership">Snapshot replacement and ownership</h3>
+<p>So far, both implementations assume that the metadata snapshot remains fixed
+throughout the batch. A continuously running collector needs a replacement
+policy. It can publish a new immutable index, confine all mutation to one
+goroutine, or protect readers and writers with synchronization.</p>
+<p>Publishing immutable indexes gives every batch a consistent snapshot, but the
+service must define when new batches observe a replacement and when old indexes
+can be reclaimed.</p>
+<h3 id="memory-and-distinct-key-count">Memory and distinct-key count</h3>
+<p>One index retains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> logical entries. The measured heap also includes map
+bookkeeping, reserved capacity, strings, and any old index still reachable by a
+reader.</p>
+<p>Memory can grow even while lookup remains fast. The current batch design bounds
+one index by the current snapshot, but a process that accidentally retains
+every replaced snapshot can keep several full indexes alive. A metadata source
+that continually adds IPs without removing retired endpoints can also increase
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> from one snapshot to the next.</p>
+<h3 id="concurrent-access">Concurrent access</h3>
+<p>The same ordinary Go map may be read by multiple goroutines if none of them
+writes to it. If one goroutine modifies the index while others read it, the
+service needs synchronization. Publishing a completed immutable index avoids
+in-place writes; an in-place update design must coordinate every reader and
+writer.</p>
+<h2 id="measure-the-decision">Measure the decision</h2>
+<p>The growth model gives a prediction, not a timing result. For the representative
+batch above, the scan can perform five billion comparisons. The indexed design
+examines 50,000 records once and then performs 100,000 expected constant-time
+lookups. Those counts justify testing the index; they do not supply a latency
+number.</p>
+<p>The <a href="../lab/">enrichment lab</a> contains
+correctness tests and benchmarks at several event and metadata sizes. Before
+running it, predict:</p>
+<ul>
+<li>what changes when <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> doubles while <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> stays fixed;</li>
+<li>what changes when <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> doubles while <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> stays fixed;</li>
+<li>how construction appears in the end-to-end index benchmark; and</li>
+<li>why the prebuilt-index benchmark measures lookup cost but excludes
+construction.</li>
+</ul>
+<p>Use three kinds of evidence:</p>
+<ol>
+<li><strong>Derive comparison counts.</strong> For the scan, calculate how key comparisons
+change with <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>. This prediction does not depend on machine
+speed.</li>
+<li><strong>Run a benchmark series.</strong> Measure the scan, an index built per batch, and a
+reused index across several workload sizes.</li>
+<li><strong>Capture a profile.</strong> Confirm which code consumes the measured CPU time or
+retained memory.</li>
+</ol>
+<p>One timing says which implementation won for one input on one machine. A
+series shows whether the measured growth matches the prediction. A profile
+helps explain a result that does not.</p>
+<h2 id="a-production-hash-table-failure">A production hash-table failure</h2>
+<p>A local benchmark can show when this index becomes faster than the repeated
+scan. It cannot prove that every hash-table implementation will remain fast
+with production keys.</p>
+<p>Dropbox&rsquo;s report on
+<a href="https://dropbox.tech/infrastructure/keeping-sync-fast-with-automated-performance-regression-detectio">automated performance regression detection</a>
+describes a third-party map with a weak hash function. Related entries landed
+in the same buckets, changing insertion and lookup from constant to linear
+time. The failure was in that implementation with that key workload; it is not
+a claim that Go&rsquo;s built-in map has the same defect.</p>
+<p>The incident demonstrates the scope of an expected-cost statement: it depends
+on the hash function, the keys, and the table implementation. Application code
+using a Go map does not select the runtime&rsquo;s probing algorithm, but it does
+control key representation, canonicalization, distinct-key count, entry
+lifetime, and whether exact-key lookup is the operation the service needs.</p>
+<h2 id="decision-and-limits">Decision and limits</h2>
+<p>For the intended workload—a large batch that reuses one fixed metadata
+snapshot—the growth analysis makes one index per snapshot the design to
+benchmark and use by default.</p>
+<blockquote class="book-hint tip">
+  <p><strong>Decision for this teaching service</strong></p>
+  <div class="markdown-inner">Accept one metadata snapshot, build one index with the documented
+last-record-wins rule, and reuse it for every event in the batch. Keep the scan
+as a correctness reference and as a comparison for small, one-use workloads.
+Use the benchmark to find the measured crossover rather than claiming that the
+index wins at every size.</div>
+</blockquote>
+
+<p>Revisit the decision if:</p>
+<ul>
+<li>a new snapshot arrives after only a small number of lookups, so construction
+dominates the work;</li>
+<li>range or prefix queries replace exact-IP lookup;</li>
+<li>retained snapshots or endpoint cardinality exceed the memory budget;</li>
+<li>duplicate, missing-key, or address-canonicalization rules change; or</li>
+<li>profiles show allocation, garbage collection, or synchronization dominating.</li>
+</ul>
+<p>The map changes the lookup cost. The service is still responsible for key
+identity, conflict handling, snapshot ownership, memory bounds, and evidence
+from its own workload.</p>
+<p>Continue with the <a href="../">unit guide</a>, the
+<a href="../lab/">scan-versus-index lab</a>, or the
+<a href="../wheel/">two Wheel scenarios</a>.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../01-big-o-hash-tables/" class="flex align-center">
+        <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Big-O and hash tables</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../01-big-o-hash-tables/lab/" class="flex align-center">
+        <span>Exploration lab: scan or index?</span>
+        <img src="../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#production-source-and-teaching-boundary">Production source and teaching boundary</a></li>
+    <li><a href="#the-workload">The workload</a></li>
+    <li><a href="#first-design-scan-the-slice">First design: scan the slice</a></li>
+    <li><a href="#second-design-build-one-index">Second design: build one index</a></li>
+    <li><a href="#define-equivalent-results-before-comparing-speed">Define equivalent results before comparing speed</a>
+      <ul>
+        <li><a href="#duplicate-ip-addresses">Duplicate IP addresses</a></li>
+        <li><a href="#missing-metadata">Missing metadata</a></li>
+        <li><a href="#snapshot-replacement-and-ownership">Snapshot replacement and ownership</a></li>
+        <li><a href="#memory-and-distinct-key-count">Memory and distinct-key count</a></li>
+        <li><a href="#concurrent-access">Concurrent access</a></li>
+      </ul>
+    </li>
+    <li><a href="#measure-the-decision">Measure the decision</a></li>
+    <li><a href="#a-production-hash-table-failure">A production hash-table failure</a></li>
+    <li><a href="#decision-and-limits">Decision and limits</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
