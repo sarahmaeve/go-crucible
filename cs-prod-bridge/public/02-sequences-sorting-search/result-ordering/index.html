@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Bound collection responses, align keyset cursors with datastore order, and decide what changes may appear between pages.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/result-ordering/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Paginating ordered results">
+	<meta property="og:description" content="Bound collection responses, align keyset cursors with datastore order, and decide what changes may appear between pages.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="02-sequences-sorting-search">
+
+
+	<meta itemprop="name" content="Paginating ordered results">
+	<meta itemprop="description" content="Bound collection responses, align keyset cursors with datastore order, and decide what changes may appear between pages.">
+	<meta itemprop="wordCount" content="2562">
+
+<title>Paginating ordered results • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../favicon.png" >
+<link rel="manifest" href="../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/result-ordering/">
+<link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../en.search.min.60db334323dfb6c1dab59f37a708f452014e903dadd5485129fa44f30a3b7e59.js" integrity="sha256-YNszQyPftsHatZ83pwj0UgFOkD2t1UhRKfpE8wo7flk=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-02-sequences-sorting-search">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/result-ordering/" class="active">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Paginating ordered results</h3>
+
+  <label for="toc-control">
+    
+    <img src="../../icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#why-collections-need-pagination">Why collections need pagination</a></li>
+    <li><a href="#matching-and-presentation-answer-different-questions">Matching and presentation answer different questions</a></li>
+    <li><a href="#a-cursor-must-identify-the-last-result-including-ties">A cursor must identify the last result, including ties</a></li>
+    <li><a href="#the-datastore-must-be-able-to-seek-to-the-same-boundary">The datastore must be able to seek to the same boundary</a></li>
+    <li><a href="#page-tokens-must-identify-the-query-too">Page tokens must identify the query too</a>
+      <ul>
+        <li><a href="#opaque-is-not-the-same-as-trusted">Opaque is not the same as trusted</a></li>
+      </ul>
+    </li>
+    <li><a href="#a-complete-cursor-is-not-enough-if-the-data-changes">A complete cursor is not enough if the data changes</a></li>
+    <li><a href="#real-log-streams-contain-timestamp-ties">Real log streams contain timestamp ties</a></li>
+    <li><a href="#test-with-more-tied-records-than-one-page-can-hold">Test with more tied records than one page can hold</a></li>
+    <li><a href="#where-exact-search-ends-and-recommendation-begins">Where exact search ends and recommendation begins</a></li>
+    <li><a href="#design-review-questions">Design review questions</a></li>
+    <li><a href="#further-reading-by-role">Further reading by role</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><p><strong>Unit 02 · APIs</strong></p>
+<h1 id="paginating-ordered-results-without-skipping-ties">Paginating ordered results without skipping ties</h1>
+<p class="book-lead">Returning the right records is not enough if pagination later
+skips or repeats them. The sort order, cursor contents, continuation test, and
+snapshot policy must agree about where one page ends and the next begins.</p>
+
+<h2 id="why-collections-need-pagination">Why collections need pagination</h2>
+<p>A collection endpoint needs a bound on the response produced by one request. A
+query that finds millions of rows can exhaust database or application memory,
+spend a long time serializing a response, and transfer far more data than the
+client can use at once. Pagination does not make the whole traversal free, and
+a poor query may still examine too many rows. At minimum, pagination bounds the
+records returned and the downstream memory, serialization, and network work.
+A matching access path can bound the datastore work too.</p>
+<p>Two common designs identify the next portion differently:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Design</th>
+					<th>Client sends</th>
+					<th>Server resumes by</th>
+					<th>Useful when</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Offset or page number</td>
+					<td>A position such as <code>offset=200</code> or <code>page=11</code></td>
+					<td>Skipping or counting past earlier matches</td>
+					<td>The collection is small, deep traversal is uncommon, or jumping to a numbered page matters</td>
+			</tr>
+			<tr>
+					<td>Keyset cursor</td>
+					<td>A server-issued boundary such as the last ordered key</td>
+					<td>Seeking after that boundary in an ordered access path</td>
+					<td>The collection may become large and clients normally traverse it in order</td>
+			</tr>
+	</tbody>
+</table>
+<p>Offsets are familiar and often easy to implement. They can become slower at
+large values because the store may still have to visit or count the skipped
+rows. Inserts or deletions before an offset also change which record occupies
+that numbered position. Offsets are not inherently wrong, but those costs must
+fit the promised workload and mutation behavior. PostgreSQL&rsquo;s
+<a href="https://www.postgresql.org/docs/18/queries-limit.html"><code>LIMIT</code> and <code>OFFSET</code> documentation</a>
+makes both relevant requirements explicit: skipped rows still have to be
+computed, and page queries need a unique <code>ORDER BY</code> to select predictable
+subsets.</p>
+<p>When a cursor records an ordered boundary instead of a numbered position, the
+design is commonly called <strong>keyset pagination</strong>. It can keep later pages cheap
+when the datastore can seek to that boundary through a matching index. A page
+token describes the public API envelope, while keyset describes the access
+method; an opaque token could instead contain an offset or a snapshot handle.
+Calling a value a cursor does not create an efficient access path: an unindexed
+cursor query can still scan or sort a large result set.</p>
+<h2 id="matching-and-presentation-answer-different-questions">Matching and presentation answer different questions</h2>
+<p>The lab&rsquo;s Boolean index produces document IDs in increasing order because that
+makes postings lists efficient to merge and intersect. This internal order
+says nothing about which runbook is newest or most relevant to a user.</p>
+<p>After retrieving the match set, the service can apply a user-visible order:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>UpdatedAt descending, then DocumentID ascending</span></span></code></pre></div><p>The timestamp puts newer runbooks first. The document ID resolves ties, so two
+runs over the same snapshot produce the same order. No relevance score is
+involved.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Stage</th>
+					<th>Question</th>
+					<th>Example order</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Candidate retrieval</td>
+					<td>Which documents match every requested tag?</td>
+					<td>Increasing internal document ID</td>
+			</tr>
+			<tr>
+					<td>Presentation</td>
+					<td>In what reproducible order are matches displayed?</td>
+					<td>Update time descending, ID ascending</td>
+			</tr>
+			<tr>
+					<td>Relevance ranking</td>
+					<td>Which result best satisfies a user&rsquo;s need?</td>
+					<td>Requires a scoring model; outside this unit</td>
+			</tr>
+	</tbody>
+</table>
+<p>Treating retrieval and presentation as separate steps prevents an
+implementation detail of the index from leaking into the public API.</p>
+<h2 id="a-cursor-must-identify-the-last-result-including-ties">A cursor must identify the last result, including ties</h2>
+<p>Suppose incidents are sorted only by <code>OccurredAt DESC</code>, and six incidents
+share one timestamp. If a page contains three of them, a timestamp-only cursor
+tells the server which timestamp it reached but not which three incidents it
+already returned.</p>
+<p>Neither obvious rule for finding the next page works:</p>
+<ul>
+<li>returning only incidents with older timestamps skips the remaining three;</li>
+<li>returning incidents with the same or an older timestamp can return the first
+three again.</li>
+</ul>
+<p>Increasing timestamp precision does not solve the problem. Events may be
+created in the same batch, and any finite timestamp representation can contain
+ties. The cursor needs another field that uniquely orders incidents within a
+timestamp.</p>
+<p>Add the incident ID as a tie-breaker:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>OccurredAt descending, then IncidentID ascending</span></span></code></pre></div><p>An incident follows the cursor when its timestamp is older, or when its
+timestamp is equal and its ID is greater:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>incident.OccurredAt &lt; cursor.OccurredAt
+</span></span><span style="display:flex;"><span>OR
+</span></span><span style="display:flex;"><span>(incident.OccurredAt == cursor.OccurredAt AND incident.ID &gt; cursor.IncidentID)</span></span></code></pre></div><p>Sorting, creating the cursor, and finding the next page must all use those two
+fields in that order. Merely adding <code>IncidentID</code> to the cursor type does not
+help if the constructor or continuation check ignores it.</p>
+<p>The continuation is <strong>exclusive</strong>: the record named by the cursor was already
+returned, so the next page begins after it. Inclusive continuation can be made
+to work only if one side deliberately removes the repeated boundary record.
+The API must choose and document one meaning rather than leaving clients to
+guess.</p>
+<blockquote class="book-hint warning">
+  <p><strong>Stable sorting does not fix a timestamp-only cursor</strong></p>
+  <div class="markdown-inner">A stable sort preserves the input order among equal timestamps during one
+call, but the cursor does not record a position in that input. Another replica,
+a map iteration, or a newly built snapshot may present the tied records in a
+different order.</div>
+</blockquote>
+
+<h2 id="the-datastore-must-be-able-to-seek-to-the-same-boundary">The datastore must be able to seek to the same boundary</h2>
+<p>The continuation rule above can be translated directly into a database query.
+For an account-scoped incident list, one possible shape is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#ff6ac1">SELECT</span> incident_id, occurred_at, summary
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">FROM</span> incidents
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">WHERE</span> account_id <span style="color:#ff6ac1">=</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ff6ac1">AND</span> severity <span style="color:#ff6ac1">=</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">2</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ff6ac1">AND</span> (
+</span></span><span style="display:flex;"><span>    occurred_at <span style="color:#ff6ac1">&lt;</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">3</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">OR</span> (occurred_at <span style="color:#ff6ac1">=</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">3</span> <span style="color:#ff6ac1">AND</span> incident_id <span style="color:#ff6ac1">&gt;</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">4</span>)
+</span></span><span style="display:flex;"><span>  )
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">ORDER</span> <span style="color:#ff6ac1">BY</span> occurred_at <span style="color:#ff6ac1">DESC</span>, incident_id <span style="color:#ff6ac1">ASC</span>
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">LIMIT</span> <span style="color:#ff5c57">$</span><span style="color:#ff9f43">5</span>;</span></span></code></pre></div><p>Here <code>$3</code> and <code>$4</code> come from the decoded cursor, and <code>$5</code> is normally one more
+than the public page size. The strict inequalities make the cursor exclusive.
+A candidate index begins with the equality-scoped fields and then uses the
+public order:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#ff6ac1">CREATE</span> <span style="color:#ff6ac1">INDEX</span> incidents_page_idx
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">ON</span> incidents (account_id, severity, occurred_at <span style="color:#ff6ac1">DESC</span>, incident_id <span style="color:#ff6ac1">ASC</span>);</span></span></code></pre></div><p>The exact index depends on the datastore and on which filters are selective.
+Mixed directions and a disjunctive continuation predicate are not optimized
+identically by every query planner. PostgreSQL&rsquo;s
+<a href="https://www.postgresql.org/docs/18/indexes-multicolumn.html">multicolumn-index documentation</a>,
+for example, explains why equality constraints on leading B-tree columns
+matter. Inspect the real execution plan and test a cursor deep in a
+production-shaped collection. The desired evidence is that the store seeks
+near the boundary and reads roughly one page, not merely that the endpoint
+accepts a parameter named <code>page_token</code>.</p>
+<p>Fetching <code>page_size + 1</code> matching rows is a common way to discover whether
+another page exists. Return at most <code>page_size</code> rows and build the next token
+from the last row actually returned. If the extra row does not exist, omit the
+token or return it as an empty string according to the API contract.</p>
+<h2 id="page-tokens-must-identify-the-query-too">Page tokens must identify the query too</h2>
+<p><a href="https://google.aip.dev/158">Google AIP-158</a> requires page tokens to be opaque
+and safe to place in a URL. A client may change <code>page_size</code> between requests;
+other filters and ordering arguments should remain the same, or the service
+should return <code>INVALID_ARGUMENT</code>. An empty next-page token means that the
+traversal is complete.</p>
+<p>Hiding the token&rsquo;s contents from clients lets the server choose its internal
+encoding. A hidden token is still incomplete if it omits part of the sort key.
+It also needs enough information for the server to reject a changed filter or
+sort direction.</p>
+<p>Return the continuation instead of making the client reconstruct it. For
+example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-http" data-lang="http"><span style="display:flex;"><span><span style="color:#ff5c57">GET /v1/accounts/acct-7/incidents?severity=critical&amp;page_size=2</span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#ff6ac1">&#34;incidents&#34;</span>: [
+</span></span><span style="display:flex;"><span>    {<span style="color:#ff6ac1">&#34;incident_id&#34;</span>: <span style="color:#5af78e">&#34;inc-241&#34;</span>, <span style="color:#ff6ac1">&#34;occurred_at&#34;</span>: <span style="color:#5af78e">&#34;2026-08-05T18:42:00Z&#34;</span>},
+</span></span><span style="display:flex;"><span>    {<span style="color:#ff6ac1">&#34;incident_id&#34;</span>: <span style="color:#5af78e">&#34;inc-249&#34;</span>, <span style="color:#ff6ac1">&#34;occurred_at&#34;</span>: <span style="color:#5af78e">&#34;2026-08-05T18:42:00Z&#34;</span>}
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#ff6ac1">&#34;next_page_token&#34;</span>: <span style="color:#5af78e">&#34;opaque-server-issued-value&#34;</span>
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>The following request sends the token back unchanged and retains the same
+query:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-http" data-lang="http"><span style="display:flex;"><span><span style="color:#ff5c57">GET /v1/accounts/acct-7/incidents?severity=critical&amp;page_size=2&amp;page_token=opaque-server-issued-value</span></span></span></code></pre></div><p>A <code>next_page</code> URL is another reasonable response shape. In either form, the
+server owns cursor construction and the client treats the result as opaque.
+Specify a default and maximum page size, whether an oversized value is rejected
+or reduced, and whether <code>page_size</code> may change during traversal. Do not rely on
+clients to enforce a safe upper bound.</p>
+<h3 id="opaque-is-not-the-same-as-trusted">Opaque is not the same as trusted</h3>
+<p>Base64 encoding does not make a token&rsquo;s contents secret or make the token
+trustworthy. A production token normally uses a server-side handle or an
+integrity-protected, versioned payload containing enough state to resume and
+validate the traversal. Depending on the contract, that state can include:</p>
+<ul>
+<li>every field in the ordered boundary;</li>
+<li>a fingerprint of filters and sort options;</li>
+<li>the tenant or authorization scope;</li>
+<li>a snapshot or collection version; and</li>
+<li>a format version and expiration time.</li>
+</ul>
+<p>Authorization must still be evaluated on every request. A page token is not an
+authorization grant and must never let its holder widen the original tenant or
+resource scope.</p>
+<p>Define token failures as part of the public API rather than allowing decoder or
+datastore errors to leak through:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Failure</th>
+					<th>Expected behavior</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Malformed token, unsupported version, or failed integrity check</td>
+					<td>Reject as an invalid page token</td>
+			</tr>
+			<tr>
+					<td>Filters, tenant, or sort order differ from the original query</td>
+					<td>Reject the request; do not silently start a different traversal</td>
+			</tr>
+			<tr>
+					<td>Snapshot or token has expired</td>
+					<td>Return the documented expiration response and tell the client whether it must restart</td>
+			</tr>
+			<tr>
+					<td>Authorization has changed</td>
+					<td>Apply current authorization and reveal no records merely because the old token named them</td>
+			</tr>
+	</tbody>
+</table>
+<h2 id="a-complete-cursor-is-not-enough-if-the-data-changes">A complete cursor is not enough if the data changes</h2>
+<p>A cursor containing both order fields identifies one position in a fixed
+result set. If records may be inserted, removed, or updated between requests,
+the API must also define what later pages are allowed to see. Without that
+rule, a record can move across the cursor even when the cursor itself is
+correct.</p>
+<p>Kubernetes shows one way to keep the underlying collection fixed. Its
+<a href="https://kubernetes.io/docs/reference/using-api/api-concepts/#retrieving-large-results-sets-in-chunks">chunked collection responses</a>
+tie each continuation token to a <code>resourceVersion</code>. Later chunks therefore
+come from the same collection snapshot even if stored objects change while the
+client is paging through them.</p>
+<p>The cursor key and the snapshot version solve different problems. The key
+identifies the last item returned within an order; the version identifies the
+collection to which that order applies. An API that pages over live data may
+choose a weaker policy, but it should state clearly which changes can appear
+between pages.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Mutation policy</th>
+					<th>What the client can expect</th>
+					<th>Main cost or limitation</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Fixed snapshot or version</td>
+					<td>Every matching record in that snapshot can appear exactly once in the declared order</td>
+					<td>The service must retain snapshot state and define token expiry and restart behavior</td>
+			</tr>
+			<tr>
+					<td>Live keyset traversal</td>
+					<td>Each request resumes after the ordered key in the current collection</td>
+					<td>New records that sort before the cursor will not appear later, deletes disappear, and updates to ordering fields can move records across the cursor</td>
+			</tr>
+			<tr>
+					<td>Overlap and deduplicate</td>
+					<td>Requests repeat part of the boundary range and identities suppress records already emitted</td>
+					<td>Extra reads and explicit identity state are required; the deduplication scope must be bounded</td>
+			</tr>
+	</tbody>
+</table>
+<p>No policy can promise an immutable traversal while also freely observing every
+concurrent change. Select the guarantee the product needs, document it, and
+make expiration or restart behavior visible to clients. Prefer immutable
+tie-breakers; if a primary ordering field such as <code>UpdatedAt</code> can change, the
+snapshot or live-data policy must account for records moving across the
+boundary.</p>
+<blockquote class="book-hint note">
+  <p><strong>Scope of the local lab</strong></p>
+  <div class="markdown-inner">The lab demonstrates an <code>(UpdatedAt, ID)</code> cursor over a slice supplied by the
+caller. A production API would also need to encode and validate the token,
+bind it to authorization and filters, decide when it expires, and provide
+whatever snapshot or versioning policy the API promises.</div>
+</blockquote>
+
+<h2 id="real-log-streams-contain-timestamp-ties">Real log streams contain timestamp ties</h2>
+<p>Grafana Loki&rsquo;s
+<a href="https://grafana.com/docs/loki/latest/reference/loki-http-api/">query-range API</a>
+returns timestamp-ordered logs in either direction and allows the caller to set
+time bounds and a result limit. The
+<a href="https://github.com/grafana/loki/blob/v3.7.4/pkg/logcli/query/query.go"><code>logcli</code> query implementation in Loki v3.7.4</a>
+handles a page that ends partway through a group of equal timestamps by
+overlapping the next request and filtering entries that were already printed.</p>
+<p>Loki&rsquo;s solution differs from the compound cursor used in the local exercise,
+but its code demonstrates the same underlying problem: a timestamp alone may
+not identify one result when several log entries share it.</p>
+<h2 id="test-with-more-tied-records-than-one-page-can-hold">Test with more tied records than one page can hold</h2>
+<p>A test with unique timestamps cannot reproduce this failure. Make the tie
+group larger than the page size, traverse the whole immutable snapshot, and
+verify the ordering algorithm itself:</p>
+<ul>
+<li>every expected ID appears exactly once;</li>
+<li>adjacent records follow the declared total order;</li>
+<li>no page exceeds the limit;</li>
+<li>changing input permutation does not change the result order; and</li>
+<li>the caller&rsquo;s source snapshot is not mutated.</li>
+</ul>
+<p>At the HTTP or RPC boundary, separately verify that malformed, expired, and
+query-mismatched tokens are rejected; maximum page sizes are enforced; current
+authorization is reapplied; and the final response carries no continuation.
+Keeping these layers distinct prevents an in-memory cursor test from being
+mistaken for validation of the public token contract.</p>
+<p>After collecting every page, compare the complete traversal with an
+independently sorted expected sequence. A successful HTTP response and healthy
+page latency cannot reveal that one record was skipped or returned twice.</p>
+<p>The same test can run as a production canary. Keep a frozen collection with tie
+groups larger than the page size, traverse it periodically through the real
+API, and report missing IDs, duplicates, out-of-order neighbors, rejected
+tokens, and version mismatches. This can expose paging corruption even while
+latency and error-rate dashboards remain healthy.</p>
+<h2 id="where-exact-search-ends-and-recommendation-begins">Where exact search ends and recommendation begins</h2>
+<p>Exact search can use the techniques in this unit: retrieve records that match a
+filter, then arrange them in a fixed display order. Recommendation adds a score
+that estimates which candidates a particular user is most likely to value.</p>
+<p>A typical recommendation pipeline narrows the work in stages:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>candidate generation -&gt; first-pass scoring -&gt; shortlist -&gt; detailed ranking</span></span></code></pre></div><p><strong>Top-k</strong> selection keeps the best <code>k</code> scored candidates at one of those
+stages. LinkedIn&rsquo;s first-party
+<a href="https://engineering.linkedin.com/teams/data/artificial-intelligence/feed">feed architecture</a>
+shows this broader pattern in production. An inverted index can supply the
+initial candidates, but its internal ID order is not a recommendation score.</p>
+<p>The local search lab therefore stops after exact matching and deterministic
+display. Heap-based top-k selection appears in the next unit, while link-based
+methods such as PageRank belong with graph algorithms.</p>
+<h2 id="design-review-questions">Design review questions</h2>
+<ul>
+<li>Is the public order fully specified, including direction, missing values, and
+every tie-breaker?</li>
+<li>Is the last tie-breaker unique and immutable within the snapshot?</li>
+<li>Does the cursor encode all fields in that order, plus query/version context?</li>
+<li>Does continuation use the exact same field-by-field comparison?</li>
+<li>Can the datastore seek to that compound boundary through the measured access
+path, or does it still scan or sort earlier matches?</li>
+<li>Can a client change filters or direction while reusing a token?</li>
+<li>Are the request, response, terminal-page, size-limit, and token-error
+contracts explicit?</li>
+<li>What mutations are visible between pages?</li>
+<li>Do tests contain more equal-key records than one page can hold?</li>
+<li>Are completeness and duplication monitored separately from latency?</li>
+</ul>
+<h2 id="further-reading-by-role">Further reading by role</h2>
+<ul>
+<li>Sean Goedecke&rsquo;s
+<a href="https://www.seangoedecke.com/good-api-design/">Everything I know about good API design</a>
+gives the concise product-level motivation for bounding list responses and
+choosing cursors before a collection becomes too large for offsets.</li>
+<li><a href="https://google.aip.dev/158">Google AIP-158</a> specifies a conventional
+<code>page_size</code>, <code>page_token</code>, and <code>next_page_token</code> contract, including opacity,
+changed arguments, authorization, and expiry.</li>
+<li>PostgreSQL documents the storage-layer facts behind the examples:
+<a href="https://www.postgresql.org/docs/18/queries-limit.html"><code>LIMIT</code>/<code>OFFSET</code></a> and
+<a href="https://www.postgresql.org/docs/18/indexes-multicolumn.html">multicolumn B-tree indexes</a>.</li>
+<li><a href="https://docs.stripe.com/api/pagination">Stripe&rsquo;s pagination reference</a>
+provides a production client contract with exclusive <code>starting_after</code> and
+<code>ending_before</code> cursors, bounded limits, <code>has_more</code>, and SDK auto-pagination.</li>
+<li>The
+<a href="https://jsonapi.org/profiles/ethanresnick/cursor-pagination/">JSON:API cursor-pagination profile</a>
+develops forward, backward, and bounded-range cursor semantics in more
+detail. It is useful when an API needs more than forward traversal.</li>
+<li>Kubernetes chunked lists and Loki&rsquo;s same-timestamp handling, linked above,
+show snapshot-bound continuation and overlap-and-deduplicate as two different
+production policies.</li>
+</ul>
+<p>Try the failure and repair path in
+<a href="../wheel/02-timestamp-only-cursor/">W02: The Timestamp-Only Cursor</a>, or return
+to the <a href="../">unit guide</a>.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../02-sequences-sorting-search/case-study/" class="flex align-center">
+        <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Making high-cardinality metric filters predictable</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../02-sequences-sorting-search/lab/" class="flex align-center">
+        <span>Exploration lab: scan, intersect, and order</span>
+        <img src="../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#why-collections-need-pagination">Why collections need pagination</a></li>
+    <li><a href="#matching-and-presentation-answer-different-questions">Matching and presentation answer different questions</a></li>
+    <li><a href="#a-cursor-must-identify-the-last-result-including-ties">A cursor must identify the last result, including ties</a></li>
+    <li><a href="#the-datastore-must-be-able-to-seek-to-the-same-boundary">The datastore must be able to seek to the same boundary</a></li>
+    <li><a href="#page-tokens-must-identify-the-query-too">Page tokens must identify the query too</a>
+      <ul>
+        <li><a href="#opaque-is-not-the-same-as-trusted">Opaque is not the same as trusted</a></li>
+      </ul>
+    </li>
+    <li><a href="#a-complete-cursor-is-not-enough-if-the-data-changes">A complete cursor is not enough if the data changes</a></li>
+    <li><a href="#real-log-streams-contain-timestamp-ties">Real log streams contain timestamp ties</a></li>
+    <li><a href="#test-with-more-tied-records-than-one-page-can-hold">Test with more tied records than one page can hold</a></li>
+    <li><a href="#where-exact-search-ends-and-recommendation-begins">Where exact search ends and recommendation begins</a></li>
+    <li><a href="#design-review-questions">Design review questions</a></li>
+    <li><a href="#further-reading-by-role">Further reading by role</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

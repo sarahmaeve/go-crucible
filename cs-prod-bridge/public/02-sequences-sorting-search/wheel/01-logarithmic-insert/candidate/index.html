@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Use measurements to find why refresh slows, repair it without changing the inputs, and verify the result.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="W01 candidate guide">
+	<meta property="og:description" content="Use measurements to find why refresh slows, repair it without changing the inputs, and verify the result.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="02-sequences-sorting-search">
+
+
+	<meta itemprop="name" content="W01 candidate guide">
+	<meta itemprop="description" content="Use measurements to find why refresh slows, repair it without changing the inputs, and verify the result.">
+	<meta itemprop="wordCount" content="399">
+
+<title>W01 candidate guide • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../../../favicon.png" >
+<link rel="manifest" href="../../../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/">
+<link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../../../en.search.min.60db334323dfb6c1dab59f37a708f452014e903dadd5485129fa44f30a3b7e59.js" integrity="sha256-YNszQyPftsHatZ83pwj0UgFOkD2t1UhRKfpE8wo7flk=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-02-sequences-sorting-search">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle" checked />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle" checked />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="active">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>W01 candidate guide</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="w01-candidate-guide">W01 Candidate Guide</h1>
+<h2 id="what-you-may-change">What you may change</h2>
+<p>Change only the function that applies an incoming batch to the current
+snapshot. A successful refresh must:</p>
+<ul>
+<li>return records with unique keys in increasing string order;</li>
+<li>keep the last incoming record when a key appears more than once;</li>
+<li>leave both input slices unchanged; and</li>
+<li>return a slice with its own backing array.</li>
+</ul>
+<p>Do not change update delivery, readiness policy, or query serving.</p>
+<p>Until you have narrowed the cause, do not open <code>index.go</code>, either test file,
+or <code>DEBRIEF.md</code>.</p>
+<h2 id="choose-the-next-evidence-packet">Choose the next evidence packet</h2>
+<p>The <a href="../evidence/">evidence index</a> names available packets without
+revealing their contents. Before opening one, write down:</p>
+<ol>
+<li>the possible cause or input characteristic it examines;</li>
+<li>what each likely result would tell you; and</li>
+<li>why it is the best next packet to read.</li>
+</ol>
+<p>You do not need every packet.</p>
+<h2 id="before-opening-the-source">Before opening the source</h2>
+<p>Open the source after you can explain:</p>
+<ul>
+<li><code>n</code>, the number of records already in the snapshot;</li>
+<li><code>m</code>, the number of incoming records;</li>
+<li>whether the location of incoming keys in the sorted result affects refresh
+time;</li>
+<li>whether the measurements point to comparisons, allocation, or copying;</li>
+<li>the ordering that binary search requires; and</li>
+<li>the combined cost of finding an insertion point and opening space for the
+record.</li>
+</ul>
+<p>From the <code>cs-prod-bridge</code> directory, run ordinary correctness tests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/wheel/01-logarithmic-insert -v</span></span></code></pre></div><p>Run the large front-insertion case:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel3 <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  ./02-sequences-sorting-search/wheel/01-logarithmic-insert <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run TestRefreshWriteGrowthOnFrontHeavyBatch -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>If you need timing and a CPU profile:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel3 <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  ./02-sequences-sorting-search/wheel/01-logarithmic-insert <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkRefreshFrontHeavy -benchmem
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel3 <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  ./02-sequences-sorting-search/wheel/01-logarithmic-insert <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkRefreshFrontHeavy -benchtime<span style="color:#ff6ac1">=</span>2s <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -cpuprofile /tmp/cs-bridge-wheel3.pprof
+</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-wheel3.pprof</span></span></code></pre></div><p>Change <code>Refresh</code> so that a large batch of keys near the front no longer causes
+repeated copying of the existing suffix. Preserve the ordering, duplicate-key
+behavior, and unchanged inputs described above.</p>
+<p>The tests also check these counters:</p>
+<ul>
+<li><code>Inserted</code> counts an incoming record when its key has not appeared in the
+current snapshot or earlier in the incoming batch;</li>
+<li><code>Replaced</code> counts every other incoming record, including later duplicates
+within the batch;</li>
+<li><code>Inserted + Replaced</code> therefore equals the incoming batch size; and</li>
+<li><code>SnapshotWrites</code> counts the record writes used to construct the returned
+snapshot: initial copies, replacements, inserted records, and records shifted
+to open a gap. An implementation that constructs the final output in one
+pass counts one write for each output record.</li>
+</ul>
+<p>Verify both test modes, then write a three-minute handoff before reading
+<a href="../debrief/">the debrief</a>.</p>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="flex align-center">
+        <img src="../../../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>W01: The Logarithmic Insert</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="flex align-center">
+        <span>W02: The Timestamp-Only Cursor</span>
+        <img src="../../../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

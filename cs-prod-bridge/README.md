@@ -25,15 +25,18 @@ through benchmarks, profiles, and report-first debugging scenarios.
 | # | Unit | Status |
 |---|---|---|
 | [01](./public/01-big-o-hash-tables/index.html) | Big-O and hash tables | Initial implementation |
+| [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
 
-The generated Unit 01 site includes the guide, case study, exploration lab,
-Wheel reports, candidate guides, selectively revealed evidence packets, and
-debriefs. The lab and Wheel Markdown remains beside the runnable code and is
+The generated units include guides, case studies, exploration labs, Wheel
+reports, candidate guides, selectively revealed evidence packets, and
+debriefs. Lab and Wheel Markdown remains beside the runnable code and is
 rendered into Hugo pages during the build; published pages do not link back to
 source-tree `.md` paths.
 
 The curriculum and contribution criteria are described in
-[`docs/cs-prod-bridge.md`](../docs/cs-prod-bridge.md).
+[`docs/cs-prod-bridge.md`](../docs/cs-prod-bridge.md). Unit 02's research
+record, selected production case, source audit, and implementation design are in
+[`docs/cs-prod-bridge-unit-02.md`](../docs/cs-prod-bridge-unit-02.md).
 
 ## Building the site
 

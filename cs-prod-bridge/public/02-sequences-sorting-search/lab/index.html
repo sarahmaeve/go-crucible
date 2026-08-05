@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/lab/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Exploration lab: scan, intersect, and order">
+	<meta property="og:description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="website">
+
+
+	<meta itemprop="name" content="Exploration lab: scan, intersect, and order">
+	<meta itemprop="description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
+	<meta itemprop="wordCount" content="904">
+
+<title>Exploration lab: scan, intersect, and order • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../favicon.png" >
+<link rel="manifest" href="../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/lab/">
+<link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../en.search.min.60db334323dfb6c1dab59f37a708f452014e903dadd5485129fa44f30a3b7e59.js" integrity="sha256-YNszQyPftsHatZ83pwj0UgFOkD2t1UhRKfpE8wo7flk=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-section book-type-02-sequences-sorting-search">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/lab/" class="active">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Exploration lab: scan, intersect, and order</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="exploration-lab-scan-intersect-and-order">Exploration Lab: Scan, Intersect, and Order</h1>
+<p>This lab searches a small catalog of SRE runbooks. Each runbook already has a
+set of tags, so the exercises can concentrate on indexing, sorted lists, and
+pagination rather than parsing text.</p>
+<p>Every document must have a unique ID. <code>BuildIndex</code> returns an error when it
+finds a duplicate; <code>ScanAND</code> expects the caller to provide the same valid
+input. The lab offers two ways to answer an AND query:</p>
+<ul>
+<li><code>ScanAND</code> examines every document and checks whether it contains every
+requested tag.</li>
+<li><code>Index.SearchAND</code> retrieves the sorted list of IDs for each tag, starts with
+the shortest list, and intersects the lists.</li>
+</ul>
+<p>Both methods return matching IDs in increasing numerical order.
+<code>OrderResults</code> then loads the documents and sorts them for display, newest
+first. When two documents have the same update time, the smaller ID comes
+first. The lab does not calculate relevance scores.</p>
+<h2 id="1-confirm-behavior-and-ordering-rules">1. Confirm behavior and ordering rules</h2>
+<p>Run commands in this lab from the <code>cs-prod-bridge</code> module directory.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab -v</span></span></code></pre></div><p>Before reading the implementation, write down the behavior you expect for:</p>
+<ul>
+<li>an empty query;</li>
+<li>a missing tag;</li>
+<li>repeated or differently-cased query tags;</li>
+<li>duplicate tags on one document;</li>
+<li>duplicate document IDs; and</li>
+<li>several documents with the same update timestamp.</li>
+</ul>
+<p>Find the tests that check that every postings list is sorted and that the scan
+and index return the same IDs.</p>
+<h2 id="2-predict-retrieval-growth">2. Predict retrieval growth</h2>
+<p>Use the following names when describing the workload:</p>
+<ul>
+<li><code>d</code>: number of documents</li>
+<li><code>p</code> and <code>q</code>: number of IDs in two postings lists</li>
+<li><code>r</code>: number of matching documents that must be sorted for display</li>
+<li><code>Q</code>: number of queries answered using the same index</li>
+</ul>
+<p>Before running the benchmarks, write down how you expect <code>d</code>, <code>p</code>, <code>q</code>, <code>r</code>,
+and <code>Q</code> to affect each stage: scanning the documents, building the index,
+intersecting two postings lists, and sorting the matches.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench <span style="color:#5af78e">&#39;BenchmarkSearch|BenchmarkIndexReuse|BenchmarkSelectivity&#39;</span> <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p><code>index-reused</code> measures search after the index has already been built, so it is
+not an end-to-end measurement. <code>BenchmarkIndexReuse</code> includes the build and
+then runs 1, 10, or 100 queries against that index. Compare it with
+<code>index-end-to-end</code>, especially in the one-query case, where the build has no
+opportunity to pay for itself.</p>
+<p>The selectivity benchmarks keep the number of documents fixed while changing
+the sizes and overlap of the postings lists. Before comparing their timings,
+identify the shorter list and the number of matching IDs in each case. Use
+those differences to explain why document count alone does not predict the
+cost of an indexed query.</p>
+<h2 id="3-count-comparisons-and-pointer-advances">3. Count comparisons and pointer advances</h2>
+<p><code>IntersectSorted</code> records comparisons and pointer advances. Each loop advances
+at least one input, so the operation is bounded by the combined postings
+length rather than their product.</p>
+<p>Change the two lists in <code>TestIntersectSortedCountsBoundedWork</code> to be:</p>
+<ul>
+<li>disjoint and interleaved;</li>
+<li>identical;</li>
+<li>one very short and one very long; and</li>
+<li>equal in length but with one match at the end.</li>
+</ul>
+<p>Elapsed time varies across machines. The comparison and pointer-advance counts
+let you compare the algorithm&rsquo;s work without depending on a particular CPU.</p>
+<h2 id="4-separate-matching-from-presentation">4. Separate matching from presentation</h2>
+<p><code>OrderResults</code> sorts by update time, newest first. If two documents have the
+same update time, it sorts them by ID:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>UpdatedAt descending, then document ID ascending</span></span></code></pre></div><p><code>PageAfter</code> expects documents in this order and records both fields in the
+cursor. Add enough documents with the same timestamp to span two pages, then
+confirm that following every cursor returns every ID once.</p>
+<p><code>PageAfter</code> models the ordered boundary after a production page token has been
+decoded and validated. It does not model an HTTP response, token encoding,
+authorization, expiry, or query binding. The API chapter treats those as a
+separate contract so success in this slice-based lab is not mistaken for a
+complete endpoint design.</p>
+<p>Next, temporarily remove the ID tie-breaker. <code>PageAfter</code> should reject the
+input because two documents now occupy the same position in the ordering. W02
+contains a paginator that accepts timestamp-only ordering and demonstrates how
+that design skips records: <a href="../wheel/02-timestamp-only-cursor/">The Timestamp-Only Cursor</a>.</p>
+<h2 id="5-find-the-cost-hidden-behind-binary-search">5. Find the cost hidden behind binary search</h2>
+<p>Both update variants maintain the same sorted set:</p>
+<ul>
+<li><code>InsertIndividually</code> binary-searches and inserts every ID into a slice.</li>
+<li><code>SortAndMergeBatch</code> sorts and compacts the delta, then performs one linear
+union.</li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkSortedUpdates -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>The front-heavy fixture makes every individual insert shift a large suffix.
+The append-heavy fixture does not. Binary search performs logarithmic
+comparisons in both cases; it does not move the suffix.</p>
+<h2 id="6-check-where-insertion-time-goes">6. Check where insertion time goes</h2>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench <span style="color:#5af78e">&#39;BenchmarkSortedUpdates/front/individual$&#39;</span> <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -benchtime<span style="color:#ff6ac1">=</span>2s -cpuprofile /tmp/cs-bridge-ordered-insert.pprof
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-ordered-insert.pprof</span></span></code></pre></div><p>Before opening the profile, predict whether comparisons, allocation, or copying
+will use the most CPU. Then compare the profile with <code>UpdateStats.Shifted</code>.
+The profile identifies where the program spent its time; the counter shows how
+the amount of copying changes as the input grows.</p>
+<h2 id="7-challenge-the-design">7. Challenge the design</h2>
+<ul>
+<li>When is scanning preferable to building an index?</li>
+<li>How many queries must use an index before the saved search work repays the
+build?</li>
+<li>How many index entries does each document add, and how much additional memory
+does that require?</li>
+<li>If documents can be added while a client is following page cursors, what
+behavior should the API promise?</li>
+<li>When would the service need to rank matches or retain only the best <code>k</code>,
+rather than sorting every match?</li>
+</ul>
+<p>The benchmark results describe this small runbook catalog. Use the Datadog and
+Prometheus sections of the guide for the behavior of those production systems.</p>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../02-sequences-sorting-search/result-ordering/" class="flex align-center">
+        <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Paginating ordered results</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../02-sequences-sorting-search/wheel/" class="flex align-center">
+        <span>Wheels of Misfortune</span>
+        <img src="../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
