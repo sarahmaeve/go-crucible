@@ -28,8 +28,8 @@ The selected design is now implemented under
 
 The initial implementation passes the nested module's complete tests and vet,
 Hugo 0.164 generation, committed-output comparison, and internal-link checks.
-It is ready for learner evaluation; learner feedback may still tune exercise
-timing, evidence disclosure, and benchmark fixture sizes.
+Exercise timing, evidence disclosure, and benchmark fixture sizes remain
+ordinary maintenance concerns as the material evolves.
 
 ## Decision
 
@@ -676,9 +676,9 @@ Reuse Unit 01's shortcodes, hidden debrief/evidence navigation, report-first
 flow, and opt-in symptom tags. Do not add shared abstractions until repetition
 is visible in the second completed unit.
 
-## Acceptance criteria
+## Implementation checklist
 
-The unit is ready for learner evaluation only when:
+The implementation includes:
 
 - Every sorted operation names its comparator and validates its precondition.
 - Contract, model, implementation, and measurement claims are visibly

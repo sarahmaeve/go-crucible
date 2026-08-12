@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Priority queues make the next choice cheap; production schedulers must also model readiness, retries, fairness, and state ownership.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Queues, heaps, and scheduling">
+	<meta property="og:description" content="Priority queues make the next choice cheap; production schedulers must also model readiness, retries, fairness, and state ownership.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="website">
+
+
+	<meta itemprop="name" content="Queues, heaps, and scheduling">
+	<meta itemprop="description" content="Priority queues make the next choice cheap; production schedulers must also model readiness, retries, fairness, and state ownership.">
+	<meta itemprop="wordCount" content="6530">
+
+<title>Queues, heaps, and scheduling • Computer Science Through Production Systems</title>
+<link rel="icon" href="../favicon.png" >
+<link rel="manifest" href="../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/">
+<link rel="stylesheet" href="../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../en.search.min.febd345c2a2b90c2288d0dc5f64aedc7300f61f2ac5ef8bbc69e1c10937f3052.js" integrity="sha256-/r00XCorkMIojQ3F9krtxzAPYfKsXvi7xp4cEJN/MFI=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-section book-type-03-queues-heaps-scheduling">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/" class="active">
+      Queues, heaps, and scheduling</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Queues, heaps, and scheduling</h3>
+
+  <label for="toc-control">
+    
+    <img src="../icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#a-production-queue-answers-more-than-what-is-next">A production queue answers more than “what is next?”</a></li>
+    <li><a href="#fifo-preserves-arrival-order">FIFO preserves arrival order</a></li>
+    <li><a href="#a-priority-queue-exposes-the-most-important-item">A priority queue exposes the most important item</a></li>
+    <li><a href="#a-binary-heap-is-an-implicit-complete-tree">A binary heap is an implicit complete tree</a></li>
+    <li><a href="#push-restores-heap-order-upward-pop-restores-it-downward">Push restores heap order upward; pop restores it downward</a></li>
+    <li><a href="#go-separates-heap-mechanics-from-your-ordering-rule">Go separates heap mechanics from your ordering rule</a></li>
+    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a></li>
+    <li><a href="#scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</a></li>
+    <li><a href="#backoff-controls-when-a-retry-may-happen">Backoff controls when a retry may happen</a></li>
+    <li><a href="#production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</a></li>
+    <li><a href="#eligibility-asks-whether-anything-relevant-changed">Eligibility asks whether anything relevant changed</a></li>
+    <li><a href="#deduplicating-the-queue-does-not-eliminate-duplicate-work">Deduplicating the queue does not eliminate duplicate work</a></li>
+    <li><a href="#remembered-events-must-be-cleaned-up">Remembered events must be cleaned up</a></li>
+    <li><a href="#a-correct-priority-queue-can-still-leave-work-waiting-forever">A correct priority queue can still leave work waiting forever</a></li>
+    <li><a href="#a-fast-queue-cannot-create-service-capacity">A fast queue cannot create service capacity</a></li>
+    <li><a href="#kafka-finding-the-next-timeout-was-not-the-only-job">Kafka: finding the next timeout was not the only job</a>
+      <ul>
+        <li><a href="#how-deadline-buckets-and-direct-removal-changed-the-work">How deadline buckets and direct removal changed the work</a></li>
+      </ul>
+    </li>
+    <li><a href="#check-behavior-before-measuring-speed">Check behavior before measuring speed</a>
+      <ul>
+        <li><a href="#check-the-heap-invariant">Check the heap invariant</a></li>
+        <li><a href="#check-state-conservation">Check state conservation</a></li>
+        <li><a href="#check-readiness-and-service-guarantees">Check readiness and service guarantees</a></li>
+        <li><a href="#count-work-before-benchmarking-it">Count work before benchmarking it</a></li>
+      </ul>
+    </li>
+    <li><a href="#read-each-source-for-one-role">Read each source for one role</a></li>
+    <li><a href="#translate-the-model-in-a-design-conversation">Translate the model in a design conversation</a></li>
+    <li><a href="#reflection">Reflection</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><p><strong>Unit 03 · Foundations</strong></p>
+<h1 id="queues-heaps-and-scheduling">Queues, heaps, and scheduling</h1>
+<p class="book-lead">A heap can efficiently choose the next item according to one
+priority rule. It cannot tell you whether that item is ready, whether a failed
+attempt should be retried, whether a new event changes anything, or whether
+strict priority is starving other work. Those are scheduling policies built
+around the data structure.</p>
+
+<blockquote class="book-hint important">
+  <p><strong>Incoming reports</strong></p>
+  <div class="markdown-inner"><ul>
+<li><a href="https://github.com/kubernetes/kubernetes/issues/81214">Kubernetes issue #81214</a>
+reports a cluster with 5,000 nodes and more than 100,000 Pods where
+lower-priority Pods wait while unschedulable higher-priority Pods keep
+returning to the active queue.</li>
+<li><a href="https://github.com/kubernetes-sigs/scheduler-plugins/issues/682">Scheduler-plugins issue #682</a>
+reports millions of log lines, much higher CPU, and lost progress on
+unrelated runnable Pods in a production machine-learning workload.</li>
+<li><a href="https://www.confluent.io/blog/apache-kafka-purgatory-hierarchical-timing-wheels/">Kafka&rsquo;s delayed-request account</a>
+and <a href="https://issues.apache.org/jira/browse/KAFKA-2147">KAFKA-2147</a> connect
+retained delayed requests to memory growth and expensive cleanup.</li>
+</ul>
+</div>
+</blockquote>
+
+<p>Each report involves queued work, but none is explained by the running time of
+<code>heap.Pop</code> alone. The first is about priority, backoff, and broad
+reactivation. The second is about repeated group-wide work. The third is about
+the cost of removing completed timers, not merely finding the next timer.</p>
+<p>By the end of this unit, you should be able to:</p>
+<ul>
+<li>distinguish FIFO queues, priority queues, delayed queues, and schedulers;</li>
+<li>state the ordering rule and invariant of a binary heap;</li>
+<li>derive the cost of heap construction, insertion, removal, and key changes;</li>
+<li>implement a heap correctly with Go&rsquo;s <code>container/heap</code> contract;</li>
+<li>recognize when top-k selection needs only a bounded heap, not a full sort;</li>
+<li>model readiness, identity, retries, and in-flight ownership separately from
+priority;</li>
+<li>explain how broad wakeups and group activation amplify work;</li>
+<li>identify starvation, head-of-line blocking, and overload even when every
+individual queue operation is fast; and</li>
+<li>test queue behavior with invariants and state transitions before timing it.</li>
+</ul>
+<h2 id="a-production-queue-answers-more-than-what-is-next">A production queue answers more than “what is next?”</h2>
+<p>A queue answers “which stored item is next?” A production scheduler must also
+answer when an item is eligible, whether duplicates represent one logical
+item, what happens under overload, and who owns the item.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Question</th>
+					<th>How the system answers it</th>
+					<th>Failure when the answer is missing</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Which ready item is next?</td>
+					<td>Arrival order or a stated priority rule</td>
+					<td>Important work waits, or ties behave unpredictably</td>
+			</tr>
+			<tr>
+					<td>When may this item run?</td>
+					<td>A ready time, retry delay, or yes-or-no readiness check</td>
+					<td>Work that cannot succeed is retried immediately</td>
+			</tr>
+			<tr>
+					<td>Is this item already represented?</td>
+					<td>A stable ID and a lookup of queued or running IDs</td>
+					<td>Duplicate events multiply queued work</td>
+			</tr>
+			<tr>
+					<td>What happens when the system is full?</td>
+					<td>A size limit and a decision to reject, wait, or replace</td>
+					<td>Memory grows without limit</td>
+			</tr>
+			<tr>
+					<td>Who owns an item right now?</td>
+					<td>An explicit queued, delayed, running, or completed state</td>
+					<td>Work is lost, duplicated, or retained forever</td>
+			</tr>
+	</tbody>
+</table>
+<p>These dimensions should not be compressed into one word such as “priority.”
+An item may have the highest business priority and still be ineligible until a
+dependency changes. A duplicate may refer to work already in flight rather
+than an item currently stored in the heap.</p>
+<p>We will use these workload variables:</p>
+<ul>
+<li><code>n</code>: items currently stored in one queue or heap</li>
+<li><code>a</code>: new logical work items that arrive during an interval</li>
+<li><code>d</code>: items waiting for their ready time in a delayed queue</li>
+<li><code>u</code>: items currently classified as unschedulable</li>
+<li><code>r</code>: candidates examined for one result</li>
+<li><code>k</code>: results that must be retained</li>
+<li><code>e</code>: external events that can trigger reconsideration</li>
+<li><code>g</code>: members of one related work group</li>
+<li><code>f</code>: consecutive failures for one item</li>
+<li><code>c</code>: useful work items completed during that interval</li>
+</ul>
+<table>
+	<thead>
+			<tr>
+					<th>Operation</th>
+					<th style="text-align: right">Modeled time</th>
+					<th>Condition behind the claim</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Enqueue or dequeue in a suitable FIFO</td>
+					<td style="text-align: right">amortized <code>O(1)</code></td>
+					<td>The implementation does not shift a slice on every dequeue</td>
+			</tr>
+			<tr>
+					<td>Inspect a heap root</td>
+					<td style="text-align: right"><code>O(1)</code></td>
+					<td>The heap is non-empty and its invariant holds</td>
+			</tr>
+			<tr>
+					<td>Insert or remove a heap root</td>
+					<td style="text-align: right"><code>O(log n)</code></td>
+					<td>At most one path through the tree needs swaps</td>
+			</tr>
+			<tr>
+					<td>Restore order after a priority change</td>
+					<td style="text-align: right"><code>O(log n)</code></td>
+					<td>The item&rsquo;s current heap index is known</td>
+			</tr>
+			<tr>
+					<td>Build a heap bottom-up</td>
+					<td style="text-align: right"><code>O(n)</code></td>
+					<td>Heap order is restored from the leaves upward</td>
+			</tr>
+			<tr>
+					<td>Fully sort <code>r</code> candidates</td>
+					<td style="text-align: right"><code>O(r log r)</code></td>
+					<td>Comparisons are constant-cost</td>
+			</tr>
+			<tr>
+					<td>Retain the best <code>k</code> of <code>r</code> candidates</td>
+					<td style="text-align: right"><code>O(r log(k+1))</code> time, <code>O(k)</code> space</td>
+					<td>A heap capped at <code>k</code> entries stores only current winners</td>
+			</tr>
+			<tr>
+					<td>Wake every unschedulable item for every event</td>
+					<td style="text-align: right">up to <code>O(eu)</code></td>
+					<td>No check identifies which items the event might help</td>
+			</tr>
+			<tr>
+					<td>Every group member activates every other member in one round</td>
+					<td style="text-align: right"><code>Θ(g²)</code> attempts</td>
+					<td>Each directed pair can generate work</td>
+			</tr>
+	</tbody>
+</table>
+<p>The logarithmic heap bounds matter, but the last two rows often dominate a
+production incident. Count how many operations the surrounding policy creates,
+not only how fast the container performs one operation.</p>
+<h2 id="fifo-preserves-arrival-order">FIFO preserves arrival order</h2>
+<p>A first-in, first-out queue returns ready items in the order they entered:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>enqueue A, B, C
+</span></span><span style="display:flex;"><span>dequeue A, then B, then C</span></span></code></pre></div><p>With a linked queue, circular buffer, or slice plus a head index, enqueue and
+dequeue can take constant time on average. Repeatedly deleting index zero from
+a Go slice by shifting every remaining element is linear per dequeue and can
+make draining <code>n</code> items quadratic.</p>
+<p>Among ready items, FIFO prevents later arrivals from jumping ahead. It does
+not by itself provide:</p>
+<ul>
+<li>duplicate suppression;</li>
+<li>a bound on memory;</li>
+<li>retry delay;</li>
+<li>cancellation;</li>
+<li>synchronization between producers and consumers; or</li>
+<li>protection from head-of-line blocking when the first item cannot proceed.</li>
+</ul>
+<p>The versioned
+<a href="https://github.com/kubernetes/client-go/blob/v0.32.0/util/workqueue/queue.go">Kubernetes client-go work queue</a>
+is a useful production bridge. Alongside its FIFO storage, it keeps a
+<code>dirty</code> set for work that needs processing and a
+<code>processing</code> set for work currently owned by a worker. Adding the
+same key repeatedly does not create one stored entry per call. If the key is
+added while it is being processed, <code>Done</code> can enqueue it again so the
+new information is not lost.</p>
+<blockquote class="book-hint warning">
+  <p><strong>What queue deduplication cannot prevent</strong></p>
+  <div class="markdown-inner">Keeping at most one stored entry for each key prevents repeated submissions of
+that key from inflating the queue. It does not place an overall bound on the
+queue: distinct keys can still accumulate without limit. Deduplication also
+does not undo the CPU, allocations, locks, logs, or API calls spent submitting
+the same key again. Identify where repeated work is created as well as where
+the queue coalesces repeated submissions.</div>
+</blockquote>
+
+<h2 id="a-priority-queue-exposes-the-most-important-item">A priority queue exposes the most important item</h2>
+<p>A priority queue supports a smaller interface than a sorted collection:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>insert(item)
+</span></span><span style="display:flex;"><span>peek most important
+</span></span><span style="display:flex;"><span>remove most important</span></span></code></pre></div><p>It need not make the second, third, or hundredth item directly accessible in
+sorted order. That narrower promise permits a useful compromise:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Representation</th>
+					<th style="text-align: right">Insert</th>
+					<th style="text-align: right">Inspect best</th>
+					<th style="text-align: right">Remove best</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Unsorted slice</td>
+					<td style="text-align: right">amortized <code>O(1)</code></td>
+					<td style="text-align: right"><code>O(n)</code></td>
+					<td style="text-align: right"><code>O(n)</code></td>
+			</tr>
+			<tr>
+					<td>Sorted slice</td>
+					<td style="text-align: right"><code>O(n)</code> movement</td>
+					<td style="text-align: right"><code>O(1)</code></td>
+					<td style="text-align: right"><code>O(1)</code> from the end</td>
+			</tr>
+			<tr>
+					<td>Binary heap</td>
+					<td style="text-align: right"><code>O(log n)</code></td>
+					<td style="text-align: right"><code>O(1)</code></td>
+					<td style="text-align: right"><code>O(log n)</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/40d4851e550507ca14dc778b9b2266cc_MIT6_006S20_lec8.pdf">MIT 6.006 Lecture 8: Binary Heaps</a>
+develops this interface, derives the array representation, proves the heap
+property, and analyzes insertion, deletion, and linear-time construction. Its
+router, operating-system scheduler, and discrete-event simulation examples
+are good supplementary applications. Here we will connect the same model to
+public product reports and patches.</p>
+<h2 id="a-binary-heap-is-an-implicit-complete-tree">A binary heap is an implicit complete tree</h2>
+<p>A binary heap stores a complete binary tree densely in an array. For a
+zero-based index <code>i</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>parent(i) = floor((i - 1) / 2), for i &gt; 0
+</span></span><span style="display:flex;"><span>left(i)   = 2*i + 1
+</span></span><span style="display:flex;"><span>right(i)  = 2*i + 2</span></span></code></pre></div><p>There are no child pointers. A complete tree fills every level except perhaps
+the last, which fills from left to right. Its height is logarithmic in the
+number of items, so moving one item between a leaf and the root takes
+<code>O(log n)</code> steps.</p>
+<p>A min-heap obeys this local invariant:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>key(parent(i)) &lt;= key(i)</span></span></code></pre></div><p>A max-heap reverses the comparison. In either case, transitivity makes the root
+the best item according to the comparison.</p>
+<p>For example, this is a valid min-heap:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>index:  0  1  2  3  4  5  6
+</span></span><span style="display:flex;"><span>value: [2, 5, 4, 9, 7, 8, 6]</span></span></code></pre></div><p>The array is not sorted: <code>5</code> appears before <code>4</code>, and
+<code>9</code> before <code>7</code>. The heap promises that every parent is no
+greater than its children, not that siblings or subtrees are ordered relative
+to one another.</p>
+<blockquote class="book-hint tip">
+  <p><strong>Decide what happens when priorities tie</strong></p>
+  <div class="markdown-inner">“Highest priority first” is incomplete when equal priorities are common. A
+scheduler might compare <code>(priority DESC, sequence ASC, ID ASC)</code>:
+business priority first, older enqueue sequence next, and immutable identity as
+a deterministic final tie-breaker. The same comparison must govern every heap
+operation.</div>
+</blockquote>
+
+<h2 id="push-restores-heap-order-upward-pop-restores-it-downward">Push restores heap order upward; pop restores it downward</h2>
+<p>Before either operation, every parent-child pair is in the required order.
+Adding or removing one item can break that order, but only along one path
+through the tree. The rest of the heap remains valid.</p>
+<p>To insert an item:</p>
+<ol>
+<li>append it at the next leaf position;</li>
+<li>compare it with its parent;</li>
+<li>if it should come before its parent, swap them;</li>
+<li>repeat with the next parent until the order is correct.</li>
+</ol>
+<p>The new item starts at the bottom, so it can only move upward. At most it
+travels from a leaf to the root, which takes <code>O(log n)</code> steps.</p>
+<p>To remove the root:</p>
+<ol>
+<li>exchange the root and the last item;</li>
+<li>remove the last item, which is the former root;</li>
+<li>compare the replacement root with its children;</li>
+<li>if a child should come first, swap with the better child;</li>
+<li>repeat until the order is correct.</li>
+</ol>
+<p>The replacement starts at the top, so it can only move downward. At most it
+travels from the root to a leaf, again taking <code>O(log n)</code> steps.</p>
+<p>This is why heap implementations often describe these operations as
+<strong>restoring</strong> or <strong>repairing</strong> heap order. They do not rebuild or sort the
+whole array. One mutation creates one possible break, and the algorithm fixes
+the affected path.</p>
+<p>Building a heap by inserting <code>n</code> items one at a time costs
+<code>O(n log n)</code> in the worst case. A faster build starts with the full
+array and restores heap order at each internal node, working from the last
+parent back to the root.</p>
+<p>The amount of work depends on each node&rsquo;s height, not on the height of the
+whole heap. About half the nodes are leaves and move zero levels. About one
+quarter are one level above the leaves and can move at most one level; about
+one eighth can move at most two levels; and so on. An upper bound has the form:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>(n/4) * 1 + (n/8) * 2 + (n/16) * 3 + ...</span></span></code></pre></div><p>The fractions shrink faster than the possible distance grows, so this series
+is bounded by a constant multiple of <code>n</code>. Bottom-up heap construction
+therefore costs <code>O(n)</code>, even though restoring order at the root can take
+<code>O(log n)</code> steps.</p>
+<p>If an existing item&rsquo;s priority changes, it may need to move in either
+direction. A heap implementation can restore the order in
+<code>O(log n)</code> if it knows the item&rsquo;s current index.</p>
+<blockquote class="book-hint warning">
+  <p><strong>Changing a priority requires another heap operation</strong></p>
+  <div class="markdown-inner">Changing a stored item&rsquo;s priority does not automatically move it. Until heap
+order is restored, the next removal may return the wrong item. Keep each
+item&rsquo;s index current during every swap, then call <code>heap.Fix</code> or the
+equivalent operation supplied by the implementation.</div>
+</blockquote>
+
+<h2 id="go-separates-heap-mechanics-from-your-ordering-rule">Go separates heap mechanics from your ordering rule</h2>
+<p>Go&rsquo;s <a href="https://pkg.go.dev/container/heap"><code>container/heap</code> documentation</a>
+defines the standard-library contract. A type supplies
+<code>Len</code>, <code>Less</code>, and <code>Swap</code> from
+<code>sort.Interface</code>, plus methods that append and remove the final
+element. The package supplies the upward and downward moves that maintain the
+heap.</p>
+<p>This max-priority heap makes older sequence numbers win ties:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff6ac1">package</span> work
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">import</span> <span style="color:#5af78e">&#34;container/heap&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">type</span> Item <span style="color:#ff5c57">struct</span> {
+</span></span><span style="display:flex;"><span>	ID       <span style="color:#9aedfe">string</span>
+</span></span><span style="display:flex;"><span>	Priority <span style="color:#9aedfe">int</span>
+</span></span><span style="display:flex;"><span>	Sequence <span style="color:#9aedfe">uint64</span>
+</span></span><span style="display:flex;"><span>	index    <span style="color:#9aedfe">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">type</span> ItemHeap []<span style="color:#ff6ac1">*</span>Item
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h ItemHeap) <span style="color:#57c7ff">Len</span>() <span style="color:#9aedfe">int</span> { <span style="color:#ff6ac1">return</span> <span style="color:#ff5c57">len</span>(h) }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h ItemHeap) <span style="color:#57c7ff">Less</span>(i, j <span style="color:#9aedfe">int</span>) <span style="color:#9aedfe">bool</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">if</span> h[i].Priority <span style="color:#ff6ac1">!=</span> h[j].Priority {
+</span></span><span style="display:flex;"><span>		<span style="color:#ff6ac1">return</span> h[i].Priority &gt; h[j].Priority
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">if</span> h[i].Sequence <span style="color:#ff6ac1">!=</span> h[j].Sequence {
+</span></span><span style="display:flex;"><span>		<span style="color:#ff6ac1">return</span> h[i].Sequence &lt; h[j].Sequence
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">return</span> h[i].ID &lt; h[j].ID
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h ItemHeap) <span style="color:#57c7ff">Swap</span>(i, j <span style="color:#9aedfe">int</span>) {
+</span></span><span style="display:flex;"><span>	h[i], h[j] = h[j], h[i]
+</span></span><span style="display:flex;"><span>	h[i].index = i
+</span></span><span style="display:flex;"><span>	h[j].index = j
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h <span style="color:#ff6ac1">*</span>ItemHeap) <span style="color:#57c7ff">Push</span>(x <span style="color:#9aedfe">any</span>) {
+</span></span><span style="display:flex;"><span>	item <span style="color:#ff6ac1">:=</span> x.(<span style="color:#ff6ac1">*</span>Item)
+</span></span><span style="display:flex;"><span>	item.index = <span style="color:#ff5c57">len</span>(<span style="color:#ff6ac1">*</span>h)
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">*</span>h = <span style="color:#ff5c57">append</span>(<span style="color:#ff6ac1">*</span>h, item)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h <span style="color:#ff6ac1">*</span>ItemHeap) <span style="color:#57c7ff">Pop</span>() <span style="color:#9aedfe">any</span> {
+</span></span><span style="display:flex;"><span>	old <span style="color:#ff6ac1">:=</span> <span style="color:#ff6ac1">*</span>h
+</span></span><span style="display:flex;"><span>	n <span style="color:#ff6ac1">:=</span> <span style="color:#ff5c57">len</span>(old)
+</span></span><span style="display:flex;"><span>	item <span style="color:#ff6ac1">:=</span> old[n<span style="color:#ff6ac1">-</span><span style="color:#ff9f43">1</span>]
+</span></span><span style="display:flex;"><span>	old[n<span style="color:#ff6ac1">-</span><span style="color:#ff9f43">1</span>] = <span style="color:#ff6ac1">nil</span>
+</span></span><span style="display:flex;"><span>	item.index = <span style="color:#ff6ac1">-</span><span style="color:#ff9f43">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">*</span>h = old[:n<span style="color:#ff6ac1">-</span><span style="color:#ff9f43">1</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#ff6ac1">return</span> item
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (h <span style="color:#ff6ac1">*</span>ItemHeap) <span style="color:#57c7ff">ChangePriority</span>(item <span style="color:#ff6ac1">*</span>Item, priority <span style="color:#9aedfe">int</span>) {
+</span></span><span style="display:flex;"><span>	item.Priority = priority
+</span></span><span style="display:flex;"><span>	heap.<span style="color:#57c7ff">Fix</span>(h, item.index)
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p><code>ChangePriority</code> assumes that <code>item</code> is currently stored in this heap and that
+its <code>index</code> still identifies its position. After <code>Pop</code> sets the index to <code>-1</code>,
+that call would violate <code>heap.Fix</code>&rsquo;s precondition. A production API should use
+its identity lookup to establish that the item is present rather than accept an
+arbitrary <code>*Item</code> without checking it.</p>
+<p>Callers use the package functions, not the methods directly:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>ready <span style="color:#ff6ac1">:=</span> ItemHeap{
+</span></span><span style="display:flex;"><span>	{ID: <span style="color:#5af78e">&#34;rebuild-search&#34;</span>, Priority: <span style="color:#ff9f43">20</span>, Sequence: <span style="color:#ff9f43">2</span>},
+</span></span><span style="display:flex;"><span>	{ID: <span style="color:#5af78e">&#34;rotate-key&#34;</span>, Priority: <span style="color:#ff9f43">50</span>, Sequence: <span style="color:#ff9f43">1</span>},
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">for</span> i, item <span style="color:#ff6ac1">:=</span> <span style="color:#ff6ac1">range</span> ready {
+</span></span><span style="display:flex;"><span>	item.index = i
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>heap.<span style="color:#57c7ff">Init</span>(<span style="color:#ff6ac1">&amp;</span>ready)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>heap.<span style="color:#57c7ff">Push</span>(<span style="color:#ff6ac1">&amp;</span>ready, <span style="color:#ff6ac1">&amp;</span>Item{
+</span></span><span style="display:flex;"><span>	ID:       <span style="color:#5af78e">&#34;renew-certificate&#34;</span>,
+</span></span><span style="display:flex;"><span>	Priority: <span style="color:#ff9f43">100</span>,
+</span></span><span style="display:flex;"><span>	Sequence: <span style="color:#ff9f43">3</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>next <span style="color:#ff6ac1">:=</span> heap.<span style="color:#57c7ff">Pop</span>(<span style="color:#ff6ac1">&amp;</span>ready).(<span style="color:#ff6ac1">*</span>Item)</span></span></code></pre></div><p>The names can be surprising. <code>heap.Pop</code> swaps the root with the item at index
+<code>Len()-1</code>, restores order in the remaining heap, and then calls the
+implementation&rsquo;s <code>Pop</code> method to shorten the slice and return that final item.
+Calling <code>ready.Pop()</code> directly would merely remove the current final element
+without restoring order or consulting the heap.</p>
+<p>The documented complexity is:</p>
+<ul>
+<li><code>heap.Init</code>: <code>O(n)</code>;</li>
+<li><code>heap.Push</code> and <code>heap.Pop</code>:
+<code>O(log n)</code>;</li>
+<li><code>heap.Remove</code> and <code>heap.Fix</code>:
+<code>O(log n)</code>.</li>
+</ul>
+<blockquote class="book-hint tip">
+  <p><strong>What container/heap does not provide</strong></p>
+  <div class="markdown-inner">The package maintains one ordering invariant. It does not provide concurrent
+access, stable identity, duplicate suppression, bounded capacity, readiness,
+backoff, cancellation, persistence, fairness, or metrics. A production queue
+must define those policies and protect the heap with the appropriate ownership
+or synchronization.</div>
+</blockquote>
+
+<h2 id="prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</h2>
+<p>Suppose a query examines <code>r</code> samples but returns only the
+<code>k</code> highest values, where <code>1 &lt;= k &lt;= r</code>. Sorting all
+<code>r</code> samples would determine the exact rank of every sample, including
+the <code>r-k</code> samples that the query will discard.</p>
+<p>A min-heap capped at <code>k</code> entries can avoid that extra work. Its root
+is the smallest value currently included in the answer:</p>
+<ol>
+<li>keep the first <code>k</code> candidates in the heap;</li>
+<li>compare each later candidate with the root;</li>
+<li>discard the candidate if it cannot enter the top <code>k</code>;</li>
+<li>otherwise replace the root and restore heap order.</li>
+</ol>
+<p>After the first <code>k</code> candidates, the root acts as the cutoff for
+entering the result. The scan takes <code>O(r log(k+1))</code> time and stores
+only <code>O(k)</code> candidates. For <code>k &gt;= 2</code>, the time is usually
+written <code>O(r log k)</code>. If the returned winners must themselves be in
+ranked order, only those <code>k</code> survivors need to be sorted afterward.</p>
+<p>The pinned
+<a href="https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085">Prometheus v3.13.1 <code>topk</code> implementation</a>
+uses this pattern in its query engine. For each aggregation group, it keeps at
+most <code>k</code> samples in a min-heap. When a better candidate replaces the root and
+<code>k &gt; 1</code>, it calls <code>heap.Fix</code>; a one-element heap needs no rearrangement.
+Before returning an instant-query result, Prometheus sorts the retained samples
+in descending order.</p>
+<blockquote class="book-hint important">
+  <p><strong>What the heap saves</strong></p>
+  <div class="markdown-inner">A <code>topk</code> query needs to identify which <code>k</code> samples have
+the highest values. It does not need to rank the samples that will be
+discarded. A heap capped at <code>k</code> entries maintains only the information needed
+to decide whether a new sample belongs in the answer. Sorting every candidate
+would compute an order that most of the query result never uses.</div>
+</blockquote>
+
+<p>The heap has answered only the first question: which ready item wins? The next
+sections add one missing responsibility at a time—future deadlines, reasons to
+retry, identity, cleanup, sharing, and capacity—and use production reports to
+show what goes wrong when that responsibility is missing.</p>
+<h2 id="scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</h2>
+<p>Scheduling needs two independent orders. Active priority chooses among ready
+items; time order chooses which delayed item becomes eligible next:</p>
+<ul>
+<li><strong>active order:</strong> among ready items, which should be attempted next?</li>
+<li><strong>time order:</strong> among delayed items, which becomes ready next?</li>
+</ul>
+<p>Those are different comparisons. A common design uses a max-heap for active
+business priority and a min-heap for <code>readyAt</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>                    success ──────────────&gt; completed
+</span></span><span style="display:flex;"><span>                   /
+</span></span><span style="display:flex;"><span>active ──&gt; attempt
+</span></span><span style="display:flex;"><span>                   \
+</span></span><span style="display:flex;"><span>                    retryable failure ────&gt; delayed
+</span></span><span style="display:flex;"><span>                                             |
+</span></span><span style="display:flex;"><span>                                             | readyAt &lt;= now
+</span></span><span style="display:flex;"><span>                                             v
+</span></span><span style="display:flex;"><span>                                           active
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>non-time dependency failure ───────────────&gt; blocked
+</span></span><span style="display:flex;"><span>                                             |
+</span></span><span style="display:flex;"><span>                                             | relevant state change
+</span></span><span style="display:flex;"><span>                                             v
+</span></span><span style="display:flex;"><span>                                           active</span></span></code></pre></div><p>Putting future and ready items in one heap with one fixed ordering rule does
+not answer both questions correctly. If the heap orders first by business
+priority, a high-priority item whose deadline is still in the future can sit at
+the root and hide ready work below it. If it orders first by <code>readyAt</code>, it can
+expose the next deadline, but it no longer selects the highest-priority item
+among everything already ready. A comparison based on <code>readyAt &lt;= now</code> would
+itself change as time passes, without a heap operation to restore the new
+order. Separate heaps—or equivalent separate indexes—let the scheduler answer
+the two questions independently. Move an item from the time-ordered structure
+to the active priority heap when its deadline arrives.</p>
+<p>The pinned
+<a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/scheduler/backend/queue/scheduling_queue.go">Kubernetes v1.32 scheduling queue</a>
+is a concrete system to inspect. Its queueing design separates an active
+priority queue, a backoff queue, and Pods that are currently unschedulable.
+The scheduler&rsquo;s versioned
+<a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/scheduler/backend/heap/heap.go">heap wrapper</a>
+combines heap ordering with a key-to-item map so an existing item can be found,
+updated, or removed without scanning the whole heap.</p>
+<p>That map illustrates a recurring production extension:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>heap array       -&gt; choose by priority and restore heap order
+</span></span><span style="display:flex;"><span>identity index   -&gt; find, update, deduplicate, or remove by key
+</span></span><span style="display:flex;"><span>state machine    -&gt; decide which structure currently owns the item</span></span></code></pre></div><p>The index is useful only if every swap, insert, removal, and transition keeps
+it consistent with the heap.</p>
+<h2 id="backoff-controls-when-a-retry-may-happen">Backoff controls when a retry may happen</h2>
+<p>After a retryable failure, immediate requeue can create a tight loop. A common
+exponential policy is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>delay(f) = min(maxDelay, initialDelay * 2^(f-1))</span></span></code></pre></div><p>where <code>f &gt;= 1</code> is the number of consecutive failures. The cap prevents
+the delay from growing forever. Code should check whether another doubling
+would reach the cap before doing the multiplication; otherwise a large duration
+can overflow before <code>min</code> sees it. If the policy adds a small random
+variation, called <strong>jitter</strong>, state whether the final result is clamped again.
+Jitter reduces the chance that many workers with the same retry count wake at
+the same instant; it does not guarantee that their wakeups will differ.</p>
+<p>The pinned
+<a href="https://github.com/kubernetes/client-go/blob/v0.32.0/util/workqueue/delaying_queue.go">client-go v0.32 delaying queue</a>
+keeps delayed entries ordered by their target time. When an existing entry
+receives an earlier deadline, the queue changes that entry&rsquo;s <code>readyAt</code> value—the
+field used by its ordering rule—and calls <code>heap.Fix</code> at the entry&rsquo;s stored
+index. The stable item key does not change. This is the changed-priority
+operation from the abstract heap, now applied to a retry deadline.</p>
+<p>Use an injected or fake clock when testing this policy. Wall-clock sleeps make
+boundary tests slow and nondeterministic; a controlled clock can advance
+directly to just before, at, and just after a deadline.</p>
+<blockquote class="book-hint tip">
+  <p><strong>Backoff answers when, not whether</strong></p>
+  <div class="markdown-inner">Backoff spaces attempts. It does not prove that another attempt can succeed.
+If no relevant dependency changed, a slower futile retry is still futile.
+Eligibility and backoff are separate decisions.</div>
+</blockquote>
+
+<h2 id="production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</h2>
+<p><a href="https://github.com/kubernetes/kubernetes/issues/81214">Kubernetes issue #81214</a>
+reports a cluster with 5,000 nodes and more than 100,000 Pods. The reporter
+observed lower-priority Pods waiting while unschedulable higher-priority Pods
+were repeatedly moved from backoff into the active queue. The report also
+calls out PVC and Service events that moved all unschedulable Pods back to
+active consideration.</p>
+<p>Events unrelated to a particular Pod could still return it to the active heap.
+The heap then selected high-priority Pods that still could not run ahead of
+feasible lower-priority Pods, just as its ordering rule required. The
+components can each behave as specified:</p>
+<ol>
+<li>an event makes many high-priority Pods active;</li>
+<li>the priority heap correctly returns them first;</li>
+<li>their unchanged constraints make them fail again;</li>
+<li>backoff delays them, but later events reactivate them;</li>
+<li>lower-priority feasible work repeatedly loses the comparison.</li>
+</ol>
+<p>The report therefore connects three distinct concepts:</p>
+<ul>
+<li>strict priority can starve lower-priority work;</li>
+<li>a retry delay can be too short for the workload; and</li>
+<li>events that wake every blocked item can defeat the protection of backoff.</li>
+</ul>
+<p>The merged
+<a href="https://github.com/kubernetes/kubernetes/pull/81263">Kubernetes PR #81263</a>
+introduced scheduler options and configuration for initial and maximum Pod
+backoff durations. That patch made an important policy tunable. It did not
+make every external event relevant to every blocked Pod, so backoff tuning and
+retry eligibility remain different layers of the design.</p>
+<blockquote class="book-hint important">
+  <p><strong>Read the report before the patch</strong></p>
+  <div class="markdown-inner">Start with issue #81214 and write down the proposed causal chain. Then inspect
+PR #81263 and name exactly which edge of that chain it changes. A merged patch
+is strong evidence about the implementation response, but it need not solve
+every mechanism described by the original report.</div>
+</blockquote>
+
+<h2 id="eligibility-asks-whether-anything-relevant-changed">Eligibility asks whether anything relevant changed</h2>
+<p>An unschedulable item is waiting on a predicate—a yes-or-no condition—such as
+sufficient resources, a compatible node, a dependency, or a quota. An event
+should ideally reactivate only the items for which it might change that
+predicate.</p>
+<p>Filtering and indexing affect different parts of the work. For one event, let
+<code>s</code> be the number of blocked items that the event selects for another attempt:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>broad requeue:      up to u candidate checks
+</span></span><span style="display:flex;"><span>                    + up to u activation requests
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>filtered requeue:   cost of finding or testing candidates
+</span></span><span style="display:flex;"><span>                    + s activation requests, where 0 &lt;= s &lt;= u</span></span></code></pre></div><p>Across <code>e</code> events, a broad requeue can therefore perform up to <code>eu</code>
+candidate checks and <code>eu</code> activation requests. A relevance filter reduces the
+number of requests only when it selects fewer than <code>u</code> items. Without an index,
+that filter may still test all <code>u</code> blocked items to discover the <code>s</code> it selects.
+An index may reduce that search cost by identifying likely candidates directly,
+but filtering and indexing are separate improvements.</p>
+<p>Kubernetes&rsquo;s official
+<a href="https://kubernetes.io/blog/2024/12/12/scheduler-queueinghint/">QueueingHint design account</a>
+describes the change. Previously, a scheduler plugin named broad categories of
+cluster events that might solve one of its failures. Any event in a named
+category could cause another attempt, even when that particular event could
+not help that particular Pod. With QueueingHint, the plugin can examine the
+specific event and say whether it might make the Pod schedulable.</p>
+<p>That check can also be wrong. If it says an important event is irrelevant, a
+Pod that could now run may remain blocked. Periodically retrying all blocked
+Pods can catch those mistakes, but the retry period creates a trade-off:</p>
+<ul>
+<li>more frequent scans reduce the time a missed item remains stuck;</li>
+<li>less frequent scans reduce background amplification;</li>
+<li>better event indexes and predicates reduce reliance on the scan.</li>
+</ul>
+<blockquote class="book-hint important">
+  <p><strong>Correct heap order cannot prevent useless retries</strong></p>
+  <div class="markdown-inner">If the active heap selects the first item according to its comparison rule, it
+is working correctly. The problem may be that the queue has been filled with
+items that still cannot run. In that case, change which events return items to
+the queue; changing the heap will not help.</div>
+</blockquote>
+
+<h2 id="deduplicating-the-queue-does-not-eliminate-duplicate-work">Deduplicating the queue does not eliminate duplicate work</h2>
+<p>Consider one reconsideration round for a group of <code>g</code> related items.
+If every member asks to activate the other <code>g-1</code> members, that round
+generates exactly:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>g * (g - 1) = Θ(g²)</span></span></code></pre></div><p>The queue may still store each of the <code>g</code> keys only once. But before
+the queue declines to add another stored entry, callers have already made
+<code>g(g-1)</code> activation requests. Each request can acquire a lock, check
+a map, and write a log message. Queue depth can therefore look safe while CPU
+use and log volume grow rapidly.</p>
+<p><a href="https://github.com/kubernetes-sigs/scheduler-plugins/issues/682">Scheduler-plugins issue #682</a>
+is a public report from a production machine-learning workload using the
+Kubernetes coscheduling plugin. When quota and resource restrictions left a
+Pod group pending, the reporter saw millions of log lines, a large CPU
+increase, and loss of scheduling progress for unrelated Pods whose resources
+were available.</p>
+<p>The public investigation traced the repeated work to group members repeatedly
+trying to activate their siblings. The merged
+<a href="https://github.com/kubernetes-sigs/scheduler-plugins/pull/700">scheduler-plugins PR #700</a>
+stores an <code>Activate</code> flag in state that Kubernetes carries for one Pod&rsquo;s
+scheduling attempt. The coscheduling plugin reaches its <code>Permit</code> step after
+earlier group and resource checks have passed. At this step, it either lets the
+Pod continue or makes it wait for enough group members. The patch sets
+<code>Activate</code> only when the number of assigned group members is zero.
+<code>ActivateSiblings</code> returns without doing group-wide work unless that flag is
+present.</p>
+<p>For one scheduling attempt that reaches that path and performs sibling
+activation once, the plugin generates at most <code>g-1</code> sibling requests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>one scheduling attempt + at most g - 1 sibling activation requests = O(g)</span></span></code></pre></div><p>That is a bound on this operation during one scheduling attempt, not on the
+whole workload. Total work still depends on how many attempts reach the
+path and perform the activation.</p>
+<blockquote class="book-hint important">
+  <p><strong>Measure requests as well as queue entries</strong></p>
+  <div class="markdown-inner">Count activation requests, distinct items activated, heap insertions, and
+useful completions separately. Comparing those counts shows how much repeated
+work occurs before the queue coalesces requests for duplicate keys. Queue
+length alone cannot show it.</div>
+</blockquote>
+
+<h2 id="remembered-events-must-be-cleaned-up">Remembered events must be cleaned up</h2>
+<p>To decide whether a retry might now succeed, a scheduler sometimes needs to
+remember cluster events that happened while an item was being evaluated. If
+the attempt fails, those events help decide where the item should go next.
+The event records occupy memory and must eventually be removed.</p>
+<p>A useful set of state changes is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>queued -&gt; in-flight -&gt; queued again
+</span></span><span style="display:flex;"><span>                    -&gt; completed
+</span></span><span style="display:flex;"><span>                    -&gt; rejected
+</span></span><span style="display:flex;"><span>                    -&gt; cancelled</span></span></code></pre></div><p>Every way out of the in-flight state must remove the records owned by that
+attempt. Cleaning up after an ordinary success is not enough. Skipped items,
+cancellation, errors, duplicate entries, and shutdown also need defined
+cleanup.</p>
+<p><a href="https://github.com/kubernetes/kubernetes/issues/120622">Kubernetes issue #120622</a>
+describes the memory cost of accumulating cluster events that occur while Pods
+are being scheduled. The issue also links several follow-up changes rather
+than claiming one universal correction. One of them,
+<a href="https://github.com/kubernetes/kubernetes/pull/126962">PR #126962</a>, fixes a
+specific path where a skipped Pod did not pass through the expected requeue or
+bind cleanup and could leave in-flight state behind.</p>
+<blockquote class="book-hint warning">
+  <p><strong>New bookkeeping needs its own cleanup</strong></p>
+  <div class="markdown-inner">Avoiding useless retries can require indexes, rejection reasons, and saved
+event records. For each one, define which part of the program owns it, when it
+is deleted, and which metric reports how many entries remain. If those records
+keep growing, garbage collection cannot decide that they are obsolete.</div>
+</blockquote>
+
+<p>For a fixed batch of submissions, while the model retains one terminal record
+for every submitted generation, a count-based conservation check is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>number of submitted generations =
+</span></span><span style="display:flex;"><span>    active count
+</span></span><span style="display:flex;"><span>  + delayed count
+</span></span><span style="display:flex;"><span>  + blocked count
+</span></span><span style="display:flex;"><span>  + in-flight count
+</span></span><span style="display:flex;"><span>  + completed count
+</span></span><span style="display:flex;"><span>  + rejected count
+</span></span><span style="display:flex;"><span>  + cancelled count</span></span></code></pre></div><p>This equality applies only while the model retains those terminal records. The
+same generation must not appear in two states. An item in two states has two
+owners; an item in no state has been lost. A generation means one submission
+instance: if a logical ID can be reused, pair it with a generation or
+submission ID.</p>
+<h2 id="a-correct-priority-queue-can-still-leave-work-waiting-forever">A correct priority queue can still leave work waiting forever</h2>
+<p>A priority heap can return exactly the item its comparison rule asks for while
+lower-priority work never runs. If high-priority work keeps arriving as fast as
+workers can complete it, the heap always has another high-priority item at its
+root. Lower-priority items remain ready but are never selected. This is
+<strong>starvation</strong>.</p>
+<p>FIFO prevents later arrivals from jumping ahead of earlier ready work, but it
+creates a different risk. If the item at the front cannot proceed and the
+system insists on handling it first, work behind it also waits. This is
+<strong>head-of-line blocking</strong>.</p>
+<p>“Fair” does not describe one universal behavior. State the measurable service
+promise the system actually needs:</p>
+<ul>
+<li>once an item is ready, later arrivals cannot postpone it beyond a stated
+number of dispatches;</li>
+<li>each continuously backlogged tenant receives a turn within a stated number
+of dispatches or amount of time; or</li>
+<li>continuously backlogged tenants receive stated shares of the available
+worker time over a stated interval.</li>
+</ul>
+<p>Different policies implement different guarantees. A round-robin scheduler
+visits each non-empty tenant queue in turn. A weighted version gives some
+queues more turns than others. An aging policy gradually raises the priority
+of work that has waited a long time. None of these behaviors comes from the
+heap itself.</p>
+<p>Each promise has conditions. A dispatch-count bound assumes that the service
+continues selecting work and that the set of queues covered by the promise is
+finite. A wall-clock bound also needs a limit on how long dispatched work can
+occupy capacity. A capacity-share promise must name both the measurement
+interval and what happens when some tenants do not use their shares.</p>
+<p>The Kubernetes API server&rsquo;s
+<a href="https://kubernetes.io/docs/concepts/cluster-administration/flow-control/">Priority and Fairness</a>
+feature is one production example. It assigns requests to priority levels,
+limits how many requests in each level may execute at once, and separates
+request streams into queues so one busy source is less able to crowd out the
+others. Its complete algorithm is outside this unit. The relevant lesson is
+that a priority label alone does not decide how capacity is shared.</p>
+<p>No queue policy can guarantee another turn or a maximum wait after workers stop
+finishing work and releasing capacity.</p>
+<h2 id="a-fast-queue-cannot-create-service-capacity">A fast queue cannot create service capacity</h2>
+<p>Track logical backlog and scheduling attempts separately:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>change in logical backlog = new submissions - terminal exits
+</span></span><span style="display:flex;"><span>attempt demand             = first attempts + retry attempts</span></span></code></pre></div><p>For a workload in which completion is the only terminal exit, let <code>a</code> be new
+logical arrivals and <code>c</code> useful completions during the same interval. If
+<code>a &gt; c</code> for long enough, the number of live identities grows regardless of
+whether queue operations take constant or logarithmic time. If rejection or
+cancellation also removes live work, include those outcomes on the exit side.</p>
+<p>A retry does not create a new logical identity, so it is not another arrival
+in the backlog equation. It does create another scheduling attempt and consume
+worker capacity. Retry traffic can therefore saturate the service even while
+the number of distinct queued identities remains stable.</p>
+<p>At a capacity boundary, choose explicitly among:</p>
+<ul>
+<li>reject new work and return a retryable signal;</li>
+<li>block or slow producers;</li>
+<li>coalesce superseded updates by stable identity;</li>
+<li>shed a documented low-value class;</li>
+<li>persist overflow elsewhere; or</li>
+<li>allow bounded growth for a measured burst.</li>
+</ul>
+<p>Under sustained overload, an unbounded in-memory queue permits memory use and
+wait time to grow until the process or host reaches a limit. A bounded queue
+makes overload visible, but it must also define which item is rejected and how
+the caller learns about it.</p>
+<p>Operational signals should describe policy as well as container size:</p>
+<ul>
+<li>active, delayed, blocked, and in-flight counts;</li>
+<li>oldest and percentile wait time by priority or tenant;</li>
+<li>arrivals, attempts, useful completions, and permanent failures;</li>
+<li>attempts per completion and futile-attempt rate;</li>
+<li>activation requests versus distinct identities activated;</li>
+<li>rejection, coalescing, and cancellation counts;</li>
+<li>heap comparisons, swaps, pushes, pops, and fixes; and</li>
+<li>retained event records or other queue-owned metadata.</li>
+</ul>
+<p>These measures distinguish “the heap is expensive” from “the system creates
+too many heap operations” and from “there is not enough completion capacity.”</p>
+<h2 id="kafka-finding-the-next-timeout-was-not-the-only-job">Kafka: finding the next timeout was not the only job</h2>
+<p>A heap-backed timer queue makes one question cheap: which request times out
+next? Kafka also had to handle a second, very common event: a request completing
+before its timeout.</p>
+<p>For example, a produce request may wait for replicas to acknowledge a write,
+and a fetch request may wait for new data. Either request can finish in two
+ways:</p>
+<ol>
+<li>the condition it is waiting for becomes true; or</li>
+<li>its timeout expires.</li>
+</ol>
+<p>Kafka calls the requests still waiting for one of those outcomes <strong>request
+purgatory</strong>. The older design described in
+<a href="https://www.confluent.io/blog/apache-kafka-purgatory-hierarchical-timing-wheels/">Apache Kafka, Purgatory, and Hierarchical Timing Wheels</a>
+stored each request in two kinds of structures: a Java <code>DelayQueue</code>
+ordered by timeout and lists used to find requests when relevant broker state
+changed.</p>
+<p>The <code>DelayQueue</code> could efficiently expose the next timeout. The
+problem appeared when a request completed because its condition became true.
+The old design did not immediately remove that request from the timer queue or
+the other lists. A cleanup thread periodically scanned those structures and
+removed completed requests.</p>
+<p>That left an unpleasant choice:</p>
+<ul>
+<li>scan infrequently, and completed requests continue occupying memory; or</li>
+<li>scan frequently, and spend substantial CPU repeatedly searching the lists.</li>
+</ul>
+<p>The public incident
+<a href="https://issues.apache.org/jira/browse/KAFKA-2147">KAFKA-2147</a> reports this
+failure at production scale. The number of requests retained in purgatory and
+the Java process&rsquo;s managed memory grew together. In this report, <strong>JVM heap</strong>
+means the memory managed by the Java runtime, not the binary-heap data
+structure. Draining a very large backlog then caused latency and leadership
+disruption.</p>
+<h3 id="how-deadline-buckets-and-direct-removal-changed-the-work">How deadline buckets and direct removal changed the work</h3>
+<p>A <strong>timing wheel</strong> groups nearby timeout times into buckets, like marks around
+a clock. As time advances, the system processes the bucket for the current
+time range. Timers farther in the future go into additional wheels whose
+buckets cover progressively larger ranges. Those several levels are what make
+the structure <strong>hierarchical</strong>.</p>
+<p>Kafka&rsquo;s new design also gave each request a direct link to its position in a
+bucket. When the request completed before its timeout, Kafka could unlink it
+immediately with a constant number of list changes. It no longer had to leave
+the completed request in the timer queue for a later scan.</p>
+<p>Kafka still used a <code>DelayQueue</code>, but it stored time buckets rather
+than individual requests there. The number of possible queued buckets had a
+fixed upper limit and was usually much smaller than the number of waiting
+requests. This reduced both the number of heap operations and the number of
+completed request entries retained for cleanup.</p>
+<p>The article includes before-and-after benchmarks, but they measure Kafka&rsquo;s
+Java implementation under its chosen test workload. They show why the change
+was useful to Kafka; they do not prove that a timing wheel is always faster
+than a heap.</p>
+<blockquote class="book-hint important">
+  <p><strong>Why Kafka changed structures</strong></p>
+  <div class="markdown-inner"><p>The old design made the next timeout easy to find, but many requests completed
+for another reason before their timeout. Removing those completed requests was
+therefore just as important as finding the next deadline. Kafka combined two
+mechanisms. The timing wheel grouped requests with nearby deadlines, so the
+<code>DelayQueue</code> tracked buckets rather than every request. Each request also had a
+direct link to its linked-list entry inside a bucket, so completion could
+unlink it immediately. Bucketing reduced timer-queue work; direct links removed
+completed requests without a full scan.</p>
+<p>The general question is not “heap or timing wheel?” First ask how work usually
+leaves the system. If items commonly disappear before reaching the front of a
+heap, the cost of finding and removing those items may matter more than cheap
+access to the root.</p>
+</div>
+</blockquote>
+
+<h2 id="check-behavior-before-measuring-speed">Check behavior before measuring speed</h2>
+<p>Start tests with observable rules that do not depend on timing noise.</p>
+<h3 id="check-the-heap-invariant">Check the heap invariant</h3>
+<p>After every push, pop, removal, and priority change, inspect each parent-child
+pair. For every child <code>i</code>, assert
+<code>!Less(i, parent(i))</code>: no child may outrank its parent. Also verify
+that each item&rsquo;s stored index points back to that item.</p>
+<p>For small randomized inputs, compare removals with a simple reference model
+that sorts all current items by the complete comparison rule after each
+mutation. The reference can be slow because its purpose is to make correctness
+obvious.</p>
+<h3 id="check-state-conservation">Check state conservation</h3>
+<p>At every transition, assert that each submitted generation appears in exactly
+one of:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>active | delayed | blocked | in-flight | completed | rejected | cancelled</span></span></code></pre></div><p>Completion and permanent failure must release live queue-owned retry state,
+indexes, and in-flight event records. Retained history or metrics should live
+separately. Duplicate notification must not create two physical owners for the
+same logical item.</p>
+<h3 id="check-readiness-and-service-guarantees">Check readiness and service guarantees</h3>
+<p>With a fake clock, verify that:</p>
+<ul>
+<li>no delayed item runs before <code>readyAt</code>;</li>
+<li>an item becomes eligible at the exact boundary;</li>
+<li>backoff reaches but never exceeds its cap;</li>
+<li>an irrelevant event activates no blocked item;</li>
+<li>a relevant event activates the affected items; and</li>
+<li>if the policy limits how many dispatches may pass before a continuously ready
+item runs, lower-priority work advances within that stated limit.</li>
+</ul>
+<p>Tests of a waiting-time or dispatch-count promise need a finite adversarial
+scenario and an explicit limit. They should not depend on a goroutine
+eventually winning a race on a developer&rsquo;s machine.</p>
+<h3 id="count-work-before-benchmarking-it">Count work before benchmarking it</h3>
+<p>Count comparisons, swaps, activation requests, distinct activations, futile
+attempts, and completions. Then benchmark across increasing <code>n</code>,
+<code>u</code>, and <code>g</code>. Profiles and allocation measurements explain
+constant factors, while the counters reveal whether growth is logarithmic,
+linear, or quadratic for the modeled operation.</p>
+<p>This order matters. A faster implementation of the wrong transition policy
+can make a retry storm faster without making the system useful.</p>
+<h2 id="read-each-source-for-one-role">Read each source for one role</h2>
+<p>This lesson uses several kinds of evidence. Do not flatten them into equal
+claims:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Source</th>
+					<th>What it establishes</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/40d4851e550507ca14dc778b9b2266cc_MIT6_006S20_lec8.pdf">MIT 6.006 Lecture 8</a></td>
+					<td>The priority-queue interface, heap invariant, operations, proofs, and asymptotic model</td>
+			</tr>
+			<tr>
+					<td><a href="https://pkg.go.dev/container/heap">Go <code>container/heap</code> docs</a></td>
+					<td>The public Go API contract and documented complexity</td>
+			</tr>
+			<tr>
+					<td>Pinned product source</td>
+					<td>What one named release implemented, not what every release must implement</td>
+			</tr>
+			<tr>
+					<td>Public issue report</td>
+					<td>What an operator observed and hypothesized in a particular production setting</td>
+			</tr>
+			<tr>
+					<td>Merged pull request</td>
+					<td>What maintainers changed; not proof that every reported symptom had one cause</td>
+			</tr>
+			<tr>
+					<td>Official design account</td>
+					<td>The intended model, rollout history, trade-offs, and documented boundaries</td>
+			</tr>
+	</tbody>
+</table>
+<p>When you paraphrase a patch, name the behavior it changes and link the whole
+patch. When you generalize from an incident, label the generalization as a
+model to test rather than a fact established for every scheduler.</p>
+<h2 id="translate-the-model-in-a-design-conversation">Translate the model in a design conversation</h2>
+<p>A compact answer to “how would you design this dispatcher?” might be:</p>
+<blockquote class='book-hint '>
+<p>I would separate readiness from priority. A max-heap can select the most
+important of <code>n</code> active items with constant-time root access and
+logarithmic updates, while a min-heap can expose the earliest of
+<code>d</code> retry deadlines. Failed work should return only after backoff
+or a state change relevant to its rejection. I would index logical IDs for
+updates and deduplication, but also count activation requests because work
+can amplify before the queue coalesces it. Correctness tests would cover both
+heap invariants, one owner for each submission, readiness, and a testable
+limit on how long ready work may wait or a stated rule for sharing capacity.
+Finally, I would bound the queue and define what happens when new submissions
+exceed terminal exits or retry attempts consume the available worker
+capacity.</p>
+</blockquote><p>That answer gives the operations, structures, complexity, correctness
+conditions, and overload policy. It does not claim that a heap supplies the
+entire scheduler.</p>
+<h2 id="reflection">Reflection</h2>
+<p>For each answer, point to the model, implementation, or production evidence
+that supports it:</p>
+<ol>
+<li>Why is a valid heap not a sorted array?</li>
+<li>Why is bottom-up heap construction linear even though restoring order at
+one node may take logarithmic time?</li>
+<li>What breaks if <code>Swap</code> does not update stored indexes?</li>
+<li>When does bounded top-k improve on sorting every candidate, and what final
+work may still remain?</li>
+<li>Which part of issue #81214 concerns ordering, which concerns time, and which
+concerns eligibility?</li>
+<li>Why could scheduler-plugins issue #682 consume quadratic work while its
+destination queue deduplicated keys?</li>
+<li>What state did selective requeueing need to retain, and which cleanup paths
+deserve tests?</li>
+<li>What concrete service guarantee—maximum wait, turn frequency, or capacity
+share—would you promise for your own workload?</li>
+<li>How do new logical arrivals and retry attempts place different kinds of
+pressure on the service?</li>
+<li>Why did requests completing before their deadlines make Kafka&rsquo;s previous
+timer organization a poor fit?</li>
+</ol>
+<p>The durable production habit is to ask two questions together:</p>
+<blockquote class='book-hint '>
+<p>Which data structure makes the required operation cheap, and which policy
+determines whether the system should perform that operation at all?</p>
+</blockquote></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="flex align-center">
+        <img src="../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>W02 candidate guide</span>
+      </a>
+    
+    </span>
+    <span>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#a-production-queue-answers-more-than-what-is-next">A production queue answers more than “what is next?”</a></li>
+    <li><a href="#fifo-preserves-arrival-order">FIFO preserves arrival order</a></li>
+    <li><a href="#a-priority-queue-exposes-the-most-important-item">A priority queue exposes the most important item</a></li>
+    <li><a href="#a-binary-heap-is-an-implicit-complete-tree">A binary heap is an implicit complete tree</a></li>
+    <li><a href="#push-restores-heap-order-upward-pop-restores-it-downward">Push restores heap order upward; pop restores it downward</a></li>
+    <li><a href="#go-separates-heap-mechanics-from-your-ordering-rule">Go separates heap mechanics from your ordering rule</a></li>
+    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a></li>
+    <li><a href="#scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</a></li>
+    <li><a href="#backoff-controls-when-a-retry-may-happen">Backoff controls when a retry may happen</a></li>
+    <li><a href="#production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</a></li>
+    <li><a href="#eligibility-asks-whether-anything-relevant-changed">Eligibility asks whether anything relevant changed</a></li>
+    <li><a href="#deduplicating-the-queue-does-not-eliminate-duplicate-work">Deduplicating the queue does not eliminate duplicate work</a></li>
+    <li><a href="#remembered-events-must-be-cleaned-up">Remembered events must be cleaned up</a></li>
+    <li><a href="#a-correct-priority-queue-can-still-leave-work-waiting-forever">A correct priority queue can still leave work waiting forever</a></li>
+    <li><a href="#a-fast-queue-cannot-create-service-capacity">A fast queue cannot create service capacity</a></li>
+    <li><a href="#kafka-finding-the-next-timeout-was-not-the-only-job">Kafka: finding the next timeout was not the only job</a>
+      <ul>
+        <li><a href="#how-deadline-buckets-and-direct-removal-changed-the-work">How deadline buckets and direct removal changed the work</a></li>
+      </ul>
+    </li>
+    <li><a href="#check-behavior-before-measuring-speed">Check behavior before measuring speed</a>
+      <ul>
+        <li><a href="#check-the-heap-invariant">Check the heap invariant</a></li>
+        <li><a href="#check-state-conservation">Check state conservation</a></li>
+        <li><a href="#check-readiness-and-service-guarantees">Check readiness and service guarantees</a></li>
+        <li><a href="#count-work-before-benchmarking-it">Count work before benchmarking it</a></li>
+      </ul>
+    </li>
+    <li><a href="#read-each-source-for-one-role">Read each source for one role</a></li>
+    <li><a href="#translate-the-model-in-a-design-conversation">Translate the model in a design conversation</a></li>
+    <li><a href="#reflection">Reflection</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -26,6 +26,7 @@ through benchmarks, profiles, and report-first debugging scenarios.
 |---|---|---|
 | [01](./public/01-big-o-hash-tables/index.html) | Big-O and hash tables | Initial implementation |
 | [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
+| [03](./public/03-queues-heaps-scheduling/index.html) | Queues, heaps, and scheduling | Foundations draft |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and
@@ -36,7 +37,9 @@ source-tree `.md` paths.
 The curriculum and contribution criteria are described in
 [`docs/cs-prod-bridge.md`](../docs/cs-prod-bridge.md). Unit 02's research
 record, selected production case, source audit, and implementation design are in
-[`docs/cs-prod-bridge-unit-02.md`](../docs/cs-prod-bridge-unit-02.md).
+[`docs/cs-prod-bridge-unit-02.md`](../docs/cs-prod-bridge-unit-02.md). Unit 03's
+concept-to-production source audit and design spike are in
+[`docs/cs-prod-bridge-unit-03.md`](../docs/cs-prod-bridge-unit-03.md).
 
 ## Building the site
 

@@ -227,7 +227,7 @@ case and explorable failure exist, not merely to complete a conventional list.
 |---|---|---|
 | 1. Big-O and hash tables | Growth, bounds, expected and amortized cost, hashing, collisions, key equality, space | Indexes, enrichment caches, deduplication, cardinality, latency tails |
 | 2. Sequences, sorting, and ordered search | Arrays and linked structures, locality, binary search, stable and total ordering, linear merge/intersection | Metric-label indexes, Boolean search, compaction, deterministic result APIs |
-| 3. Queues, heaps, and scheduling | FIFO, priority queues, heap-order rules, amortized operations | Work queues, retry scheduling, backpressure, fairness, deadline handling |
+| 3. Queues, heaps, and scheduling | FIFO, priority-queue operations, binary-heap invariants, build/push/pop/fix, delayed work | Controller queues, top-k queries, retry backoff, useful requeueing, starvation, overload |
 | 4. Graphs and traversal | Directed graphs, BFS/DFS, cycles, topological order | Dependency rollout, workflow DAGs, service ownership, blast-radius analysis |
 | 5. Trees and indexes | Search trees, B-trees, tries, range lookup | Database indexes, routing, prefix matching, watch caches, filesystem metadata |
 | 6. Sets and probabilistic structures | Membership, Bloom filters, sketches, error bounds | Admission filters, cache protection, approximate cardinality, telemetry cost |
@@ -342,6 +342,29 @@ search followed by middle-slice insertion as a logarithmic update, and using a
 non-unique timestamp as a page cursor. Both scenarios have deterministic
 operation or completeness checks independent of wall-clock timing.
 
+## Unit 3: Queues, heaps, and useful retries
+
+Unit 3 has a foundations lesson authored as
+[Hugo Markdown](../cs-prod-bridge/content/03-queues-heaps-scheduling/_index.md).
+Its case study, exploration lab, and Wheels remain in design; the source audit
+and selected design are in
+[`docs/cs-prod-bridge-unit-03.md`](./cs-prod-bridge-unit-03.md).
+
+The unit is organized around a concept-to-production question: where can a
+learner see each queue or heap operation doing consequential work in a public
+system? Kubernetes scheduler incidents and merged fixes form the case-study
+spine. Prometheus `topk` supplies a compact positive heap application,
+Kubernetes `client-go` exposes a delayed min-heap and retry queue in Go, and
+Kafka's request-purgatory redesign shows a workload for which a hierarchical
+timing wheel was a better fit than a per-request priority queue.
+
+The central production lesson is that ordering is only one part of scheduling.
+A priority heap can make the next-item operation cheap, but it cannot decide
+whether failed work is eligible to run again, whether an event justifies a
+retry, or whether strict priority is starving runnable work. The lab and
+Wheels therefore make ordering, retry timing, eligibility, and queue growth
+separately observable.
+
 ## Interview translation
 
 Interview preparation is an output of the learning process, not its organizing
@@ -390,16 +413,7 @@ a reason to teach Swiss Tables as part of the language contract.
 - Add both Unit 1 Wheels with opt-in symptom checks and staged evidence
 - Verify formatting, normal tests, Wheel failure modes, and repaired forms
 
-### Phase 2: evaluate Unit 1
-
-- Have an experienced infra engineer complete the unit without facilitation
-- Record places where academic notation, Go behavior, or scenario boundaries
-  are ambiguous
-- Measure time spent reading versus experimenting
-- Tighten evidence packets that reveal the answer too early or fail to separate
-  hypotheses
-
-### Phase 3: extend carefully
+### Phase 2: implement the second unit
 
 - Implement the selected Unit 2 design in
   [`docs/cs-prod-bridge-unit-02.md`](./cs-prod-bridge-unit-02.md), which was
@@ -408,6 +422,20 @@ a reason to teach Swiss Tables as part of the language contract.
 - Reuse the source taxonomy and deterministic scaling checks
 - Add shared facilitator and reflection templates only after Unit 1 exposes
   genuine repetition
+
+### Phase 3: research, design, and implement the third unit
+
+- Map every proposed queue and heap concept to a public production use,
+  incident, redesign, or patch
+- Use the Kubernetes scheduling queue as a bounded deep-read rather than a
+  survey of the entire scheduler
+- Design the lab and Wheels from retry amplification, eligibility, state
+  retention, and starvation behavior documented upstream
+- Keep Kafka timing wheels and Kubernetes API Priority and Fairness as
+  structure-selection boundaries rather than expanding the core unit
+- Record the selected scope in
+  [`docs/cs-prod-bridge-unit-03.md`](./cs-prod-bridge-unit-03.md), then author
+  the foundations lesson in Hugo Markdown before adding runnable labs or Wheels
 
 ## Non-goals
 
