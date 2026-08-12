@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Capacity returned, but workers kept impossible assignments until the response policy made those sessions terminal.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/debrief/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="W01 debrief">
+	<meta property="og:description" content="Capacity returned, but workers kept impossible assignments until the response policy made those sessions terminal.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="03-queues-heaps-scheduling">
+
+
+	<meta itemprop="name" content="W01 debrief">
+	<meta itemprop="description" content="Capacity returned, but workers kept impossible assignments until the response policy made those sessions terminal.">
+	<meta itemprop="wordCount" content="557">
+
+<title>W01 debrief • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../../../favicon.png" >
+<link rel="manifest" href="../../../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/debrief/">
+<link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../../../en.search.min.3b7138549c9d7b46a6fa56c21b9ee8295c30b670a9a1a76d0fdd8b96962d8170.js" integrity="sha256-O3E4VJyde0am&#43;lbCG57oKVwwtnCpoadtD92LlpYtgXA=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-03-queues-heaps-scheduling">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/" class="">
+      Queues, heaps, and scheduling</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
+      Exploration lab: keep the highest-risk k</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-762a9232a8b102ab2b231f0b55ca51df" class="toggle" checked />
+    <label for="section-762a9232a8b102ab2b231f0b55ca51df" class="flex">
+      <a href="../../../../03-queues-heaps-scheduling/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-f18028359ca3fa66d938c22bb6a14dab" class="toggle" checked />
+    <label for="section-f18028359ca3fa66d938c22bb6a14dab" class="flex">
+      <a href="../../../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/" class="">
+        W01: The Lost Assignment Loop</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b3e5b164bef4b3b5d883e7817588dc5f" class="toggle"  />
+    <label for="section-b3e5b164bef4b3b5d883e7817588dc5f" class="flex">
+      <a href="../../../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/" class="">
+        W02: The Event That Woke Everything</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-ef44d51f88095657d3c071ce620189aa" class="toggle"  />
+    <label for="section-ef44d51f88095657d3c071ce620189aa" class="flex">
+      <a href="../../../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/" class="">
+        W03: The Sibling Stampede</a>
+      <img src="../../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/candidate/" class="">
+      W03 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>W01 debrief</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="w01-debrief">W01 Debrief</h1>
+<p>Read this only after completing the handoff.</p>
+<h2 id="diagnosis">Diagnosis</h2>
+<p>The incident has two causes at different points in time. Reduced capacity in
+the assignment service explains why the backlog formed. It does not explain
+why the backlog remained after capacity returned and arrivals were reduced.</p>
+<p>Each affected ephemeral worker retained an assignment reference that the
+assignment service classified as missing or superseded. <code>RetryAssignment</code>
+does not send that worker back for a different job; it repeats the request for
+the same assignment. The worker is connected and busy, but its slot completes
+no job and never becomes available to valid queued work.</p>
+<p>The defective response classification is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff6ac1">if</span> result <span style="color:#ff6ac1">==</span> Acquired {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">return</span> RunJob
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#ff6ac1">return</span> RetryAssignment</span></span></code></pre></div><p>That groups two different facts under “failure”:</p>
+<ul>
+<li><code>ServiceUnavailable</code> and <code>RequestRejected</code> describe attempts that may
+succeed after the service or request changes.</li>
+<li><code>AssignmentMissing</code> and <code>AssignmentSuperseded</code> describe a named assignment
+that this ephemeral session can no longer acquire.</li>
+</ul>
+<p>Backoff can reduce how often the second group retries, but waiting does not
+make a deleted assignment exist again. This is a terminal transition for the
+session, not a slower retry.</p>
+<h2 id="repair">Repair</h2>
+<p>Classify the result according to whether another attempt by the same worker can
+be useful:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff5c57">func</span> <span style="color:#57c7ff">HandleAcquireResult</span>(result AcquireResult) Action {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">switch</span> result {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">case</span> Acquired:
+</span></span><span style="display:flex;"><span>        <span style="color:#ff6ac1">return</span> RunJob
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">case</span> AssignmentMissing, AssignmentSuperseded:
+</span></span><span style="display:flex;"><span>        <span style="color:#ff6ac1">return</span> RetireWorker
+</span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">default</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#ff6ac1">return</span> RetryAssignment
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>Retirement releases the worker slot. The supervisor starts a fresh ephemeral
+worker, which can take a valid queued assignment. The repair therefore changes
+the lifecycle of an impossible assignment; it does not make enqueue, dequeue,
+or heap operations faster.</p>
+<h2 id="verification">Verification</h2>
+<p>Run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop -v
+</span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel5 <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The ordinary tests preserve success and temporary-failure behavior. The
+tagged test begins with every worker slot holding a missing or superseded
+assignment, followed by valid queued jobs. It gives the simulation only enough
+attempts to retire those sessions and complete the valid backlog. A policy that
+keeps retrying the lost assignments exhausts the budget without one
+completion.</p>
+<h2 id="production-inspiration-and-its-limits">Production inspiration and its limits</h2>
+<p>GitHub&rsquo;s official
+<a href="https://www.githubstatus.com/incidents/qcvjkzcs7j74">August 6–7, 2026 Actions incident report</a>
+describes a routine deployment that exposed a capacity and concurrency
+weakness. GitHub expanded capacity and throttled webhook-triggered work, but a
+second stage remained: a latent job-assignment bug gave runners jobs that were
+no longer valid, and repeated attempts prevented those runners from taking
+valid work. GitHub reports that changes preventing those repeated attempts
+allowed queues to drain.</p>
+<p>That report establishes the production failure shape and mitigation. It does
+not state that GitHub used this Go function, these result names, this
+simulation, or a heap for runner assignment.</p>
+<p>An open community
+<a href="https://github.com/actions/runner/pull/4618">actions/runner pull request #4618</a>
+provides a related, inspectable implementation proposal. As of August 12,
+2026, it proposes that an ephemeral runner exit when acquiring its assigned
+job returns the “not found” or “conflict” cases, allowing a supervisor to
+replace it; other cases continue through the existing retry path. The pull
+request is useful for studying a concrete control-flow distinction. It is
+still open and must not be described as GitHub&rsquo;s official incident fix.</p>
+<h2 id="production-follow-up">Production follow-up</h2>
+<p>Count connected workers, acquire attempts, terminal session exits, completed
+jobs, and valid backlog together. “Workers connected” measures process
+presence; it does not measure useful capacity. Alert when attempts remain high
+while completions and terminal exits remain low, and test that every response
+class has an explicit owner and next state.</p>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

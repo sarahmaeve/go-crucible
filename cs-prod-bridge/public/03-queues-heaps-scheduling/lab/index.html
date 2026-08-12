@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/lab/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Exploration lab: keep the highest-risk k">
+	<meta property="og:description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="website">
+
+
+	<meta itemprop="name" content="Exploration lab: keep the highest-risk k">
+	<meta itemprop="description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
+	<meta itemprop="wordCount" content="861">
+
+<title>Exploration lab: keep the highest-risk k • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../favicon.png" >
+<link rel="manifest" href="../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/lab/">
+<link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../en.search.min.3b7138549c9d7b46a6fa56c21b9ee8295c30b670a9a1a76d0fdd8b96962d8170.js" integrity="sha256-O3E4VJyde0am&#43;lbCG57oKVwwtnCpoadtD92LlpYtgXA=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-section book-type-03-queues-heaps-scheduling">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/" class="">
+      Queues, heaps, and scheduling</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/lab/" class="active">
+      Exploration lab: keep the highest-risk k</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-762a9232a8b102ab2b231f0b55ca51df" class="toggle"  />
+    <label for="section-762a9232a8b102ab2b231f0b55ca51df" class="flex">
+      <a href="../../03-queues-heaps-scheduling/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-f18028359ca3fa66d938c22bb6a14dab" class="toggle"  />
+    <label for="section-f18028359ca3fa66d938c22bb6a14dab" class="flex">
+      <a href="../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/" class="">
+        W01: The Lost Assignment Loop</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b3e5b164bef4b3b5d883e7817588dc5f" class="toggle"  />
+    <label for="section-b3e5b164bef4b3b5d883e7817588dc5f" class="flex">
+      <a href="../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/" class="">
+        W02: The Event That Woke Everything</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-ef44d51f88095657d3c071ce620189aa" class="toggle"  />
+    <label for="section-ef44d51f88095657d3c071ce620189aa" class="flex">
+      <a href="../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/" class="">
+        W03: The Sibling Stampede</a>
+      <img src="../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/candidate/" class="">
+      W03 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Exploration lab: keep the highest-risk k</h3>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="exploration-lab-keep-the-highest-risk-k">Exploration Lab: Keep the Highest-Risk K</h1>
+<p>A fleet health service examines risk observations for many services but shows
+only the <code>k</code> highest-risk services on its response page. This first Unit 03
+exercise isolates the heap operation before later exercises add readiness,
+retry, and worker ownership.</p>
+<p>The result contract is precise:</p>
+<ul>
+<li>a higher score is better;</li>
+<li>equal scores are ordered by service name, alphabetically;</li>
+<li>return at most <code>k</code> candidates in that complete order;</li>
+<li>do not change the input; and</li>
+<li>reject a negative <code>k</code> or a score that is <code>NaN</code>.</li>
+</ul>
+<p><code>TopKBySort</code> and <code>TopKByHeap</code> return the same result. They retain different
+amounts of information while finding it.</p>
+<h2 id="1-start-with-the-question-the-product-asks">1. Start with the question the product asks</h2>
+<p>If the caller needs every candidate in ranked order, sorting every candidate
+directly produces that answer. This caller asks for only <code>k</code> winners from
+<code>r</code> candidates. The relative order of the other <code>r-k</code> candidates will never
+be observed.</p>
+<p><code>TopKByHeap</code> keeps at most <code>k</code> current winners. The root is deliberately the
+<em>worst</em> of those winners. For every later candidate, the program therefore
+asks one useful question: is this candidate better than the weakest candidate
+currently included? If not, it can be discarded. If so, it replaces the root
+and <code>heap.Fix</code> restores the heap&rsquo;s parent-child order.</p>
+<p>The heap does not return the winners in final display order. It identifies the
+winners while retaining only <code>k</code> candidates; the function then sorts those
+<code>k</code> survivors. Its work is therefore:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>scan and retain: O(r log(k+1))
+</span></span><span style="display:flex;"><span>order winners:  O(k log k)
+</span></span><span style="display:flex;"><span>retained space: O(k)</span></span></code></pre></div><p>Sorting every candidate takes <code>O(r log r)</code> time and retains a copy of all
+<code>r</code> candidates. When <code>k</code> is close to <code>r</code>, the heap has little to save and the
+plain sort may be the clearer choice.</p>
+<h2 id="2-confirm-the-result-and-tie-rule">2. Confirm the result and tie rule</h2>
+<p>Run commands from the <code>cs-prod-bridge</code> module directory:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/lab -v</span></span></code></pre></div><p>Before opening <code>topk.go</code>, write the expected top three for the fixture in
+<code>TestTopKImplementationsAgree</code>. Two scores tie. Explain which field decides
+their order and why a comparison based only on score would leave the result
+contract incomplete.</p>
+<p>The tests also reject <code>NaN</code>. Comparisons with <code>NaN</code> do not say that it is
+higher than, lower than, or equal to an ordinary score, so accepting it would
+leave the result order undefined.</p>
+<h2 id="3-draw-the-information-kept-by-the-heap">3. Draw the information kept by the heap</h2>
+<p>Use this input with <code>k = 3</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>(search, 0.72), (billing, 0.91), (edge, 0.83),
+</span></span><span style="display:flex;"><span>(catalog, 0.91), (worker, 0.40), (api, 0.83)</span></span></code></pre></div><p>After each candidate:</p>
+<ol>
+<li>draw the retained heap as an array;</li>
+<li>mark the root;</li>
+<li>say whether the new candidate can enter the answer; and</li>
+<li>if the root changes, identify the one path whose parent-child order may
+need to be restored.</li>
+</ol>
+<p>Do not expect the heap array to be fully sorted. Its promise is narrower: no
+child is worse than its parent, so the worst retained candidate is at the
+root.</p>
+<h2 id="4-read-the-counters-before-timing">4. Read the counters before timing</h2>
+<p><code>SelectionStats</code> separates four kinds of evidence:</p>
+<ul>
+<li><code>ScanComparisons</code> counts comparisons between a later candidate and the
+current root;</li>
+<li><code>HeapComparisons</code> and <code>HeapSwaps</code> count work used to preserve heap order;</li>
+<li><code>FinalSortComparisons</code> counts work used to put the returned winners in
+display order; and</li>
+<li><code>MaxRetained</code> records how many candidates were in the method&rsquo;s working
+selection collection. It excludes the caller&rsquo;s input and the result copy;
+it is a logical count, not a byte-accurate memory measurement.</li>
+</ul>
+<p>Add a table-driven test for <code>r = 100, 1_000, 10_000</code> with <code>k = 10</code>. Record
+each counter. Then keep <code>r</code> fixed and increase <code>k</code>. Explain which counts follow
+<code>r</code>, which follow <code>k</code>, and why elapsed time is not required to establish the
+retained-space difference.</p>
+<h2 id="5-compare-the-two-complete-operations">5. Compare the two complete operations</h2>
+<p>The benchmark includes result ordering for both methods; it does not compare a
+fully ordered result with an unordered heap.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/lab <span style="color:#5af78e">\
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkTopK -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>Use the benchmark to test, not replace, the operation-count explanation. Try a
+<code>k</code> close to the candidate count. A bounded heap is a workload choice, not an
+automatic improvement over sorting.</p>
+<p>Also read both allocation columns. The heap keeps fewer candidate records, but
+Go&rsquo;s <code>container/heap</code> passes pushed values through <code>any</code>, and the growing heap
+has its own allocations. It may report more individual allocations while
+allocating fewer total bytes. The <code>O(k)</code> space bound describes how retained
+candidate storage grows; it does not promise a particular allocation count.</p>
+<h2 id="6-follow-the-production-implementation">6. Follow the production implementation</h2>
+<p><a href="https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085">Prometheus v3.13.1 <code>topk</code></a>
+uses the same central operation for each aggregation group: retain at most
+<code>k</code> samples, compare later samples with the smallest retained value, replace
+that root when the sample belongs in the result, and call <code>heap.Fix</code>. It sorts
+the retained instant-query samples before returning them.</p>
+<p>The local service names, validation, tie rule, counters, and API are synthetic.
+They make the operation inspectable; they are not a model of all PromQL
+semantics.</p>
+<p>For the underlying data structure and proof, use
+<a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/40d4851e550507ca14dc778b9b2266cc_MIT6_006S20_lec8.pdf">MIT 6.006 Lecture 8: Binary Heaps</a>.
+For the exact Go interface used here, read the standard library&rsquo;s
+<a href="https://pkg.go.dev/container/heap"><code>container/heap</code> documentation</a>.</p>
+<h2 id="7-state-the-structure-choice-plainly">7. State the structure choice plainly</h2>
+<p>Finish with two short explanations:</p>
+<ol>
+<li>Why is the worst retained winner at the root when the product wants the
+highest scores?</li>
+<li>What information does the bounded heap avoid computing, and what final
+sorting work does the response contract still require?</li>
+</ol>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../03-queues-heaps-scheduling/" class="flex align-center">
+        <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Queues, heaps, and scheduling</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../03-queues-heaps-scheduling/wheel/" class="flex align-center">
+        <span>Wheels of Misfortune</span>
+        <img src="../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

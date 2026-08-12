@@ -21,7 +21,7 @@ https://github.com/alex-shpak/hugo-book
 
 	<meta itemprop="name" content="Queues, heaps, and scheduling">
 	<meta itemprop="description" content="Priority queues make the next choice cheap; production schedulers must also model readiness, retries, fairness, and state ownership.">
-	<meta itemprop="wordCount" content="6530">
+	<meta itemprop="wordCount" content="6781">
 
 <title>Queues, heaps, and scheduling • Computer Science Through Production Systems</title>
 <link rel="icon" href="../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../en.search.min.febd345c2a2b90c2288d0dc5f64aedc7300f61f2ac5ef8bbc69e1c10937f3052.js" integrity="sha256-/r00XCorkMIojQ3F9krtxzAPYfKsXvi7xp4cEJN/MFI=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../en.search.min.3b7138549c9d7b46a6fa56c21b9ee8295c30b670a9a1a76d0fdd8b96962d8170.js" integrity="sha256-O3E4VJyde0am&#43;lbCG57oKVwwtnCpoadtD92LlpYtgXA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -425,6 +425,173 @@ https://github.com/alex-shpak/hugo-book
           
   <ul>
     
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/lab/" class="">
+      Exploration lab: keep the highest-risk k</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-762a9232a8b102ab2b231f0b55ca51df" class="toggle"  />
+    <label for="section-762a9232a8b102ab2b231f0b55ca51df" class="flex">
+      <a href="../03-queues-heaps-scheduling/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-f18028359ca3fa66d938c22bb6a14dab" class="toggle"  />
+    <label for="section-f18028359ca3fa66d938c22bb6a14dab" class="flex">
+      <a href="../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/" class="">
+        W01: The Lost Assignment Loop</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b3e5b164bef4b3b5d883e7817588dc5f" class="toggle"  />
+    <label for="section-b3e5b164bef4b3b5d883e7817588dc5f" class="flex">
+      <a href="../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/" class="">
+        W02: The Event That Woke Everything</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-ef44d51f88095657d3c071ce620189aa" class="toggle"  />
+    <label for="section-ef44d51f88095657d3c071ce620189aa" class="flex">
+      <a href="../03-queues-heaps-scheduling/wheel/03-sibling-stampede/" class="">
+        W03: The Sibling Stampede</a>
+      <img src="../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../03-queues-heaps-scheduling/wheel/03-sibling-stampede/candidate/" class="">
+      W03 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
   </ul>
 
         </li>
@@ -501,6 +668,7 @@ https://github.com/alex-shpak/hugo-book
         <li><a href="#how-deadline-buckets-and-direct-removal-changed-the-work">How deadline buckets and direct removal changed the work</a></li>
       </ul>
     </li>
+    <li><a href="#work-the-exercises">Work the exercises</a></li>
     <li><a href="#check-behavior-before-measuring-speed">Check behavior before measuring speed</a>
       <ul>
         <li><a href="#check-the-heap-invariant">Check the heap invariant</a></li>
@@ -1051,11 +1219,11 @@ Eligibility and backoff are separate decisions.</div>
 
 <h2 id="production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</h2>
 <p><a href="https://github.com/kubernetes/kubernetes/issues/81214">Kubernetes issue #81214</a>
-reports a cluster with 5,000 nodes and more than 100,000 Pods. The reporter
-observed lower-priority Pods waiting while unschedulable higher-priority Pods
-were repeatedly moved from backoff into the active queue. The report also
-calls out PVC and Service events that moved all unschedulable Pods back to
-active consideration.</p>
+is a user report from a cluster with 5,000 nodes and more than 100,000 Pods. The
+reporter observed lower-priority Pods waiting while unschedulable higher-priority
+Pods were repeatedly moved from backoff into the active queue. The report also
+calls out PVC and Service events that moved all unschedulable Pods back to active
+consideration.</p>
 <p>Events unrelated to a particular Pod could still return it to the active heap.
 The heap then selected high-priority Pods that still could not run ahead of
 feasible lower-priority Pods, just as its ordering rule required. The
@@ -1128,8 +1296,8 @@ the queue; changing the heap will not help.</div>
 </blockquote>
 
 <h2 id="deduplicating-the-queue-does-not-eliminate-duplicate-work">Deduplicating the queue does not eliminate duplicate work</h2>
-<p>Consider one reconsideration round for a group of <code>g</code> related items.
-If every member asks to activate the other <code>g-1</code> members, that round
+<p>Consider one pass over a group of <code>g</code> related items.
+If every member asks to activate the other <code>g-1</code> members, that pass
 generates exactly:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>g * (g - 1) = Θ(g²)</span></span></code></pre></div><p>The queue may still store each of the <code>g</code> keys only once. But before
 the queue declines to add another stored entry, callers have already made
@@ -1142,8 +1310,8 @@ Kubernetes coscheduling plugin. When quota and resource restrictions left a
 Pod group pending, the reporter saw millions of log lines, a large CPU
 increase, and loss of scheduling progress for unrelated Pods whose resources
 were available.</p>
-<p>The public investigation traced the repeated work to group members repeatedly
-trying to activate their siblings. The merged
+<p>The author of the merged patch identified repeated attempts by group members to
+activate their siblings as unnecessary work. The
 <a href="https://github.com/kubernetes-sigs/scheduler-plugins/pull/700">scheduler-plugins PR #700</a>
 stores an <code>Activate</code> flag in state that Kubernetes carries for one Pod&rsquo;s
 scheduling attempt. The coscheduling plugin reaches its <code>Permit</code> step after
@@ -1354,6 +1522,33 @@ access to the root.</p>
 </div>
 </blockquote>
 
+<h2 id="work-the-exercises">Work the exercises</h2>
+<p>The <a href="lab/">bounded top-k lab</a> keeps the heap exercise deliberately smaller
+than a scheduler. It compares sorting all candidates with retaining only the
+<code>k</code> candidates that can still appear in the response. The tests expose the
+complete tie rule, the heap invariant, retained cardinality, and the final sort
+that the response contract still requires.</p>
+<p>Then investigate <a href="wheel/01-lost-assignment-loop/">The Lost Assignment Loop</a>
+from its incoming report. This Wheel is inspired by GitHub&rsquo;s
+<a href="https://www.githubstatus.com/incidents/qcvjkzcs7j74">August 6–7, 2026 Actions incident</a>:
+after an initial capacity failure, runners repeatedly attempted jobs that were
+no longer valid and could not pick up valid work. The local exercise asks a
+narrow scheduling question—when can another attempt by the same worker still
+succeed?—without claiming that GitHub used its Go code or a heap for runner
+assignment.</p>
+<p><a href="wheel/02-event-that-woke-everything/">The Event That Woke Everything</a> uses a
+max-priority heap in its local dispatcher. Inventory events repeatedly return a
+high-priority repair that still cannot run, while routine repairs wait. Start
+with the report and decide which evidence would distinguish an ordering defect
+from a problem elsewhere in the repair&rsquo;s path through the dispatcher.</p>
+<p><a href="wheel/03-sibling-stampede/">The Sibling Stampede</a> examines work performed before
+a queue discovers that it already contains an ID. It uses the
+scheduler-plugins #682 report and merged #700 patch as production inspiration,
+then counts requests, stored IDs, repeated logs, and progress for unrelated
+work in a smaller synthetic model.</p>
+<p>Use the <a href="wheel/worksheet/">investigation worksheet</a> to keep the incident
+trigger, the condition that prevents recovery, and the proposed state
+transition separate.</p>
 <h2 id="check-behavior-before-measuring-speed">Check behavior before measuring speed</h2>
 <p>Start tests with observable rules that do not depend on timing noise.</p>
 <h3 id="check-the-heap-invariant">Check the heap invariant</h3>
@@ -1508,6 +1703,11 @@ determines whether the system should perform that operation at all?</p>
     </span>
     <span>
     
+      <a href="../03-queues-heaps-scheduling/lab/" class="flex align-center">
+        <span>Exploration lab: keep the highest-risk k</span>
+        <img src="../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
     </span>
   </div>
 
@@ -1557,6 +1757,7 @@ determines whether the system should perform that operation at all?</p>
         <li><a href="#how-deadline-buckets-and-direct-removal-changed-the-work">How deadline buckets and direct removal changed the work</a></li>
       </ul>
     </li>
+    <li><a href="#work-the-exercises">Work the exercises</a></li>
     <li><a href="#check-behavior-before-measuring-speed">Check behavior before measuring speed</a>
       <ul>
         <li><a href="#check-the-heap-invariant">Check the heap invariant</a></li>

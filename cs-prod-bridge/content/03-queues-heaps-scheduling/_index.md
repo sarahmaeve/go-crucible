@@ -523,11 +523,11 @@ Eligibility and backoff are separate decisions.
 ## Production report: Kubernetes kept retrying high-priority Pods that could not run
 
 [Kubernetes issue #81214](https://github.com/kubernetes/kubernetes/issues/81214)
-reports a cluster with 5,000 nodes and more than 100,000 Pods. The reporter
-observed lower-priority Pods waiting while unschedulable higher-priority Pods
-were repeatedly moved from backoff into the active queue. The report also
-calls out PVC and Service events that moved all unschedulable Pods back to
-active consideration.
+is a user report from a cluster with 5,000 nodes and more than 100,000 Pods. The
+reporter observed lower-priority Pods waiting while unschedulable higher-priority
+Pods were repeatedly moved from backoff into the active queue. The report also
+calls out PVC and Service events that moved all unschedulable Pods back to active
+consideration.
 
 Events unrelated to a particular Pod could still return it to the active heap.
 The heap then selected high-priority Pods that still could not run ahead of
@@ -610,8 +610,8 @@ the queue; changing the heap will not help.
 
 ## Deduplicating the queue does not eliminate duplicate work
 
-Consider one reconsideration round for a group of `g` related items.
-If every member asks to activate the other `g-1` members, that round
+Consider one pass over a group of `g` related items.
+If every member asks to activate the other `g-1` members, that pass
 generates exactly:
 
 ~~~text
@@ -631,8 +631,8 @@ Pod group pending, the reporter saw millions of log lines, a large CPU
 increase, and loss of scheduling progress for unrelated Pods whose resources
 were available.
 
-The public investigation traced the repeated work to group members repeatedly
-trying to activate their siblings. The merged
+The author of the merged patch identified repeated attempts by group members to
+activate their siblings as unnecessary work. The
 [scheduler-plugins PR #700](https://github.com/kubernetes-sigs/scheduler-plugins/pull/700)
 stores an `Activate` flag in state that Kubernetes carries for one Pod's
 scheduling attempt. The coscheduling plugin reaches its `Permit` step after
@@ -888,6 +888,39 @@ leaves the system. If items commonly disappear before reaching the front of a
 heap, the cost of finding and removing those items may matter more than cheap
 access to the root.
 {{< /callout >}}
+
+## Work the exercises
+
+The [bounded top-k lab](lab/) keeps the heap exercise deliberately smaller
+than a scheduler. It compares sorting all candidates with retaining only the
+`k` candidates that can still appear in the response. The tests expose the
+complete tie rule, the heap invariant, retained cardinality, and the final sort
+that the response contract still requires.
+
+Then investigate [The Lost Assignment Loop](wheel/01-lost-assignment-loop/)
+from its incoming report. This Wheel is inspired by GitHub's
+[August 6–7, 2026 Actions incident](https://www.githubstatus.com/incidents/qcvjkzcs7j74):
+after an initial capacity failure, runners repeatedly attempted jobs that were
+no longer valid and could not pick up valid work. The local exercise asks a
+narrow scheduling question—when can another attempt by the same worker still
+succeed?—without claiming that GitHub used its Go code or a heap for runner
+assignment.
+
+[The Event That Woke Everything](wheel/02-event-that-woke-everything/) uses a
+max-priority heap in its local dispatcher. Inventory events repeatedly return a
+high-priority repair that still cannot run, while routine repairs wait. Start
+with the report and decide which evidence would distinguish an ordering defect
+from a problem elsewhere in the repair's path through the dispatcher.
+
+[The Sibling Stampede](wheel/03-sibling-stampede/) examines work performed before
+a queue discovers that it already contains an ID. It uses the
+scheduler-plugins #682 report and merged #700 patch as production inspiration,
+then counts requests, stored IDs, repeated logs, and progress for unrelated
+work in a smaller synthetic model.
+
+Use the [investigation worksheet](wheel/worksheet/) to keep the incident
+trigger, the condition that prevents recovery, and the proposed state
+transition separate.
 
 ## Check behavior before measuring speed
 

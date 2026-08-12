@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Questions for separating queue activity from useful progress before changing code.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/worksheet/">
+	<meta property="og:site_name" content="Computer Science Through Production Systems">
+	<meta property="og:title" content="Investigation worksheet">
+	<meta property="og:description" content="Questions for separating queue activity from useful progress before changing code.">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:type" content="article">
+		<meta property="article:section" content="03-queues-heaps-scheduling">
+
+
+	<meta itemprop="name" content="Investigation worksheet">
+	<meta itemprop="description" content="Questions for separating queue activity from useful progress before changing code.">
+	<meta itemprop="wordCount" content="222">
+
+<title>Investigation worksheet • Computer Science Through Production Systems</title>
+<link rel="icon" href="../../../favicon.png" >
+<link rel="manifest" href="../../../manifest.json">
+<link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/worksheet/">
+<link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
+
+
+  <script defer type="module" src="../../../en.search.min.3b7138549c9d7b46a6fa56c21b9ee8295c30b670a9a1a76d0fdd8b96962d8170.js" integrity="sha256-O3E4VJyde0am&#43;lbCG57oKVwwtnCpoadtD92LlpYtgXA=" crossorigin="anonymous"></script>
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-03-queues-heaps-scheduling">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="../../../"><span>Computer Science Through Production Systems</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/" class="">
+      Big-O and hash tables</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/case-study/" class="">
+      Indexing a network-enrichment stream</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/lab/" class="">
+      Exploration lab: scan or index?</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-88fa4c401832691ff66781a5475323b3" class="toggle"  />
+    <label for="section-88fa4c401832691ff66781a5475323b3" class="flex">
+      <a href="../../../01-big-o-hash-tables/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-c6fc1292c82a65697f2f509da77f8269" class="toggle"  />
+    <label for="section-c6fc1292c82a65697f2f509da77f8269" class="flex">
+      <a href="../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/" class="">
+        W01: The Innocent Nested Loop</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-3c6439145df32801dd405ad5de11e583" class="toggle"  />
+    <label for="section-3c6439145df32801dd405ad5de11e583" class="flex">
+      <a href="../../../01-big-o-hash-tables/wheel/02-cache-without-hits/" class="">
+        W02: The Cache Without Hits</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../01-big-o-hash-tables/wheel/02-cache-without-hits/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/" class="">
+      Sequences, sorting, and ordered search</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/case-study/" class="">
+      Making high-cardinality metric filters predictable</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/result-ordering/" class="">
+      Paginating ordered results</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/lab/" class="">
+      Exploration lab: scan, intersect, and order</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-22a89b76a65bae0a44719dd27872418f" class="toggle"  />
+    <label for="section-22a89b76a65bae0a44719dd27872418f" class="flex">
+      <a href="../../../02-sequences-sorting-search/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/wheel/worksheet/" class="">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e9566f06b02133c841e3a11319cbe319" class="toggle"  />
+    <label for="section-e9566f06b02133c841e3a11319cbe319" class="flex">
+      <a href="../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/" class="">
+        W01: The Logarithmic Insert</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/wheel/01-logarithmic-insert/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-81916f98e92dec9609d7664f08e6a1a0" class="toggle"  />
+    <label for="section-81916f98e92dec9609d7664f08e6a1a0" class="flex">
+      <a href="../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/" class="">
+        W02: The Timestamp-Only Cursor</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/" class="">
+      Queues, heaps, and scheduling</a>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/lab/" class="">
+      Exploration lab: keep the highest-risk k</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-762a9232a8b102ab2b231f0b55ca51df" class="toggle" checked />
+    <label for="section-762a9232a8b102ab2b231f0b55ca51df" class="flex">
+      <a href="../../../03-queues-heaps-scheduling/wheel/" class="">
+        Wheels of Misfortune</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/wheel/worksheet/" class="active">
+      Investigation worksheet</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-f18028359ca3fa66d938c22bb6a14dab" class="toggle"  />
+    <label for="section-f18028359ca3fa66d938c22bb6a14dab" class="flex">
+      <a href="../../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/" class="">
+        W01: The Lost Assignment Loop</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/candidate/" class="">
+      W01 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b3e5b164bef4b3b5d883e7817588dc5f" class="toggle"  />
+    <label for="section-b3e5b164bef4b3b5d883e7817588dc5f" class="flex">
+      <a href="../../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/" class="">
+        W02: The Event That Woke Everything</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/candidate/" class="">
+      W02 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-ef44d51f88095657d3c071ce620189aa" class="toggle"  />
+    <label for="section-ef44d51f88095657d3c071ce620189aa" class="flex">
+      <a href="../../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/" class="">
+        W03: The Sibling Stampede</a>
+      <img src="../../../icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../../../03-queues-heaps-scheduling/wheel/03-sibling-stampede/candidate/" class="">
+      W03 candidate guide</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="../../../icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Investigation worksheet</h3>
+
+  <label for="toc-control">
+    
+    <img src="../../../icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#read-the-report">Read the report</a></li>
+    <li><a href="#describe-the-work-lifecycle">Describe the work lifecycle</a></li>
+    <li><a href="#list-possible-causes">List possible causes</a></li>
+    <li><a href="#choose-the-next-investigation-step">Choose the next investigation step</a></li>
+    <li><a href="#explain-and-repair-the-failure">Explain and repair the failure</a></li>
+    <li><a href="#three-minute-handoff">Three-minute handoff</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="investigation-worksheet">Investigation worksheet</h1>
+<p>Copy these questions into your notes before starting a Wheel.</p>
+<h2 id="read-the-report">Read the report</h2>
+<p><strong>What did users or operators observe?</strong></p>
+<p><strong>Which condition started the incident?</strong></p>
+<p><strong>Which later condition prevented recovery?</strong></p>
+<p><strong>Which code are you responsible for, and which parts must remain unchanged?</strong></p>
+<h2 id="describe-the-work-lifecycle">Describe the work lifecycle</h2>
+<p><strong>What is the logical work item?</strong></p>
+<p><strong>Which state owns it now: queued, assigned, delayed, running, completed, or
+terminal?</strong></p>
+<p><strong>What event or time boundary permits the next transition?</strong></p>
+<p><strong>Does another attempt repeat the same request, or can it select different
+work?</strong></p>
+<h2 id="list-possible-causes">List possible causes</h2>
+<p><strong>Possible cause 1:</strong></p>
+<p><strong>Possible cause 2:</strong></p>
+<p><strong>Possible cause 3, if needed:</strong></p>
+<h2 id="choose-the-next-investigation-step">Choose the next investigation step</h2>
+<p>Repeat these questions whenever you inspect another packet, test, counter, or
+trace.</p>
+<p><strong>What question should this step answer?</strong></p>
+<p><strong>Why is it the most useful next step?</strong></p>
+<p><strong>What result would support each remaining explanation?</strong></p>
+<p><strong>What actually happened?</strong></p>
+<p><strong>Which explanations became more or less likely?</strong></p>
+<h2 id="explain-and-repair-the-failure">Explain and repair the failure</h2>
+<p><strong>Which operation is repeated?</strong></p>
+<p><strong>Can the condition needed for that operation to succeed still occur?</strong></p>
+<p><strong>What useful capacity does each repeated attempt consume?</strong></p>
+<p><strong>Which transition should replace the repetition, and who owns that
+transition?</strong></p>
+<p><strong>Which tests preserve genuinely recoverable retries?</strong></p>
+<h2 id="three-minute-handoff">Three-minute handoff</h2>
+<p>Summarize the trigger, the condition that prevented recovery, the evidence
+that separated them, the state transition you changed, the verification you
+ran, and one remaining risk.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+<div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="../../../03-queues-heaps-scheduling/wheel/" class="flex align-center">
+        <img src="../../../icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Wheels of Misfortune</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="../../../03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/" class="flex align-center">
+        <span>W01: The Lost Assignment Loop</span>
+        <img src="../../../icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+
+ 
+        
+  
+ 
+        
+        
+  
+ 
+        
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#read-the-report">Read the report</a></li>
+    <li><a href="#describe-the-work-lifecycle">Describe the work lifecycle</a></li>
+    <li><a href="#list-possible-causes">List possible causes</a></li>
+    <li><a href="#choose-the-next-investigation-step">Choose the next investigation step</a></li>
+    <li><a href="#explain-and-repair-the-failure">Explain and repair the failure</a></li>
+    <li><a href="#three-minute-handoff">Three-minute handoff</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

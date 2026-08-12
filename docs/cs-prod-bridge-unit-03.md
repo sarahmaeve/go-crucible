@@ -1,7 +1,9 @@
 # Unit 03 Research and Design: Queues, Heaps, and Useful Retries
 
-**Status:** foundations lesson drafted; case study, lab, and Wheels pending  
-**Research reviewed:** 2026-08-12  
+**Status:** foundations lesson, bounded top-k lab, and three Wheels implemented; dispatcher lab and case study pending
+
+**Research reviewed:** 2026-08-12
+
 **Target toolchain:** Go 1.26.x
 
 ## Decision
@@ -38,8 +40,9 @@ one is removed, shortened to prerequisite review, or left as an extension.
 | Bounded top-k | Prometheus 3.13.1 PromQL `topk` | A heap of at most `k` samples; a better candidate replaces the root and calls `heap.Fix` | Small positive application |
 | Delayed min-heap | Kubernetes `client-go` delaying queue and scheduler BackoffQ | The earliest `readyAt` or backoff expiry is at the root; an earlier duplicate deadline uses `heap.Fix` | Core implementation |
 | Exponential retry backoff | Kubernetes issue #81214 and PR #81263 | A report from a cluster with 5,000 nodes and more than 100,000 Pods, plus the patch that made initial and maximum scheduler backoff configurable | Core production history |
+| Terminal retry classification | GitHub Actions incident, August 6–7, 2026 | An official report separating the capacity failure that formed a backlog from invalid-job retries that prevented runners from taking valid work | Wheel production inspiration |
 | Eligibility and useful requeueing | Kubernetes QueueingHint | Plugins decide whether a particular event could change a particular rejection instead of treating a broad event class as sufficient | Core case-study decision |
-| Retry amplification | Scheduler-plugins issue #682 and PR #700 | Repeated sibling activation produced millions of log lines and a CPU spike; a merged patch permits one qualifying activation | Wheel and patch study |
+| Retry amplification | Scheduler-plugins issue #682 and PR #700 | Repeated sibling activation accompanied millions of log lines and a CPU spike; a merged patch marks the scheduling attempt that may activate the group | Wheel and patch study |
 | Queue-owned state lifetime | Kubernetes issue #120622 and PRs #126962 and #127016 | In-flight event state could be retained when an item skipped its expected completion path or appeared twice | Case-study caution |
 | Fairness and bounded overload | Kubernetes API Priority and Fairness | Bounded queues, priority levels, flow isolation, and explicit memory/latency/fairness trade-offs | Production boundary |
 | When a heap is the wrong timer | Kafka request purgatory | A DelayQueue-based design retained completed requests; hierarchical timing wheels enabled immediate removal and changed the cost profile | Alternative-structure boundary |
@@ -52,6 +55,9 @@ This map keeps three uses of production evidence distinct:
   and upstream code changes address it, as in the Kubernetes scheduling cases.
 - **Redesign boundary:** a team replaced the structure because a different
   workload operation dominated, as in Kafka's timer redesign.
+- **Incident synthesis:** a report connects queue depth, usable capacity, and
+  terminal retry decisions without establishing that the product used a heap,
+  as in the GitHub Actions recovery story.
 
 The binary heap is not presented as the hero of every story. It efficiently
 maintains a partial order. It does not supply retry policy, admission control,
@@ -238,7 +244,8 @@ Candidates were judged on:
 | [Kubernetes backoff options PR #81263](https://github.com/kubernetes/kubernetes/pull/81263) | Small historical patch connecting the report to configurable initial and maximum backoff | Configuration relieves pressure; it is not the later QueueingHint policy | **Patch step one** |
 | [Kubernetes QueueingHint history](https://kubernetes.io/blog/2024/12/12/scheduler-queueinghint/) and [KEP-4247](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/4247-queueinghint/README.md) | Official queue model, overly broad retries, per-plugin event relevance, rollout reversal, and documented risks | The complete implementation spans many plugins and must be reduced to one callback model | **Selected design step** |
 | [Kubernetes in-flight state issue #120622](https://github.com/kubernetes/kubernetes/issues/120622) and [memory fix #126962](https://github.com/kubernetes/kubernetes/pull/126962) | The new event-tracking design exposed retained-state failure paths; the PR explains one concrete cleanup omission | Several patches addressed the area, so one PR must not be presented as the sole universal fix | **Lifecycle caution** |
-| [Scheduler-plugins incident #682](https://github.com/kubernetes-sigs/scheduler-plugins/issues/682) and [fix #700](https://github.com/kubernetes-sigs/scheduler-plugins/pull/700) | Production ML workload, millions of logs, CPU spike, unrelated runnable work blocked, and a compact merged Go patch | Gang scheduling itself is outside scope | **Wheel 02 and patch deep read** |
+| [GitHub Actions incident, August 6–7, 2026](https://www.githubstatus.com/incidents/qcvjkzcs7j74) | Official two-stage account: capacity loss formed a backlog, then runners repeatedly tried invalid jobs and could not take valid work | It names behavior and mitigations, not GitHub's private queue structure or the exact incident patch | **Wheel 01 production inspiration** |
+| [Scheduler-plugins report #682](https://github.com/kubernetes-sigs/scheduler-plugins/issues/682) and [fix #700](https://github.com/kubernetes-sigs/scheduler-plugins/pull/700) | Production ML workload, millions of logs, CPU spike, unrelated runnable work blocked, and a compact merged Go patch | Gang scheduling itself is outside scope | **Wheel 03 and patch deep read** |
 | [Kubernetes v1.32 scheduler queue](https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/scheduler/backend/queue/scheduling_queue.go) | Pinned Go source containing ActiveQ, BackoffQ, unschedulable state, and QueueingHint decisions | Large file; only a named path should be read | **Implementation companion** |
 | [Kubernetes client-go v0.32.0 workqueue](https://github.com/kubernetes/client-go/tree/v0.32.0/util/workqueue) | Small reusable Go implementation of FIFO, delayed, and rate-limited work | It is implementation evidence, not an incident narrative | **Go companion** |
 | [Prometheus 3.13.1 `topk`](https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085) | Familiar SRE query, bounded heap, root replacement, and `heap.Fix` in public Go source | No incident or redesign narrative | **Positive application** |
@@ -322,6 +329,15 @@ Required:
 - [Scheduler-plugins PR #700](https://github.com/kubernetes-sigs/scheduler-plugins/pull/700)
 - [Kubernetes in-flight state issue #120622](https://github.com/kubernetes/kubernetes/issues/120622)
 - [Kubernetes QueueingHint memory fix #126962](https://github.com/kubernetes/kubernetes/pull/126962)
+- [GitHub Actions incident, August 6–7, 2026](https://www.githubstatus.com/incidents/qcvjkzcs7j74)
+
+Related implementation proposal, not part of the required source spine:
+
+- [actions/runner PR #4618](https://github.com/actions/runner/pull/4618),
+  an open community pull request as of August 12, 2026. It provides an
+  inspectable distinction between terminal lost-assignment responses for an
+  ephemeral runner and responses that retain the existing retry behavior. It
+  is not evidence of GitHub's official incident fix unless GitHub says so.
 
 Required alternative-structure reading:
 
@@ -430,13 +446,15 @@ its siblings after the group became eligible. For a group of `g` members,
 that produces a `Theta(g^2)` activation-request shape even if the downstream
 queue coalesces duplicate keys.
 
-PR #700 records a small, teachable repair: carry scheduling-cycle state and
-allow only the first qualifying member transition to activate the siblings.
-Wheel 02 should paraphrase that control shape in a different domain.
+PR #700 records a small, teachable repair: it marks the state for a single Pod's
+scheduling attempt only when that attempt sees zero assigned group members, and
+the later sibling-activation step requires that mark. W03 models the resulting
+one-activation bound in a maintenance-coordination domain, but its Boolean is
+shared for one synthetic pass rather than owned by one scheduling attempt.
 
 ### Source attribution
 
-The case must distinguish:
+The case and Wheels must distinguish:
 
 - **Reported by a Kubernetes user:** a workload of more than 100,000 Pods on
   5,000 nodes, repeated high-priority reactivation, and lower-priority waiting
@@ -448,11 +466,19 @@ The case must distinguish:
   periodic safety flush, in-flight event tracking, and memory risk.
 - **Reported in scheduler-plugins #682:** production ML use, pending groups,
   millions of logs, CPU increase, and loss of useful scheduling progress.
-- **Implemented in scheduler-plugins #700:** one qualifying sibling-activation
-  request per scheduling-cycle state.
+- **Implemented in scheduler-plugins #700:** an `Activate` flag on the Pod
+  attempt that sees zero assigned group members; sibling activation requires
+  that attempt-local flag.
 - **Implemented in Kubernetes memory patches:** specific cleanup and duplicate
   in-flight protections; neither should be described as proof that no other
   leak was possible.
+- **Reported by GitHub:** the deployment and capacity trigger, accumulated
+  queued work, repeated attempts to acquire invalid jobs, blocked valid work,
+  and the incident mitigation that stopped the repetitions.
+- **Proposed in actions/runner #4618:** public control flow for retiring an
+  ephemeral runner after selected lost-assignment responses. The open pull
+  request is related implementation evidence, not an official root-cause
+  patch identified by the incident report.
 - **Modeled locally:** work-item states, event kinds, exact operation counts,
   fairness assertion, and all synthetic timings or fixtures.
 
@@ -620,7 +646,51 @@ pass/fail signal.
 
 ## Wheel of Misfortune designs
 
-### W01: The Event That Woke Everything
+### W01: The Lost Assignment Loop
+
+**Upstream basis:** GitHub's official August 6–7, 2026 Actions incident
+report. The open actions/runner PR #4618 is a related code-reading option, not
+an official incident fix.
+
+**Incoming report:** A deployment temporarily reduces assignment-service
+capacity and a valid-work backlog forms. Capacity is restored and new arrivals
+are throttled, but connected ephemeral workers continue retrying assignment
+references that the service reports as missing or superseded. Newly started
+workers complete valid jobs.
+
+**Hidden first local cause:** The worker maps every unsuccessful acquire result
+to `RetryAssignment`. A retry keeps the same assignment. Missing and
+superseded assignments therefore occupy every worker slot without a possible
+successful transition.
+
+**Evidence packets:**
+
+1. Capacity, arrival rate, connected workers, and backlog across two recovery
+   stages
+2. Acquire attempts, completions, session retirements, and lost-assignment
+   responses
+3. A trace showing one worker repeatedly requesting the same absent assignment
+4. The response contract separating transient from terminal outcomes
+
+**Repair:** Retain retries when the assignment may become obtainable. Retire
+an ephemeral session when the named assignment is missing or superseded so its
+supervisor can start a worker capable of accepting valid queued work.
+
+**Deterministic verification:**
+
+- Every initially occupied worker slot reaches a terminal exit for a missing
+  or superseded assignment.
+- Valid work behind those assignments completes within a stated attempt
+  budget.
+- Service-unavailable and rejected-request results retain their retry path.
+- No assertion depends on wall-clock timing.
+
+This Wheel is intentionally not a heap exercise. It uses the unit's broader
+scheduling model to show that queue depth and process count do not equal usable
+capacity. Neither the official report nor the local exercise claims that
+GitHub's runner-assignment path used a heap.
+
+### W02: The Event That Woke Everything
 
 **Upstream basis:** Kubernetes issue #81214, the QueueingHint article, and
 KEP-4247.
@@ -631,17 +701,17 @@ the inventory watcher delivers a burst of metadata changes. The queue's
 highest-priority item repeatedly fails because its required hardware class
 does not exist.
 
-**Hidden first local cause:** Every inventory event moves all blocked repairs
-back to the active priority heap. The impossible high-priority repair is
-selected, fails, and returns again. The heap and priority comparator are
-correct; the event-to-eligibility rule is too broad.
+**Hidden first local cause:** Every inventory event with the same broad kind as
+a blocked condition moves that repair back to the active priority heap. The
+impossible high-priority repair is selected, fails, and returns again. The heap
+and priority comparator are correct; the event rule is too broad.
 
 **Evidence packets:**
 
 1. Queue depth, pending age by priority, and attempts per completion
 2. Event kinds alongside activation and futile-attempt counts
-3. Active, delayed, and blocked state snapshots for one logical repair
-4. Comparator, broad requeue callback, and reason keys
+3. Active, blocked, and completed state snapshots for one repair
+4. Active ordering, the event check, and the readiness check
 
 **Repair:** Record which constraint rejected each repair and call a
 reason-specific hint for the concrete event. Irrelevant metadata events leave
@@ -656,16 +726,17 @@ the repair blocked; the matching capacity event reactivates it.
 - No claim depends on wall-clock timing.
 
 The debrief should explicitly map the local condition key to QueueingHint's
-idea while stating that the exercise is synthetic and much smaller.
+idea while stating that a matching key permits another attempt but does not
+prove readiness. The exercise is synthetic and much smaller.
 
-### W02: The Sibling Stampede
+### W03: The Sibling Stampede
 
 **Upstream basis:** Scheduler-plugins issue #682 and merged PR #700.
 
-**Incoming report:** A coordinated maintenance group cannot obtain all of its
-required capacity. During the incident, the dispatcher emits millions of
-“already active or unknown” messages, CPU spikes, and unrelated single-item
-repairs stop making useful progress.
+**Incoming report:** A coordinated maintenance group waits until capacity is
+available for all members. When an update makes the group ready to try again,
+the dispatcher emits many “already active” messages, CPU spikes, and unrelated
+single-item repairs stop making useful progress.
 
 **Hidden first local cause:** Once the group reaches its activation threshold,
 each of its `g` members requests activation of the other `g-1` members.
@@ -674,14 +745,14 @@ Queue deduplication limits physical duplicates but does not prevent
 
 **Evidence packets:**
 
-1. CPU, log-rate, and unrelated-work pending-age symptoms
+1. Request count, duplicate logs, queue depth, and unrelated progress
 2. Activation requests versus distinct activated IDs as group size grows
 3. A call-count trace for four group members
-4. The threshold transition and sibling loop
+4. Where the repeated sibling loop begins
 
-**Repair:** Store one transition bit in the local scheduling-cycle state. Only
-the first qualifying group member activates its siblings; later members
-observe the recorded transition and do not repeat it.
+**Local repair:** Store one Boolean in synthetic state shared for one pass. The
+first member examined after the group becomes ready activates its siblings;
+later members observe the recorded action and do not repeat it.
 
 **Deterministic verification:**
 
@@ -691,9 +762,10 @@ observe the recorded transition and do not repeat it.
 - An unrelated item is dispatched within a stated operation bound.
 - The patch changes activation policy, not the heap implementation.
 
-The local names and code shape should differ from Kubernetes. The debrief may
-show a short paraphrase of PR #700's state-based guard and link to the full
-upstream patch.
+The debrief must not present the shared local `RoundState` as Kubernetes's
+mechanism. Kubernetes stores the flag for one Pod's scheduling attempt and
+selects that attempt using the assigned-member count. The local model shares a
+Boolean across an entire pass only to isolate the request-count lesson.
 
 ## Alternative-structure boundary: Kafka request purgatory
 
@@ -780,7 +852,7 @@ End with an answer shaped like:
 > age, attempts per completion, and retained in-flight state, then define what
 > happens when arrivals exceed capacity.
 
-## Proposed implementation layout
+## Implementation layout and remaining plan
 
 ```text
 cs-prod-bridge/
@@ -792,12 +864,17 @@ cs-prod-bridge/
     wheel/
       _index.md
       worksheet.md
-      01-event-that-woke-everything/
+      01-lost-assignment-loop/
         _index.md
         candidate.md
         debrief.md
         evidence/
-      02-sibling-stampede/
+      02-event-that-woke-everything/
+        _index.md
+        candidate.md
+        debrief.md
+        evidence/
+      03-sibling-stampede/
         _index.md
         candidate.md
         debrief.md
@@ -808,12 +885,22 @@ cs-prod-bridge/
     lab/
       README.md
       topk.go
+      topk_test.go
+      topk_bench_test.go
       dispatcher.go
       dispatcher_test.go
       dispatcher_bench_test.go
     wheel/
       README.md
-      01-event-that-woke-everything/
+      01-lost-assignment-loop/
+        REPORT.md
+        CANDIDATE.md
+        DEBRIEF.md
+        runner.go
+        runner_test.go
+        scale_test.go
+        evidence/
+      02-event-that-woke-everything/
         REPORT.md
         CANDIDATE.md
         DEBRIEF.md
@@ -821,7 +908,7 @@ cs-prod-bridge/
         dispatcher_test.go
         scale_test.go
         evidence/
-      02-sibling-stampede/
+      03-sibling-stampede/
         REPORT.md
         CANDIDATE.md
         DEBRIEF.md
@@ -831,8 +918,10 @@ cs-prod-bridge/
         evidence/
 ```
 
-Reuse the existing report-first Wheel flow, hidden debrief/evidence navigation,
-and opt-in symptom tags. Do not add shared queue abstractions to Units 01 or 02.
+The bounded top-k lab and all three Wheel paths now exist. The dispatcher lab,
+case study, and separate alternative-structures page remain planned. Reuse the
+existing report-first Wheel flow, hidden debrief/evidence navigation, and
+opt-in symptom tags. Do not add shared queue abstractions to Units 01 or 02.
 
 ## Implementation checklist
 
