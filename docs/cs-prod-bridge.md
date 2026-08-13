@@ -228,7 +228,7 @@ case and explorable failure exist, not merely to complete a conventional list.
 | 1. Big-O and hash tables | Growth, bounds, expected and amortized cost, hashing, collisions, key equality, space | Indexes, enrichment caches, deduplication, cardinality, latency tails |
 | 2. Sequences, sorting, and ordered search | Arrays and linked structures, locality, binary search, stable and total ordering, linear merge/intersection | Metric-label indexes, Boolean search, compaction, deterministic result APIs |
 | 3. Queues, heaps, and scheduling | FIFO, priority-queue operations, binary-heap invariants, build/push/pop/fix, delayed work | Controller queues, top-k queries, retry backoff, useful requeueing, starvation, overload |
-| 4. Graphs and traversal | Directed graphs, BFS/DFS, cycles, topological order | Dependency rollout, workflow DAGs, service ownership, blast-radius analysis |
+| 4. Build dependency graphs | Directed graphs, adjacency lists, BFS/DFS, cycles, topological order | Bazel target dependencies, build ordering, cycle diagnosis, declared versus actual dependencies |
 | 5. Trees and indexes | Search trees, B-trees, tries, range lookup | Database indexes, routing, prefix matching, watch caches, filesystem metadata |
 | 6. Sets and probabilistic structures | Membership, Bloom filters, sketches, error bounds | Admission filters, cache protection, approximate cardinality, telemetry cost |
 | 7. Dynamic programming and state | Overlapping subproblems, memoization, state transitions | Policy evaluation, rollout planning, diffing, bounded optimization |

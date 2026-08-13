@@ -177,6 +177,8 @@ The guide should name workload variables:
 - `u`: items in the unschedulable or event-blocked pool
 - `r`: candidates considered by a top-k query
 - `k`: results retained by top-k
+- `h`: later top-k candidates that replace the current cutoff, where
+  `0 <= h <= r-k`
 - `e`: cluster or eligibility events
 - `g`: members of one related work group
 - `x`: scheduling or reconciliation attempts
@@ -192,8 +194,9 @@ Representative modeled costs:
 | Push or pop one heap item | `O(log n)` | Comparator is consistent |
 | Change an indexed priority and call `Fix` | `O(log n)` | The stored index is updated on every swap |
 | Build a heap bottom-up | `O(n)` | Use initialization, not `n` independent pushes |
-| Sort all top-k candidates | `O(r log r)` | Produces a total order that may be unnecessary |
-| Retain `k` best candidates in a heap | `O(r log k)` time, `O(k)` logical space | Only the best `k` are needed |
+| Sort all `r` candidates | `O(r log r)` | Produces a total order that may be unnecessary |
+| Select `k` best candidates with a bounded heap | `O(r + h log k)` time, `O(k)` working storage | `1 <= k <= r`; initialize the first `k` bottom-up, compare all later candidates with the cutoff, and restore order only after replacements |
+| Put the `k` retained winners in result order | `O(k log k)` | The contract needs an ordered result rather than only the winning set |
 | Pop the next delayed item | `O(log d)` after `O(1)` peek | Root is ordered by earliest readiness |
 | Scan all delayed items on every tick | proportional to ticks times `d` | A deliberately poor comparison path |
 | Broadly reconsider every blocked item for every event | up to `O(eu)` eligibility checks, plus resulting attempts | Events are not filtered by rejection reason |
@@ -205,6 +208,17 @@ the logarithmic bound for reordering. Dynamic-array capacity changes are a
 separate amortized cost inherited from its storage. Go's documented
 `container/heap` operations state their own bounds; the guide should not
 invent a stronger language guarantee for slice growth.
+
+The top-k model should likewise expose the operations hidden by its usual
+worst-case `O(r log k)` summary. When `k < r`, exact selection
+from unsorted input must inspect all `r` candidates; when `k = r`,
+ordered output still reads and sorts them all. Only `h` candidates cause a
+logarithmic heap update, and ordered output adds a separate
+`O(k log k)` sort. For fixed `k`, selection grows linearly with
+`r`; when `k` approaches
+`r`, the final winner sort approaches a full sort. Comparison counts also
+assume bounded-size keys. A tied comparison of arbitrary-length Go strings is
+not constant-size work.
 
 ### Ordering is not eligibility
 
@@ -507,13 +521,21 @@ type Candidate struct {
 ```
 
 Compare sorting all `r` candidates with maintaining a min-heap of at most
-`k`. Tie the operation to Prometheus's public `topk` implementation:
-inspect the current worst retained candidate at the root, replace it when a
-better sample arrives, and repair the invariant.
+`k`. Build the initial size-`k` heap bottom-up. Then inspect the
+current worst retained candidate at the root, replace it when a better sample
+arrives, and restore the invariant. Count cutoff comparisons, replacements,
+heap-construction work, heap-restoration work, retained candidates, and the
+final sort of the winners as separate phases. Tie the operation to Prometheus's
+public `topk` implementation.
 
 This section exists to teach the heap without scheduler policy. It should be
 small enough that the learner can draw the array and count comparisons and
-swaps.
+swaps. It should also cover `k = 1`, fixed small `k`, `k`
+near `r`, best-first versus worst-first arrival, and the difference between
+`O(k)` additional working storage and end-to-end streaming memory. Compare
+the bounded heap with full sorting, a full bottom-up max-heap, quickselect plus
+winner sorting, and a sorted size-`k` slice without requiring all of those
+alternatives to be implemented.
 
 ### Part B: two orders and an eligibility decision
 
@@ -632,10 +654,11 @@ pass/fail signal.
 
 ### Predictions required before execution
 
-- Which operation makes the top-k heap depend on `k` rather than `r`?
+- Which top-k operations depend on `r`, which depend on `k`, and which
+  depend on the number of candidates that cross the current cutoff?
 - Why is the root of the delayed heap the next useful deadline but not
   necessarily the most important item?
-- What changes if an item priority is mutated without repairing the heap?
+- What changes if an item priority is mutated without restoring heap order?
 - How many activation requests does broad group activation produce as `g`
   doubles?
 - Why can a deduplicating queue still suffer CPU and logging amplification?

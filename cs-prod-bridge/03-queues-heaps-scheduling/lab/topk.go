@@ -15,13 +15,19 @@ type Candidate struct {
 	Score   float64
 }
 
-// SelectionStats separates the work used to retain candidates from the work
-// used to put the returned winners in final order.
+// SelectionStats separates the phases that broader asymptotic bounds combine.
+// The comparison counters count calls to better; they do not count the bytes
+// examined when better has to compare two service names.
 type SelectionStats struct {
-	ScanComparisons      int
-	HeapComparisons      int
-	HeapSwaps            int
-	FinalSortComparisons int
+	CandidatesValidated         int
+	AllCandidateSortComparisons int
+	CutoffComparisons           int
+	HeapBuildComparisons        int
+	HeapBuildSwaps              int
+	RootReplacements            int
+	HeapRestoreComparisons      int
+	HeapRestoreSwaps            int
+	WinnerSortComparisons       int
 	// MaxRetained counts candidates in the working selection collection. It
 	// excludes the caller's input and the copy returned to the caller.
 	MaxRetained int
@@ -30,17 +36,18 @@ type SelectionStats struct {
 // TopKBySort sorts a copy of every candidate, then returns the best k.
 // Results are ordered by descending score and then ascending service name.
 func TopKBySort(candidates []Candidate, k int) ([]Candidate, SelectionStats, error) {
-	if err := validateSelection(candidates, k); err != nil {
-		return nil, SelectionStats{}, err
+	stats := SelectionStats{}
+	if err := validateSelection(candidates, k, &stats); err != nil {
+		return nil, stats, err
 	}
 	if k == 0 || len(candidates) == 0 {
-		return []Candidate{}, SelectionStats{}, nil
+		return []Candidate{}, stats, nil
 	}
 
 	ordered := slices.Clone(candidates)
-	stats := SelectionStats{MaxRetained: len(ordered)}
+	stats.MaxRetained = len(ordered)
 	sort.Slice(ordered, func(i, j int) bool {
-		stats.FinalSortComparisons++
+		stats.AllCandidateSortComparisons++
 		return better(ordered[i], ordered[j])
 	})
 
@@ -55,52 +62,54 @@ func TopKBySort(candidates []Candidate, k int) ([]Candidate, SelectionStats, err
 // later candidate can enter the result. Only the retained candidates are
 // sorted into final result order.
 func TopKByHeap(candidates []Candidate, k int) ([]Candidate, SelectionStats, error) {
-	if err := validateSelection(candidates, k); err != nil {
-		return nil, SelectionStats{}, err
+	stats := SelectionStats{}
+	if err := validateSelection(candidates, k, &stats); err != nil {
+		return nil, stats, err
 	}
 	if k == 0 || len(candidates) == 0 {
-		return []Candidate{}, SelectionStats{}, nil
+		return []Candidate{}, stats, nil
 	}
 	if k > len(candidates) {
 		k = len(candidates)
 	}
 
-	stats := SelectionStats{}
 	retained := &candidateHeap{
-		items: make([]Candidate, 0, k),
+		items: slices.Clone(candidates[:k]),
 		stats: &stats,
+		phase: heapBuild,
 	}
+	stats.MaxRetained = k
+	// Building one heap from the first k candidates is linear in k. Pushing
+	// those candidates one at a time would instead cost O(k log k) in the
+	// worst case and would hide the bottom-up construction taught in the unit.
 	heap.Init(retained)
-	for _, candidate := range candidates {
-		if retained.Len() < k {
-			heap.Push(retained, candidate)
-			if retained.Len() > stats.MaxRetained {
-				stats.MaxRetained = retained.Len()
-			}
-			continue
-		}
-
-		stats.ScanComparisons++
+	retained.phase = heapRestore
+	for _, candidate := range candidates[k:] {
+		stats.CutoffComparisons++
 		if !better(candidate, retained.items[0]) {
 			continue
 		}
 		retained.items[0] = candidate
-		heap.Fix(retained, 0)
+		stats.RootReplacements++
+		if k > 1 {
+			heap.Fix(retained, 0)
+		}
 	}
 
 	result := slices.Clone(retained.items)
 	sort.Slice(result, func(i, j int) bool {
-		stats.FinalSortComparisons++
+		stats.WinnerSortComparisons++
 		return better(result[i], result[j])
 	})
 	return result, stats, nil
 }
 
-func validateSelection(candidates []Candidate, k int) error {
+func validateSelection(candidates []Candidate, k int, stats *SelectionStats) error {
 	if k < 0 {
 		return errors.New("k must not be negative")
 	}
 	for _, candidate := range candidates {
+		stats.CandidatesValidated++
 		if math.IsNaN(candidate.Score) {
 			return errors.New("candidate score must not be NaN")
 		}
@@ -120,13 +129,27 @@ func better(a, b Candidate) bool {
 type candidateHeap struct {
 	items []Candidate
 	stats *SelectionStats
+	phase heapPhase
 }
+
+type heapPhase uint8
+
+const (
+	heapUnmeasured heapPhase = iota
+	heapBuild
+	heapRestore
+)
 
 func (h candidateHeap) Len() int { return len(h.items) }
 
 func (h candidateHeap) Less(i, j int) bool {
 	if h.stats != nil {
-		h.stats.HeapComparisons++
+		switch h.phase {
+		case heapBuild:
+			h.stats.HeapBuildComparisons++
+		case heapRestore:
+			h.stats.HeapRestoreComparisons++
+		}
 	}
 	return better(h.items[j], h.items[i])
 }
@@ -134,7 +157,12 @@ func (h candidateHeap) Less(i, j int) bool {
 func (h candidateHeap) Swap(i, j int) {
 	h.items[i], h.items[j] = h.items[j], h.items[i]
 	if h.stats != nil {
-		h.stats.HeapSwaps++
+		switch h.phase {
+		case heapBuild:
+			h.stats.HeapBuildSwaps++
+		case heapRestore:
+			h.stats.HeapRestoreSwaps++
+		}
 	}
 }
 

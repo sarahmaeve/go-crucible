@@ -38,7 +38,8 @@ By the end of this unit, you should be able to:
 - state the ordering rule and invariant of a binary heap;
 - derive the cost of heap construction, insertion, removal, and key changes;
 - implement a heap correctly with Go's `container/heap` contract;
-- recognize when top-k selection needs only a bounded heap, not a full sort;
+- derive the cost of bounded-heap top-k selection and explain when sorting or
+  another batch-selection method is a better fit;
 - model readiness, identity, retries, and in-flight ownership separately from
   priority;
 - explain how broad wakeups and group activation amplify work;
@@ -71,8 +72,10 @@ We will use these workload variables:
 - `a`: new logical work items that arrive during an interval
 - `d`: items waiting for their ready time in a delayed queue
 - `u`: items currently classified as unschedulable
-- `r`: candidates examined for one result
-- `k`: results that must be retained
+- `r`: candidates examined by one top-k selection
+- `k`: winners that selection must retain
+- `h`: later candidates that enter the top `k` and replace the current cutoff,
+  where `0 <= h <= r-k`
 - `e`: external events that can trigger reconsideration
 - `g`: members of one related work group
 - `f`: consecutive failures for one item
@@ -86,13 +89,22 @@ We will use these workload variables:
 | Restore order after a priority change | `O(log n)` | The item's current heap index is known |
 | Build a heap bottom-up | `O(n)` | Heap order is restored from the leaves upward |
 | Fully sort `r` candidates | `O(r log r)` | Comparisons are constant-cost |
-| Retain the best `k` of `r` candidates | `O(r log(k+1))` time, `O(k)` space | A heap capped at `k` entries stores only current winners |
+| Select the best `k` of `r` candidates with a bounded heap | `O(r + h log k)` time, `O(k)` working storage | `1 <= k <= r`; the first `k` entries are built into a heap bottom-up |
+| Sort the `k` retained winners | `O(k log k)` | The result contract requires the winners in order, not merely the winning set |
 | Wake every unschedulable item for every event | up to `O(eu)` | No check identifies which items the event might help |
 | Every group member activates every other member in one round | `Θ(g²)` attempts | Each directed pair can generate work |
 
 The logarithmic heap bounds matter, but the last two rows often dominate a
 production incident. Count how many operations the surrounding policy creates,
 not only how fast the container performs one operation.
+
+As in Unit 01, these formulas count modeled operations before predicting wall
+time. They treat one call to the ordering function as constant-size work. In
+the lab, comparing scores has a fixed cost, but a tied score leads to a Go
+string comparison of service names. That string comparison can examine bytes
+up to the first difference or the end of one name. The formulas therefore
+assume service names have a bounded length. If comparison keys can grow, their
+comparison cost must be included as another factor.
 
 ## FIFO preserves arrival order
 
@@ -385,24 +397,128 @@ or synchronization.
 
 ## Prometheus `topk` needs the winners, not a ranking of everything
 
-Suppose a query examines `r` samples but returns only the
-`k` highest values, where `1 <= k <= r`. Sorting all
-`r` samples would determine the exact rank of every sample, including
-the `r-k` samples that the query will discard.
+Suppose a query examines `r` samples but returns only the `k`
+highest values, where `1 <= k <= r`. When `k < r`, an exact
+answer must inspect all `r` candidates: an unexamined candidate could be
+larger than every candidate seen so far and change the winning set. Selection
+therefore has a lower bound of `Ω(r)` for that unsorted input. When
+`k = r`, membership is trivial because every candidate wins, but an
+ordered result still has to read and order them all. The choice of algorithm
+determines what additional work and storage the inspection requires.
 
-A min-heap capped at `k` entries can avoid that extra work. Its root
-is the smallest value currently included in the answer:
+Sorting all `r` candidates takes `O(r log r)` comparisons and
+determines the exact rank of every candidate. The query does not need that
+information about the `r-k` candidates it will discard.
 
-1. keep the first `k` candidates in the heap;
+### Put the weakest current winner at the root
+
+To find the largest `k` values with a bounded heap, order the heap so
+its root is the **worst candidate currently included**. When score alone is
+the key, this is a min-heap: the smallest retained score is at the root.
+The root is useful because it is the cutoff a new candidate must cross:
+
+1. copy the first `k` candidates and build a heap from them bottom-up;
 2. compare each later candidate with the root;
-3. discard the candidate if it cannot enter the top `k`;
-4. otherwise replace the root and restore heap order.
+3. discard the candidate if it is no better than that root;
+4. otherwise replace the root and restore heap order along one path.
 
-After the first `k` candidates, the root acts as the cutoff for
-entering the result. The scan takes `O(r log(k+1))` time and stores
-only `O(k)` candidates. For `k >= 2`, the time is usually
-written `O(r log k)`. If the returned winners must themselves be in
-ranked order, only those `k` survivors need to be sorted afterward.
+A max-heap of the same `k` winners would expose the best winner. That
+is the wrong end for this decision: knowing the best retained value does not
+tell us whether a new candidate should replace the weakest one. For the
+smallest `k` values, reverse the design and use a max-heap so the largest
+retained value becomes the cutoff.
+
+The heap comparison must include the whole result rule, including ties. In the
+lab, a lower score is worse; for equal scores, the alphabetically later service
+name is worse. The root is therefore the worst retained candidate under that
+complete rule, not merely a candidate with the smallest numeric score.
+
+### Derive the bound from the operations
+
+Let `h` be the number of later candidates that cross the cutoff and
+replace the root. It can range from zero to `r-k`. The selection work
+has three parts:
+
+- building one heap from the first `k` candidates costs `O(k)`;
+- comparing each remaining candidate with the cutoff costs
+  `Θ(r-k)`; and
+- restoring heap order after `h` root replacements costs
+  `O(h log k)`.
+
+Because `k <= r`, the first two parts are linear in the input size.
+The selection phase is therefore:
+
+~~~text
+O(r + h log k) working time
+O(k)             working storage
+~~~
+
+In the worst case, every later candidate enters the result, so
+`h = r-k` and the familiar upper bound is `O(r log k)`.
+That shorter bound is correct for `k >= 2`, but it hides useful
+information. Every later candidate receives a cutoff check, while only
+candidates that enter the result cause a logarithmic heap update. If no later
+candidate enters, selection is still `Θ(r)` because the algorithm must reject
+them one by one.
+
+If the product contract requires the winners in ranked order, the heap has not
+finished the operation. A heap identifies the winning set but does not store
+that set in full order. Sorting the `k` survivors adds
+`O(k log k)`, for a complete bound of:
+
+~~~text
+O(r + h log k + k log k)
+~~~
+
+These boundary cases make the formula concrete:
+
+- For fixed `k`, both `log k` and the final winner sort are bounded
+  constants, so the work grows as `Θ(r)`.
+- For `k = 1`, the single retained candidate needs no heap movement;
+  the algorithm is a linear maximum scan.
+- When `k` is close to `r`, the final `k log k` sort approaches
+  the cost of sorting the input, so the bounded heap offers little time
+  advantage.
+- When `k = r`, nothing is discarded. Building a heap and then sorting
+  all winners adds work compared with sorting directly.
+- The lab accepts `k = 0`, but its contract still checks every score for
+  `NaN` before returning an empty result. That implementation is
+  `Θ(r)` for this boundary. An API that promises immediate return for
+  `k = 0` could make a different choice.
+
+### Compare complete methods, not slogans
+
+The bounded heap is one option, not a general replacement for every selection
+algorithm. The following table assumes an exact, ordered top-k result and the
+lab's promise not to change the caller's input. Its storage column excludes the
+input and returned output but includes a required working copy.
+
+| Method | Time to return an ordered top `k` | Working candidate storage | Useful distinction |
+|---|---:|---:|---|
+| Sort all candidates | `O(r log r)` | `O(r)` | Direct and often fast; computes ranks the result does not use |
+| Build a max-heap of all candidates, then remove `k` roots | `O(r + k log r)` | `O(r)` | Bottom-up construction is linear and removals arrive in result order, but every candidate remains stored |
+| Keep a min-heap of `k` current winners | `O(r + h log k + k log k)` | `O(k)` | Can select in one pass with bounded state; its worst-case heap-update cost depends on how often the cutoff changes |
+| Partition with quickselect, then sort the winners | expected `O(r + k log k)` | `O(r)` here; a mutable input can be partitioned in place | Suits an in-memory batch; ordinary pivot choices can have `O(r^2)` worst cases and do not maintain an answer as a stream arrives |
+| Keep a sorted slice of `k` winners | `O(rk)` worst case | `O(k)` | Linear insertion is simple and can be competitive for very small `k`, but scales poorly as `k` grows |
+
+The full max-heap and quickselect rows show why “top-k improves sorting from
+`O(r log r)` to `O(r log k)`” is incomplete. That statement
+describes one useful comparison with full sorting. It does not prove that a
+bounded heap has the best time bound for every in-memory batch. Its strongest
+advantages are one-pass processing and working storage that depends on
+`k`, especially when `k` is much smaller than `r`.
+
+The lab receives an already allocated `[]Candidate`, so it demonstrates
+`O(k)` **additional working storage**, not an end-to-end `O(k)`
+memory process. The same bounded-heap operation can consume candidates from an
+iterator, channel, file, or network stream without first retaining all
+`r` candidates, provided the surrounding API also supports streaming.
+
+If the request is for the `k` most frequent values in raw events, the
+heap does not count those events. First build frequencies—often with the hash
+table model from Unit 01—then run top-k selection over the distinct values and
+their counts. Counting and selection are separate costs and may use different
+input sizes.
 
 The pinned
 [Prometheus v3.13.1 `topk` implementation](https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085)
@@ -413,17 +529,29 @@ Before returning an instant-query result, Prometheus sorts the retained samples
 in descending order.
 
 {{< callout kind="production" title="What the heap saves" >}}
-A `topk` query needs to identify which `k` samples have
-the highest values. It does not need to rank the samples that will be
-discarded. A heap capped at `k` entries maintains only the information needed
-to decide whether a new sample belongs in the answer. Sorting every candidate
-would compute an order that most of the query result never uses.
+A `topk` query still examines all `r` samples, but it does not need to
+rank the `r-k` samples that will be discarded. The bounded heap stores the
+current `k` winners and exposes the weakest one as the cutoff for accepting a
+new candidate. When `k` is much smaller than `r`, it replaces a full
+sort with linear cutoff checks and logarithmic work only when a new candidate
+enters. In the lab's
+non-mutating API, it also reduces working candidate storage from `O(r)` to
+`O(k)`. If the response must be ordered, the retained `k` still need a
+final sort. These are the exact savings; the heap does not make input inspection
+disappear or guarantee lower elapsed time for every `r` and `k`.
 {{< /callout >}}
 
-The heap has answered only the first question: which ready item wins? The next
-sections add one missing responsibility at a time—future deadlines, reasons to
-retry, identity, cleanup, sharing, and capacity—and use production reports to
-show what goes wrong when that responsibility is missing.
+The array representation and the operations that restore heap order after a
+change are the same in selection and scheduling, but the root does not have one
+universal meaning. The bounded top-k heap puts the **worst retained winner** at
+the root so a new candidate can be rejected cheaply. A ready-work heap usually
+puts the **next item to serve** at the root so dispatch is cheap. The comparison
+supplied to the heap determines which meaning applies.
+
+The next sections leave batch selection and return to scheduling. They add one
+missing responsibility at a time—future deadlines, reasons to retry, identity,
+cleanup, sharing, and capacity—and use production reports to show what goes
+wrong when that responsibility is missing.
 
 ## Scheduling needs at least two orders
 
@@ -893,9 +1021,12 @@ access to the root.
 
 The [bounded top-k lab](lab/) keeps the heap exercise deliberately smaller
 than a scheduler. It compares sorting all candidates with retaining only the
-`k` candidates that can still appear in the response. The tests expose the
-complete tie rule, the heap invariant, retained cardinality, and the final sort
-that the response contract still requires.
+`k` candidates that can still appear in the response. The tests separate
+cutoff checks from candidates that actually replace a winner, and distinguish
+bottom-up heap construction from the final sort required by the response. The
+benchmarks vary `r`, `k`, and arrival order; the written exercise also
+compares the bounded heap with a full heap, quickselect, and a sorted bounded
+slice.
 
 Then investigate [The Lost Assignment Loop](wheel/01-lost-assignment-loop/)
 from its incoming report. This Wheel is inspired by GitHub's

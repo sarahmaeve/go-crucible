@@ -27,6 +27,7 @@ through benchmarks, profiles, and report-first debugging scenarios.
 | [01](./public/01-big-o-hash-tables/index.html) | Big-O and hash tables | Initial implementation |
 | [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
 | [03](./public/03-queues-heaps-scheduling/index.html) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
+| [04](./public/04-build-dependency-graphs/index.html) | Build dependency graphs | Foundations lesson |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and
@@ -39,7 +40,9 @@ The curriculum and contribution criteria are described in
 record, selected production case, source audit, and implementation design are in
 [`docs/cs-prod-bridge-unit-02.md`](../docs/cs-prod-bridge-unit-02.md). Unit 03's
 concept-to-production source audit and design spike are in
-[`docs/cs-prod-bridge-unit-03.md`](../docs/cs-prod-bridge-unit-03.md).
+[`docs/cs-prod-bridge-unit-03.md`](../docs/cs-prod-bridge-unit-03.md). Unit 04's
+Bazel-centered research record and lab design are in
+[`docs/cs-prod-bridge-unit-04.md`](../docs/cs-prod-bridge-unit-04.md).
 
 ## Building the site
 

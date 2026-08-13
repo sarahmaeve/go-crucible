@@ -21,7 +21,7 @@ https://github.com/alex-shpak/hugo-book
 
 	<meta itemprop="name" content="Queues, heaps, and scheduling">
 	<meta itemprop="description" content="Priority queues make the next choice cheap; production schedulers must also model readiness, retries, fairness, and state ownership.">
-	<meta itemprop="wordCount" content="6781">
+	<meta itemprop="wordCount" content="8025">
 
 <title>Queues, heaps, and scheduling • Computer Science Through Production Systems</title>
 <link rel="icon" href="../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../en.search.min.3b7138549c9d7b46a6fa56c21b9ee8295c30b670a9a1a76d0fdd8b96962d8170.js" integrity="sha256-O3E4VJyde0am&#43;lbCG57oKVwwtnCpoadtD92LlpYtgXA=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -597,6 +597,25 @@ https://github.com/alex-shpak/hugo-book
         </li>
       
     
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="../04-build-dependency-graphs/" class="">
+      Build dependency graphs</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
   </ul>
 
 
@@ -654,7 +673,13 @@ https://github.com/alex-shpak/hugo-book
     <li><a href="#a-binary-heap-is-an-implicit-complete-tree">A binary heap is an implicit complete tree</a></li>
     <li><a href="#push-restores-heap-order-upward-pop-restores-it-downward">Push restores heap order upward; pop restores it downward</a></li>
     <li><a href="#go-separates-heap-mechanics-from-your-ordering-rule">Go separates heap mechanics from your ordering rule</a></li>
-    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a></li>
+    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a>
+      <ul>
+        <li><a href="#put-the-weakest-current-winner-at-the-root">Put the weakest current winner at the root</a></li>
+        <li><a href="#derive-the-bound-from-the-operations">Derive the bound from the operations</a></li>
+        <li><a href="#compare-complete-methods-not-slogans">Compare complete methods, not slogans</a></li>
+      </ul>
+    </li>
     <li><a href="#scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</a></li>
     <li><a href="#backoff-controls-when-a-retry-may-happen">Backoff controls when a retry may happen</a></li>
     <li><a href="#production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</a></li>
@@ -727,7 +752,8 @@ the cost of removing completed timers, not merely finding the next timer.</p>
 <li>state the ordering rule and invariant of a binary heap;</li>
 <li>derive the cost of heap construction, insertion, removal, and key changes;</li>
 <li>implement a heap correctly with Go&rsquo;s <code>container/heap</code> contract;</li>
-<li>recognize when top-k selection needs only a bounded heap, not a full sort;</li>
+<li>derive the cost of bounded-heap top-k selection and explain when sorting or
+another batch-selection method is a better fit;</li>
 <li>model readiness, identity, retries, and in-flight ownership separately from
 priority;</li>
 <li>explain how broad wakeups and group activation amplify work;</li>
@@ -785,8 +811,10 @@ than an item currently stored in the heap.</p>
 <li><code>a</code>: new logical work items that arrive during an interval</li>
 <li><code>d</code>: items waiting for their ready time in a delayed queue</li>
 <li><code>u</code>: items currently classified as unschedulable</li>
-<li><code>r</code>: candidates examined for one result</li>
-<li><code>k</code>: results that must be retained</li>
+<li><code>r</code>: candidates examined by one top-k selection</li>
+<li><code>k</code>: winners that selection must retain</li>
+<li><code>h</code>: later candidates that enter the top <code>k</code> and replace the current cutoff,
+where <code>0 &lt;= h &lt;= r-k</code></li>
 <li><code>e</code>: external events that can trigger reconsideration</li>
 <li><code>g</code>: members of one related work group</li>
 <li><code>f</code>: consecutive failures for one item</li>
@@ -832,9 +860,14 @@ than an item currently stored in the heap.</p>
 					<td>Comparisons are constant-cost</td>
 			</tr>
 			<tr>
-					<td>Retain the best <code>k</code> of <code>r</code> candidates</td>
-					<td style="text-align: right"><code>O(r log(k+1))</code> time, <code>O(k)</code> space</td>
-					<td>A heap capped at <code>k</code> entries stores only current winners</td>
+					<td>Select the best <code>k</code> of <code>r</code> candidates with a bounded heap</td>
+					<td style="text-align: right"><code>O(r + h log k)</code> time, <code>O(k)</code> working storage</td>
+					<td><code>1 &lt;= k &lt;= r</code>; the first <code>k</code> entries are built into a heap bottom-up</td>
+			</tr>
+			<tr>
+					<td>Sort the <code>k</code> retained winners</td>
+					<td style="text-align: right"><code>O(k log k)</code></td>
+					<td>The result contract requires the winners in order, not merely the winning set</td>
 			</tr>
 			<tr>
 					<td>Wake every unschedulable item for every event</td>
@@ -851,6 +884,13 @@ than an item currently stored in the heap.</p>
 <p>The logarithmic heap bounds matter, but the last two rows often dominate a
 production incident. Count how many operations the surrounding policy creates,
 not only how fast the container performs one operation.</p>
+<p>As in Unit 01, these formulas count modeled operations before predicting wall
+time. They treat one call to the ordering function as constant-size work. In
+the lab, comparing scores has a fixed cost, but a tied score leads to a Go
+string comparison of service names. That string comparison can examine bytes
+up to the first difference or the end of one name. The formulas therefore
+assume service names have a bounded length. If comparison keys can grow, their
+comparison cost must be included as another factor.</p>
 <h2 id="fifo-preserves-arrival-order">FIFO preserves arrival order</h2>
 <p>A first-in, first-out queue returns ready items in the order they entered:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>enqueue A, B, C
@@ -1107,23 +1147,141 @@ or synchronization.</div>
 </blockquote>
 
 <h2 id="prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</h2>
-<p>Suppose a query examines <code>r</code> samples but returns only the
-<code>k</code> highest values, where <code>1 &lt;= k &lt;= r</code>. Sorting all
-<code>r</code> samples would determine the exact rank of every sample, including
-the <code>r-k</code> samples that the query will discard.</p>
-<p>A min-heap capped at <code>k</code> entries can avoid that extra work. Its root
-is the smallest value currently included in the answer:</p>
+<p>Suppose a query examines <code>r</code> samples but returns only the <code>k</code>
+highest values, where <code>1 &lt;= k &lt;= r</code>. When <code>k &lt; r</code>, an exact
+answer must inspect all <code>r</code> candidates: an unexamined candidate could be
+larger than every candidate seen so far and change the winning set. Selection
+therefore has a lower bound of <code>Ω(r)</code> for that unsorted input. When
+<code>k = r</code>, membership is trivial because every candidate wins, but an
+ordered result still has to read and order them all. The choice of algorithm
+determines what additional work and storage the inspection requires.</p>
+<p>Sorting all <code>r</code> candidates takes <code>O(r log r)</code> comparisons and
+determines the exact rank of every candidate. The query does not need that
+information about the <code>r-k</code> candidates it will discard.</p>
+<h3 id="put-the-weakest-current-winner-at-the-root">Put the weakest current winner at the root</h3>
+<p>To find the largest <code>k</code> values with a bounded heap, order the heap so
+its root is the <strong>worst candidate currently included</strong>. When score alone is
+the key, this is a min-heap: the smallest retained score is at the root.
+The root is useful because it is the cutoff a new candidate must cross:</p>
 <ol>
-<li>keep the first <code>k</code> candidates in the heap;</li>
+<li>copy the first <code>k</code> candidates and build a heap from them bottom-up;</li>
 <li>compare each later candidate with the root;</li>
-<li>discard the candidate if it cannot enter the top <code>k</code>;</li>
-<li>otherwise replace the root and restore heap order.</li>
+<li>discard the candidate if it is no better than that root;</li>
+<li>otherwise replace the root and restore heap order along one path.</li>
 </ol>
-<p>After the first <code>k</code> candidates, the root acts as the cutoff for
-entering the result. The scan takes <code>O(r log(k+1))</code> time and stores
-only <code>O(k)</code> candidates. For <code>k &gt;= 2</code>, the time is usually
-written <code>O(r log k)</code>. If the returned winners must themselves be in
-ranked order, only those <code>k</code> survivors need to be sorted afterward.</p>
+<p>A max-heap of the same <code>k</code> winners would expose the best winner. That
+is the wrong end for this decision: knowing the best retained value does not
+tell us whether a new candidate should replace the weakest one. For the
+smallest <code>k</code> values, reverse the design and use a max-heap so the largest
+retained value becomes the cutoff.</p>
+<p>The heap comparison must include the whole result rule, including ties. In the
+lab, a lower score is worse; for equal scores, the alphabetically later service
+name is worse. The root is therefore the worst retained candidate under that
+complete rule, not merely a candidate with the smallest numeric score.</p>
+<h3 id="derive-the-bound-from-the-operations">Derive the bound from the operations</h3>
+<p>Let <code>h</code> be the number of later candidates that cross the cutoff and
+replace the root. It can range from zero to <code>r-k</code>. The selection work
+has three parts:</p>
+<ul>
+<li>building one heap from the first <code>k</code> candidates costs <code>O(k)</code>;</li>
+<li>comparing each remaining candidate with the cutoff costs
+<code>Θ(r-k)</code>; and</li>
+<li>restoring heap order after <code>h</code> root replacements costs
+<code>O(h log k)</code>.</li>
+</ul>
+<p>Because <code>k &lt;= r</code>, the first two parts are linear in the input size.
+The selection phase is therefore:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>O(r + h log k) working time
+</span></span><span style="display:flex;"><span>O(k)             working storage</span></span></code></pre></div><p>In the worst case, every later candidate enters the result, so
+<code>h = r-k</code> and the familiar upper bound is <code>O(r log k)</code>.
+That shorter bound is correct for <code>k &gt;= 2</code>, but it hides useful
+information. Every later candidate receives a cutoff check, while only
+candidates that enter the result cause a logarithmic heap update. If no later
+candidate enters, selection is still <code>Θ(r)</code> because the algorithm must reject
+them one by one.</p>
+<p>If the product contract requires the winners in ranked order, the heap has not
+finished the operation. A heap identifies the winning set but does not store
+that set in full order. Sorting the <code>k</code> survivors adds
+<code>O(k log k)</code>, for a complete bound of:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>O(r + h log k + k log k)</span></span></code></pre></div><p>These boundary cases make the formula concrete:</p>
+<ul>
+<li>For fixed <code>k</code>, both <code>log k</code> and the final winner sort are bounded
+constants, so the work grows as <code>Θ(r)</code>.</li>
+<li>For <code>k = 1</code>, the single retained candidate needs no heap movement;
+the algorithm is a linear maximum scan.</li>
+<li>When <code>k</code> is close to <code>r</code>, the final <code>k log k</code> sort approaches
+the cost of sorting the input, so the bounded heap offers little time
+advantage.</li>
+<li>When <code>k = r</code>, nothing is discarded. Building a heap and then sorting
+all winners adds work compared with sorting directly.</li>
+<li>The lab accepts <code>k = 0</code>, but its contract still checks every score for
+<code>NaN</code> before returning an empty result. That implementation is
+<code>Θ(r)</code> for this boundary. An API that promises immediate return for
+<code>k = 0</code> could make a different choice.</li>
+</ul>
+<h3 id="compare-complete-methods-not-slogans">Compare complete methods, not slogans</h3>
+<p>The bounded heap is one option, not a general replacement for every selection
+algorithm. The following table assumes an exact, ordered top-k result and the
+lab&rsquo;s promise not to change the caller&rsquo;s input. Its storage column excludes the
+input and returned output but includes a required working copy.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Method</th>
+					<th style="text-align: right">Time to return an ordered top <code>k</code></th>
+					<th style="text-align: right">Working candidate storage</th>
+					<th>Useful distinction</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Sort all candidates</td>
+					<td style="text-align: right"><code>O(r log r)</code></td>
+					<td style="text-align: right"><code>O(r)</code></td>
+					<td>Direct and often fast; computes ranks the result does not use</td>
+			</tr>
+			<tr>
+					<td>Build a max-heap of all candidates, then remove <code>k</code> roots</td>
+					<td style="text-align: right"><code>O(r + k log r)</code></td>
+					<td style="text-align: right"><code>O(r)</code></td>
+					<td>Bottom-up construction is linear and removals arrive in result order, but every candidate remains stored</td>
+			</tr>
+			<tr>
+					<td>Keep a min-heap of <code>k</code> current winners</td>
+					<td style="text-align: right"><code>O(r + h log k + k log k)</code></td>
+					<td style="text-align: right"><code>O(k)</code></td>
+					<td>Can select in one pass with bounded state; its worst-case heap-update cost depends on how often the cutoff changes</td>
+			</tr>
+			<tr>
+					<td>Partition with quickselect, then sort the winners</td>
+					<td style="text-align: right">expected <code>O(r + k log k)</code></td>
+					<td style="text-align: right"><code>O(r)</code> here; a mutable input can be partitioned in place</td>
+					<td>Suits an in-memory batch; ordinary pivot choices can have <code>O(r^2)</code> worst cases and do not maintain an answer as a stream arrives</td>
+			</tr>
+			<tr>
+					<td>Keep a sorted slice of <code>k</code> winners</td>
+					<td style="text-align: right"><code>O(rk)</code> worst case</td>
+					<td style="text-align: right"><code>O(k)</code></td>
+					<td>Linear insertion is simple and can be competitive for very small <code>k</code>, but scales poorly as <code>k</code> grows</td>
+			</tr>
+	</tbody>
+</table>
+<p>The full max-heap and quickselect rows show why “top-k improves sorting from
+<code>O(r log r)</code> to <code>O(r log k)</code>” is incomplete. That statement
+describes one useful comparison with full sorting. It does not prove that a
+bounded heap has the best time bound for every in-memory batch. Its strongest
+advantages are one-pass processing and working storage that depends on
+<code>k</code>, especially when <code>k</code> is much smaller than <code>r</code>.</p>
+<p>The lab receives an already allocated <code>[]Candidate</code>, so it demonstrates
+<code>O(k)</code> <strong>additional working storage</strong>, not an end-to-end <code>O(k)</code>
+memory process. The same bounded-heap operation can consume candidates from an
+iterator, channel, file, or network stream without first retaining all
+<code>r</code> candidates, provided the surrounding API also supports streaming.</p>
+<p>If the request is for the <code>k</code> most frequent values in raw events, the
+heap does not count those events. First build frequencies—often with the hash
+table model from Unit 01—then run top-k selection over the distinct values and
+their counts. Counting and selection are separate costs and may use different
+input sizes.</p>
 <p>The pinned
 <a href="https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085">Prometheus v3.13.1 <code>topk</code> implementation</a>
 uses this pattern in its query engine. For each aggregation group, it keeps at
@@ -1133,17 +1291,28 @@ Before returning an instant-query result, Prometheus sorts the retained samples
 in descending order.</p>
 <blockquote class="book-hint important">
   <p><strong>What the heap saves</strong></p>
-  <div class="markdown-inner">A <code>topk</code> query needs to identify which <code>k</code> samples have
-the highest values. It does not need to rank the samples that will be
-discarded. A heap capped at <code>k</code> entries maintains only the information needed
-to decide whether a new sample belongs in the answer. Sorting every candidate
-would compute an order that most of the query result never uses.</div>
+  <div class="markdown-inner">A <code>topk</code> query still examines all <code>r</code> samples, but it does not need to
+rank the <code>r-k</code> samples that will be discarded. The bounded heap stores the
+current <code>k</code> winners and exposes the weakest one as the cutoff for accepting a
+new candidate. When <code>k</code> is much smaller than <code>r</code>, it replaces a full
+sort with linear cutoff checks and logarithmic work only when a new candidate
+enters. In the lab&rsquo;s
+non-mutating API, it also reduces working candidate storage from <code>O(r)</code> to
+<code>O(k)</code>. If the response must be ordered, the retained <code>k</code> still need a
+final sort. These are the exact savings; the heap does not make input inspection
+disappear or guarantee lower elapsed time for every <code>r</code> and <code>k</code>.</div>
 </blockquote>
 
-<p>The heap has answered only the first question: which ready item wins? The next
-sections add one missing responsibility at a time—future deadlines, reasons to
-retry, identity, cleanup, sharing, and capacity—and use production reports to
-show what goes wrong when that responsibility is missing.</p>
+<p>The array representation and the operations that restore heap order after a
+change are the same in selection and scheduling, but the root does not have one
+universal meaning. The bounded top-k heap puts the <strong>worst retained winner</strong> at
+the root so a new candidate can be rejected cheaply. A ready-work heap usually
+puts the <strong>next item to serve</strong> at the root so dispatch is cheap. The comparison
+supplied to the heap determines which meaning applies.</p>
+<p>The next sections leave batch selection and return to scheduling. They add one
+missing responsibility at a time—future deadlines, reasons to retry, identity,
+cleanup, sharing, and capacity—and use production reports to show what goes
+wrong when that responsibility is missing.</p>
 <h2 id="scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</h2>
 <p>Scheduling needs two independent orders. Active priority chooses among ready
 items; time order chooses which delayed item becomes eligible next:</p>
@@ -1525,9 +1694,12 @@ access to the root.</p>
 <h2 id="work-the-exercises">Work the exercises</h2>
 <p>The <a href="lab/">bounded top-k lab</a> keeps the heap exercise deliberately smaller
 than a scheduler. It compares sorting all candidates with retaining only the
-<code>k</code> candidates that can still appear in the response. The tests expose the
-complete tie rule, the heap invariant, retained cardinality, and the final sort
-that the response contract still requires.</p>
+<code>k</code> candidates that can still appear in the response. The tests separate
+cutoff checks from candidates that actually replace a winner, and distinguish
+bottom-up heap construction from the final sort required by the response. The
+benchmarks vary <code>r</code>, <code>k</code>, and arrival order; the written exercise also
+compares the bounded heap with a full heap, quickselect, and a sorted bounded
+slice.</p>
 <p>Then investigate <a href="wheel/01-lost-assignment-loop/">The Lost Assignment Loop</a>
 from its incoming report. This Wheel is inspired by GitHub&rsquo;s
 <a href="https://www.githubstatus.com/incidents/qcvjkzcs7j74">August 6–7, 2026 Actions incident</a>:
@@ -1743,7 +1915,13 @@ determines whether the system should perform that operation at all?</p>
     <li><a href="#a-binary-heap-is-an-implicit-complete-tree">A binary heap is an implicit complete tree</a></li>
     <li><a href="#push-restores-heap-order-upward-pop-restores-it-downward">Push restores heap order upward; pop restores it downward</a></li>
     <li><a href="#go-separates-heap-mechanics-from-your-ordering-rule">Go separates heap mechanics from your ordering rule</a></li>
-    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a></li>
+    <li><a href="#prometheus-topk-needs-the-winners-not-a-ranking-of-everything">Prometheus <code>topk</code> needs the winners, not a ranking of everything</a>
+      <ul>
+        <li><a href="#put-the-weakest-current-winner-at-the-root">Put the weakest current winner at the root</a></li>
+        <li><a href="#derive-the-bound-from-the-operations">Derive the bound from the operations</a></li>
+        <li><a href="#compare-complete-methods-not-slogans">Compare complete methods, not slogans</a></li>
+      </ul>
+    </li>
     <li><a href="#scheduling-needs-at-least-two-orders">Scheduling needs at least two orders</a></li>
     <li><a href="#backoff-controls-when-a-retry-may-happen">Backoff controls when a retry may happen</a></li>
     <li><a href="#production-report-kubernetes-kept-retrying-high-priority-pods-that-could-not-run">Production report: Kubernetes kept retrying high-priority Pods that could not run</a></li>
