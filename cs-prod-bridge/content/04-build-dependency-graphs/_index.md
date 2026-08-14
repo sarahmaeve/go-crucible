@@ -1,6 +1,6 @@
 +++
 title = 'Build dependency graphs'
-description = 'Directed graphs make build dependencies traversable, but only after the nodes, arrows, identities, and ordering contract are stated precisely.'
+description = 'A build graph can answer dependency questions only when its nodes, arrows, identities, and ordering rules are clear.'
 weight = 4
 +++
 
@@ -8,80 +8,76 @@ weight = 4
 
 # Build dependency graphs
 
-{{< lead >}}A dependency graph turns concrete build declarations such as
-`deps = ["//lib/http:http"]` into questions a program can answer: what must be
-present, why is it needed, what else relies on it, does the graph contain a
-cycle, and which work can begin now? The answers are trustworthy only when we
-state how the build declaration becomes an edge and which parts of the build
-we chose to represent.{{< /lead >}}
+{{< lead >}}A dependency graph lets a program answer questions about build
+declarations such as `deps = ["//lib/http:http"]`. What does a target need?
+Why does it need it? Which work can start now? The answers are useful only when
+we say what each node and arrow means, and what the graph leaves out.{{< /lead >}}
 
 {{< callout kind="production" title="Incoming reports" >}}
 - [BuildKit PR #999](https://github.com/moby/buildkit/pull/999) documents a
-  cyclic Dockerfile stage dependency that made `dockerd` recurse until its
+  cycle between Dockerfile stages. `dockerd` followed the cycle until its
   goroutine stack overflowed. A later
-  [patch](https://github.com/moby/buildkit/pull/4567) made the error identify
-  the Dockerfile instructions that formed the cycle.
+  [patch](https://github.com/moby/buildkit/pull/4567) made the error name the
+  Dockerfile instructions in the cycle.
 - [Argo Workflows issue #16450](https://github.com/argoproj/argo-workflows/issues/16450)
   describes a retried workflow that remained Running after every Pod had
-  finished. Retry code kept one parent for a node that could have several, and
-  Go map iteration could change which parent it kept.
+  finished. Retry code kept only one parent for a node that could have several.
+  Go map order could change which parent it kept.
 - [Pulumi PR #19179](https://github.com/pulumi/pulumi/pull/19179) fixes a
-  deletion graph that confused a current resource with an older copy awaiting
-  deletion because both records had the same resource identifier, called a
-  URN by Pulumi.
+  deletion graph that confused two resources. One was current and one was an
+  older copy awaiting deletion, but both had the same Pulumi resource name,
+  called a URN.
 {{< /callout >}}
 
-These failures happened in different systems and have different causes.
-BuildKit needed to recognize a cycle before recursive conversion continued.
-Argo discarded part of a multi-parent relationship and then made the remaining
-choice nondeterministically. Pulumi built edges between the wrong concrete
-resources. “It uses a graph” does not explain any of them. The useful questions
-are:
+These reports all involve graphs, but they have different causes. BuildKit did
+not stop before following a cycle. Argo discarded all but one parent, then let
+Go map order choose the parent it kept. Pulumi joined the wrong specific
+resources. Saying “it uses a graph” does not explain any of these failures.
+Ask instead:
 
 - What does one node represent?
-- What does one directed edge assert?
+- What fact does one directed edge record?
 - Can two distinct things receive the same identity?
-- Is the relationship known, absent, or undetermined?
+- Is the relationship known to exist, known not to exist, or still unknown?
 - Which direction does an operation need to follow?
 
-This unit starts with Bazel target dependencies because that relationship has a
-clear production contract. The implementation examples remain in Go.
+This unit starts with Bazel target dependencies because Bazel defines that
+relationship clearly. The code examples use Go.
 
 By the end of the unit, you should be able to:
 
 - read a Bazel target label and a direct dependency from an actual
   `BUILD.bazel` rule call;
-- derive a precisely scoped graph from dependency-bearing rule attributes;
-- define nodes and directed edges in a complete sentence about the represented
-  system;
+- choose an exact graph from rule attributes that name dependencies;
+- describe the nodes and arrows in a complete sentence about the real system;
 - represent outgoing and incoming relationships with adjacency lists;
 - distinguish a direct dependency from a reachable transitive dependency;
 - use breadth-first search to return a path with the fewest edges;
 - use depth-first search to distinguish a cycle from a harmless second visit;
 - explain when a directed graph is a DAG;
 - distinguish graph-theory topological order from dependency-first build order;
-- derive dependency-first order from remaining-dependency counts and explain
+- calculate dependency-first order from remaining-dependency counts and explain
   how completed prerequisites release real work;
 - state the time and space cost in terms of both nodes and edges;
-- distinguish deterministic output from a unique mathematical answer;
-- explain why a correct algorithm cannot compensate for missing, ambiguous, or
-  incorrectly identified edges; and
+- distinguish repeatable output from an answer that is mathematically unique;
+- explain why a correct algorithm cannot fix missing, unclear, or wrongly
+  identified edges; and
 - distinguish this lesson's direct Go-library graph from Bazel's broader
   target, configured-target, and action graphs.
 
 ## Start with what Bazel actually reads
 
-A Bazel build does not begin as a list of arrows. Bazel evaluates each
+A Bazel build does not start as a list of arrows. Bazel evaluates each
 [`BUILD.bazel` file as Starlark](https://bazel.build/versions/9.1.0/concepts/build-files),
-a restricted programming language. Calling a rule function in that file
-creates a target. The rule defines the types and meanings of attributes such
-as `srcs` and `deps`.
+a restricted programming language. A call to a rule function creates a target.
+The rule defines what attributes such as `srcs` and `deps` mean and which value
+types they accept.
 
-The following is a constructed teaching workspace, not an excerpt from a
-production incident. It uses the public rule interface documented for
+The following teaching workspace is not taken from a production incident. It
+uses the public rule interface for
 [`rules_go` v0.60.0](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/docs/go/core/rules.md).
-The small example lets us trace every declaration without pretending that the
-arrow notation is Bazel syntax.
+The example is small enough to trace by hand. The arrows we draw are not Bazel
+syntax.
 
 Assume the repository makes that pinned version of `rules_go` available in
 `MODULE.bazel`:
@@ -92,9 +88,9 @@ bazel_dep(name = "rules_go", version = "0.60.0")
 
 The pinned
 [`rules_go` Bzlmod documentation](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/docs/go/core/bzlmod.md)
-explains the module setup and Go SDK choices. The single line above is the part
-that makes the rule definitions used in the BUILD snippets available; SDK
-selection is not part of the six-node graph.
+explains the module setup and Go SDK choices. The line above makes the rule
+definitions in the following BUILD examples available. The choice of Go SDK
+is not part of our six-node graph.
 
 The server target is declared in `app/BUILD.bazel`:
 
@@ -115,8 +111,8 @@ Read the declaration from the outside in:
 
 - `load` makes the `go_binary` rule function available in this file. It does
   not create the server target.
-- Calling `go_binary` creates a rule target. The file belongs to the `app`
-  package and `name = "server"` names the target, so its full label is
+- Calling `go_binary` creates a rule target. This file belongs to the `app`
+  package. `name = "server"` names the target, so its full label is
   `//app:server`.
 - `srcs = ["main.go"]` names a source-file target in the same package. Its full
   label is `//app:main.go`.
@@ -138,9 +134,8 @@ go_library(
 )
 ~~~
 
-The relevant Go import declarations are concrete too. These excerpts omit the
-package bodies that use the imports; they are not presented as complete source
-files:
+The Go imports show why those dependencies exist. These excerpts omit the code
+that uses the imports, so they are not complete source files:
 
 ~~~go
 // app/main.go
@@ -153,34 +148,31 @@ import (
 import "example.com/buildgraph/lib/logging"
 ~~~
 
-For these `rules_go` rules, `deps` names the Go libraries imported directly by
-the target's Go package. Because `main.go` imports both the config and HTTP
-packages, both labels belong in the server's `deps` list. Because `http.go`
-imports logging, the HTTP target declares logging directly. It is not enough
-for a directly imported package to happen to be reachable through some other
-library. That principle—declare a direct dependency directly—keeps the build
-correct when an intermediate library later changes its own dependencies.
+For these `rules_go` rules, `deps` names the Go libraries that the target's
+package imports directly. `main.go` imports config and HTTP, so the server lists
+both. `http.go` imports logging, so HTTP lists logging. A package that the code
+imports directly must not be available only through another library. Declaring
+each direct dependency keeps the build correct when an intermediate library
+changes its own dependencies.
 
 {{< callout kind="contract" title="A direct-dependency list has two requirements" >}}
-For the `deps` attributes in this fixture:
+For the `deps` attributes in this example:
 
-1. **No missing direct dependencies:** every non-standard-library Go package
-   imported directly by the target's source must have its library target in
-   `deps`.
-2. **No transitive dependencies copied in as extras:** a library that the
-   source does not import directly does not belong in `deps` merely because
-   another dependency imports it.
+1. **List every direct dependency:** if the source imports a Go package outside
+   the standard library, its library target must appear in `deps`.
+2. **Do not copy indirect dependencies into the list:** a library does not
+   belong in `deps` merely because another dependency imports it.
 
-The server therefore lists config and HTTP, but not logging. HTTP lists
-logging. Logging still belongs to the server's transitive dependency closure;
-it is simply not a direct dependency of the server's current source. Bazel's
+The server lists config and HTTP, but not logging. HTTP lists logging. Logging
+is still an indirect, or **transitive**, dependency of the server. The server's
+current source does not import it directly. Bazel's
 [dependency guide](https://bazel.build/versions/9.1.0/concepts/dependencies)
-states the general rule as declaring all actual direct dependencies, and no
-more. Rule-specific attributes such as `data`, `embed`, or `cdeps` have their
-own meanings and should not be forced into this `deps` rule.
+says to declare every actual direct dependency and no extra ones. Attributes
+such as `data`, `embed`, and `cdeps` have their own meanings. Do not treat them
+as though they were all `deps`.
 {{< /callout >}}
 
-The code above establishes these three relationships:
+The code above gives us these three relationships:
 
 ~~~text
 //app:server -> //lib/config:config
@@ -188,57 +180,52 @@ The code above establishes these three relationships:
 //lib/http:http -> //lib/logging:logging
 ~~~
 
-The arrows are a representation derived from specific `deps` attributes. They
-are not text found in a `BUILD.bazel` file. For the running example, the edge
-contract is:
+These arrows come from the `deps` attributes. They do not appear in the
+`BUILD.bazel` files. In this example, each arrow means:
 
 > `A -> B` means the explicit `deps` attribute of `rules_go` target A directly
 > names `rules_go` library target B.
 
-The source of the edge is the target containing the `deps` attribute. The
-destination is the target named by one label in that attribute. This is the
-same target-to-prerequisite direction used by
+The arrow starts at the target that contains `deps` and ends at the target
+named in that list. This is the same target-to-prerequisite direction used by
 [Bazel's query language](https://bazel.build/versions/9.1.0/query/language),
-although Bazel's query graph contains more kinds of targets and dependencies
-than this lesson's selected view.
+but Bazel's query graph includes more kinds of targets and dependencies than
+our small graph.
 
 ### Select the graph before choosing the algorithm
 
-`deps` is not synonymous with “the Bazel graph.” Rule attributes are typed,
-and many attributes that accept labels introduce dependencies. In the
-server declaration, `srcs` creates a relationship to `//app:main.go` as well.
-Attributes such as `data`, private attributes supplied by a rule definition,
-configuration choices, and toolchain resolution can introduce still more
-relationships.
+`deps` does not mean “the whole Bazel graph.” Many rule attributes accept
+labels and create dependencies. In the server declaration, `srcs` also links
+the rule to `//app:main.go`. `data`, private rule attributes, build
+configuration, and toolchain selection can add more relationships.
 
 This lesson deliberately selects a smaller graph:
 
 | Question | Bazel's broader graph family | Running teaching graph |
 |---|---|---|
 | What is a node? | Rule targets, source-file targets, generated-file targets, configured targets, actions, or artifacts, depending on the query | The six named `go_binary` and `go_library` rule targets |
-| What creates an edge? | Label-bearing attributes and, in later phases, resolved implicit and toolchain dependencies or action inputs and outputs | Only the explicit `deps` attributes shown in these `rules_go` calls |
-| What is omitted? | It depends on the interface: `query` has no configured targets or actions, `cquery` does not expose action internals, and `aquery` answers action-level questions | `srcs`, generated files, `data`, implicit dependencies, toolchains, configurations, actions, and artifacts |
+| What creates an edge? | Attributes that contain labels and, in later phases, selected implicit and toolchain dependencies or action inputs and outputs | Only the explicit `deps` attributes shown in these `rules_go` calls |
+| What does it leave out? | It depends on the interface: `query` has no configured targets or actions, `cquery` does not show the details inside actions, and `aquery` answers questions about actions | `srcs`, generated files, `data`, implicit dependencies, toolchains, configurations, actions, and artifacts |
 
-That narrower graph is useful for learning traversal, cycle detection, and
-ordering. It must not be presented as Bazel's complete internal graph.
+This smaller graph is enough to learn traversal, cycle detection, and ordering.
+It is not Bazel's complete internal graph.
 
 {{< callout kind="warning" title="Do not parse BUILD files as if they were data tables" >}}
-A `BUILD.bazel` file is evaluated Starlark. A macro can create a rule, a
-`select()` can choose different labels under different configurations, and a
-rule definition can add dependencies that never appear as a literal `deps`
-list in the BUILD file. A tool that needs Bazel's graph should use Bazel's
-supported `query` or `cquery` interfaces and consume structured output. The
-`query --output=proto` format is one supported machine-readable option. Even
-`query --output=build`, whose text resembles BUILD syntax after macros and
-variables have been expanded, is not guaranteed by Bazel to be a valid BUILD
-file. The local Go model in this unit begins with already identified targets
-and edges; it is not a BUILD-file parser.
+Bazel evaluates a `BUILD.bazel` file as Starlark. A macro can create a rule. A
+`select()` can choose labels for one build configuration. A rule definition can
+add dependencies that never appear in a literal `deps` list. A tool that needs
+Bazel's graph should therefore use Bazel's supported `query` or `cquery`
+interfaces and read structured output. `query --output=proto` is one supported
+machine-readable format. The text from `query --output=build` looks like BUILD
+syntax after Bazel expands macros and variables, but Bazel does not promise
+that this text is a valid BUILD file. The Go model in this unit starts with
+known targets and edges. It does not parse BUILD files.
 {{< /callout >}}
 
-A **node**, also called a vertex, is one thing represented by the graph. A
-**directed edge** is a one-way relationship between two nodes. The meaning of
-the node and edge is part of the data structure's contract; neither can be
-recovered from the shape of the drawing alone.
+A **node**, also called a vertex, is one thing in the graph. A **directed edge**
+is a one-way relationship between two nodes. The drawing alone cannot tell us
+what those things and relationships mean. The graph's **contract** states its
+meaning and rules.
 
 The edge does not mean that the server executes before the library, that
 network traffic travels toward the library, or that failure must propagate
@@ -251,22 +238,21 @@ Another system may store prerequisite-to-dependent edges instead:
 //lib/http:http  ---->  //app:server
 ~~~
 
-That convention is not mathematically wrong. It answers forward-traversal and
-ordering questions in the other direction. Problems begin when prose,
-diagrams, and code silently move between the two conventions.
+That convention is also valid, but forward traversal and ordering now move in
+the other direction. Problems begin when the text, diagrams, and code switch
+between conventions without saying so.
 
 {{< callout kind="contract" title="Complete the edge sentence" >}}
-Do not document an API as “Add an edge from A to B” and leave its meaning in the
-real system implicit. Name the selected nodes and the relationship: “the
-explicit `deps` attribute of Go target A names Go library B,” “action A must
-finish before action B,” or whichever fact the graph actually stores.
+Do not document an API only as “Add an edge from A to B.” State the real fact
+stored by the edge: “the explicit `deps` attribute of Go target A names Go
+library B,” “action A must finish before action B,” or another precise rule.
 
 The running direct-Go-dependency graph and the local Go API use
 target-to-dependency edges. Later production cases state a different edge
 meaning when they examine a different graph.
 {{< /callout >}}
 
-## Complete the running declaration
+## Add the remaining targets
 
 The remaining four targets also come from rule calls.
 
@@ -319,8 +305,8 @@ go_binary(
 )
 ~~~
 
-Selecting only explicit `deps` relationships among these six rule targets
-produces the graph carried through the foundations:
+If we keep only the explicit `deps` relationships among these six targets, we
+get the graph used throughout this lesson:
 
 ~~~text
 //app:server ----> //lib/http:http ----> //lib/logging:logging
@@ -344,7 +330,7 @@ It contains six rule-target nodes and four selected edges:
   In Bazel's broader target graph, it still has a `srcs` edge to its source
   file.
 
-A **path** is a sequence of connected directed edges. The path
+A **path** is a series of connected directed edges. The path
 
 ~~~text
 //app:server -> //lib/http:http -> //lib/logging:logging
@@ -352,14 +338,12 @@ A **path** is a sequence of connected directed edges. The path
 
 has length two because it contains two edges.
 
-A node is **reachable** from a starting node if following zero or more edges
-can arrive there. Allowing a zero-edge path means a node is reachable from
-itself. In this lesson, a target's **dependency closure** includes the target
-itself and everything reachable from it. Bazel's `deps` operator uses the same
-reflexive-closure definition, but it applies it to Bazel's broader target
-graph, so it need not return the same node set as this selected view. We use
-**transitive dependencies** for the other nodes reached after following at
-least one edge.
+A node is **reachable** from a starting node if we can follow zero or more
+arrows to it. A zero-edge path makes every node reachable from itself. A
+target's **dependency closure** contains that target and every node reachable
+from it. Bazel's `deps` operator uses the same rule on Bazel's larger target
+graph, so it can return more nodes than this lesson does. The other nodes
+reached after one or more edges are **transitive dependencies**.
 
 The dependency closure of `//app:server`, shown here as a set, is:
 
@@ -370,28 +354,26 @@ The dependency closure of `//app:server`, shown here as a set, is:
 //lib/logging:logging
 ~~~
 
-It does not include `//tool/migrate:migrate` merely because both targets depend
-on `//lib/config:config`. The arrows from the server do not lead to the
-migration tool. It also does not include the disconnected lint target.
+It does not include `//tool/migrate:migrate` just because both targets depend
+on `//lib/config:config`. No arrow from the server leads to the migration tool.
+The disconnected lint target is not included either.
 
 This unit uses finite, directed, unweighted graphs:
 
-- **finite** means a build contains a bounded number of represented nodes and
-  edges at the time of the query;
+- **finite** means the graph has a fixed number of nodes and edges when the
+  query starts;
 - **directed** means `A -> B` and `B -> A` are different relationships; and
-- **unweighted** means path length counts edges rather than latency, money,
-  failure probability, or another numeric cost.
+- **unweighted** means path length counts edges, not time, money, failure
+  probability, or another cost.
 
 Weighted shortest paths, undirected connectivity, and graph databases solve
 different problems and are outside this unit.
 
 ## Store the next relationships, not every possible pair
 
-An **adjacency list** stores the outgoing neighbors for each node. In this
-graph, the forward list is naturally named `dependsOn`:
-
-An outgoing edge starts at the node whose list contains it. The same edge is
-incoming at the node where the arrow ends.
+An **adjacency list** stores the next nodes that each node points to. In this
+graph, the forward list is named `dependsOn`. An outgoing edge starts at the
+node whose list contains it. The same edge is incoming where its arrow ends.
 
 ~~~text
 dependsOn["//app:server"] = ["//lib/config:config", "//lib/http:http"]
@@ -413,10 +395,10 @@ requiredBy["//tool/migrate:migrate"] = []
 requiredBy["//tool/lint:lint"] = []
 ~~~
 
-These maps do not describe two different graphs. They are two indexes over the
-same selected `deps` relationships. The local input can also retain the source
-location of each explicit declaration, so a diagnostic can point back to the
-text that needs to change:
+These maps are two indexes for the same graph. One follows the selected `deps`
+arrows forward; the other follows them backward. The input can also keep the
+source location of each declaration. An error can then point to text that a
+maintainer can change:
 
 ~~~go
 type TargetID string
@@ -444,18 +426,16 @@ type Graph struct {
 }
 ~~~
 
-The slices of target IDs keep traversal compact. `sources` preserves the
-diagnostic evidence supplied for the same dependent/dependency pairs. Given
-consecutive nodes `A` and `B` in a path, the corresponding edge key is
-`{Dependent: A, Dependency: B}`. A `CycleEdge` combines that key with every
-source location that declared it.
+The target ID slices keep graph-walk data small. `sources` stores the source
+information for each dependent/dependency pair. For adjacent nodes `A` and `B`
+in a path, the edge key is `{Dependent: A, Dependency: B}`. A `CycleEdge` joins
+that key with every known source location for the edge.
 
-This evidence also has a scope. An explicit label may have an editable
-location in a `BUILD.bazel` file, but a macro-generated or implicit dependency
-may not correspond to one literal `deps` entry. A Bazel-backed implementation
-must report the locations its supported query interface actually supplies; it
-must not invent a precise source line for an edge whose origin Bazel reports
-only at rule or macro level.
+Source evidence has limits. An explicit label may point to an editable line in
+a `BUILD.bazel` file. A dependency created by a macro or rule may not have one
+literal `deps` entry. A Bazel-backed tool must report only the locations that
+its query interface supplies. If Bazel reports an edge only at the rule or
+macro level, the tool must not invent an exact source line.
 
 The direction to follow depends on the question:
 
@@ -466,84 +446,80 @@ The direction to follow depends on the question:
 | Which declared targets rely on config? | `requiredBy` |
 | Which targets might be affected by changing HTTP? | `requiredBy` |
 
-“Might be affected” is deliberate. Reverse reachability describes declared
-dependents. It does not prove that every dependent will execute, rebuild, fail,
-or experience a user-visible impact. Caching, configurations, runtime paths,
-and the content of the change remain outside this graph.
+“Might be affected” is deliberate. Walking the `requiredBy` edges finds
+declared dependents. This is called **reverse reachability**. It does not prove
+that each target will run, rebuild, fail, or affect a user. This graph does not
+include cache results, build configurations, runtime paths, or the contents of
+the change.
 
-The adjacency lists store one entry per node and edge, so `V` nodes and `E`
-edges use `O(V + E)` space. If `S` source-location records are retained across
-those edges, the complete structure uses `O(V + E + S)` space. An adjacency
-matrix instead reserves one cell for every possible ordered pair of nodes,
-using `O(V²)` space before source evidence is added. A matrix can answer “is
-this exact edge present?” by checking one cell, but sparse build graphs usually
-do not need to reserve space for every edge that does not exist.
+The adjacency lists keep one entry for each node and edge. `V` nodes and `E`
+edges therefore use `O(V + E)` space. If the graph also keeps `S` source
+records, total space is `O(V + E + S)`. An adjacency matrix takes a different
+approach: it reserves one cell for every possible ordered pair of nodes. That
+uses `O(V²)` space before adding source evidence. A matrix can check one cell
+to answer “does this exact edge exist?” Build graphs often contain far fewer
+edges than the number that could exist. Such graphs are called **sparse**, and
+usually should not reserve space for every absent edge.
 
-### Preserve nodes with no edges
+### Keep nodes with no edges
 
-If graph construction discovers nodes only while reading edges,
-`//tool/lint:lint` disappears. That changes the answer to “which selected
-targets exist?” and can omit a requested target with no `deps` relationships
-from a build plan.
+If the builder discovers nodes only by reading edges, `//tool/lint:lint`
+disappears. The graph can then omit a requested target simply because it has no
+selected `deps` relationships.
 
-Store the node set separately. An empty adjacency list means “this known target
-has no outgoing edge in the selected graph.” A missing map key must not
-ambiguously mean both “known and empty” and “unknown target.”
+Store the node set separately. An empty list means “this target is known and
+has no outgoing edge in this graph.” A missing map key must not mean both
+“known and empty” and “unknown.”
 
-This lesson's graph builder rejects an edge if either endpoint is not in the
-known node set. Another system could create placeholder nodes instead, but that
-would be a different contract and must remain distinguishable from a fully
-loaded target.
+This lesson rejects an edge if either end names an unknown target. Another
+system could create a temporary placeholder node instead. If it does, callers
+must still be able to tell that placeholder from a fully loaded target.
 
-### Deduplicate repeated declarations
+### Store a repeated edge once
 
-Two declarations with the same dependent and dependency should not make a
-target wait twice for one dependency. A graph builder can use a set while
-loading and produce slices for traversal afterward.
+Two declarations for the same dependent/dependency pair must not make a target
+wait twice. While loading, the builder uses a set to **deduplicate** the edge,
+which means storing it only once. It produces slices for traversal afterward.
 
-If an input source supplies more than one evidence record for the same edge,
-retain every relevant location under one `DependencyEdge`. Do not imply that
-Bazel permits one target label to be independently declared in two BUILD
-files; it does not. The local graph is deduplicating input evidence, not
-changing Bazel's target-identity rules.
+If the input supplies several source records for one edge, keep every relevant
+location under one `DependencyEdge`. This does not mean Bazel allows one target
+label to be declared independently in two BUILD files; it does not. The local
+graph combines evidence records. It does not change Bazel's identity rules.
 
 ### Do not expose Go map order as graph order
 
-The
-[Go specification](https://go.dev/ref/spec#For_statements)
-does not define map iteration order. If public results, tests, or error
-messages range directly over maps, equal valid inputs can produce different
-paths or build plans.
+The [Go specification](https://go.dev/ref/spec#For_statements) does not define
+map iteration order. If public results, tests, or errors depend directly on
+that order, the same valid input can produce different paths or build plans.
 
-Sort public results or keep waiting nodes in a data structure with a stated
-order. Deterministic output is an API choice. A graph can permit several valid
-traversals or topological orders, and the data structure does not choose among
-them by itself.
+Sort public results, or store waiting nodes in a structure with a clear order.
+Output that stays the same from run to run is **deterministic**. That behavior
+is an API choice. A graph can allow several valid traversals or topological
+orders; the graph itself does not select one.
 
-## Traversal means controlled exploration
+## A graph walk follows selected arrows
 
-A graph traversal begins at one or more nodes and follows selected edges. It
-records which nodes it has reached so a shared node does not cause repeated
-exploration and a cycle does not cause an endless walk.
+A **graph traversal**, or graph walk, starts at one or more nodes and follows
+selected edges. It records the nodes that it reaches. This avoids checking the
+same shared branch again and again. It also prevents a cycle from causing an
+endless walk.
 
-Two standard traversals differ mainly in which discovered node they explore
-next:
+Two common traversals choose the next discovered node differently:
 
 - **breadth-first search**, or BFS, explores all nodes one edge away before
   nodes two edges away;
 - **depth-first search**, or DFS, follows one path as far as it can before
   returning to try another branch.
 
-BFS is the direct choice when the operation promises a path with the fewest
-edges. DFS is a natural choice when the operation needs to follow one complete
-branch, such as checking whether an edge returns to the path currently being
-explored. The required answer, rather than a general preference for one
-traversal, determines the choice.
+Use BFS when the API promises a path with the fewest edges. DFS is useful when
+the operation must follow one branch to its end. A cycle check, for example,
+must know whether an edge returns to the path being explored now. Choose the
+kind of walk from the answer that the operation must provide.
 
-The formal sequence in
+The explanation in
 [MIT 6.006 Lecture 9](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/196a95604877d326c6586e60477b59d4_MIT6_006S20_lec9.pdf)
-is useful here: define the vertices and directed edges, choose a
-representation, define paths and reachability, and then introduce BFS.
+uses this sequence: define the nodes and directed edges, choose how to store
+them, define paths and reachability, and then introduce BFS.
 [Lecture 10](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/f3e349e0eb3288592289d2c81e0c4f4d_MIT6_006S20_lec10.pdf)
 continues from DFS to directed cycles and topological order.
 
@@ -561,19 +537,18 @@ BFS explores the graph in layers:
 | 1 edge | `//lib/config:config`, `//lib/http:http` |
 | 2 edges | `//lib/logging:logging` |
 
-The first time BFS reaches logging, it has found a path using the fewest
-dependency edges. Any path with fewer edges would have ended in an earlier
-layer, which BFS has already explored. A `parent` map records how each node was
-first reached. Starting at logging, the code follows parent entries back to
-the server and then reverses that list to reconstruct:
+The first time BFS reaches logging, it has found a path with the fewest edges.
+A shorter path would have ended in a layer that BFS already explored. A
+`parent` map records how the search first reached each node. The code follows
+those entries from logging back to the server, then reverses the list:
 
 ~~~text
 //app:server -> //lib/http:http -> //lib/logging:logging
 ~~~
 
-Assume the graph builder has sorted each dependency slice so that equal-length
-choices are deterministic. The graph operation below implements reachability
-and its zero-edge case directly:
+Assume the builder sorts each dependency list. If several shortest paths exist,
+the code then makes the same choice each run. The following operation also
+handles the zero-edge path directly:
 
 ~~~go
 func (g *Graph) FewestEdgePath(start, want TargetID) ([]TargetID, bool) {
@@ -604,45 +579,43 @@ func (g *Graph) FewestEdgePath(start, want TargetID) ([]TargetID, bool) {
 }
 ~~~
 
-Using a head index avoids a queue implementation that copies all remaining
-elements on every removal. Marking a dependency seen when it enters the queue
-prevents two parents from queuing the same node before either queued copy is
-processed. The first parent therefore remains the path used for reconstruction.
+The head index moves through the queue without copying the remaining items on
+each removal. The code marks a dependency as seen when it enters the queue.
+This prevents two parents from adding the same node before either copy is
+processed. The first parent remains the one used to rebuild the path.
 
-The example omits unknown-target errors so the traversal remains visible. A
-public API must first distinguish an unknown target from a known target that
-has no path to the destination.
+The example leaves out unknown-target errors so the traversal is easy to see.
+A public API must distinguish an unknown target from a known target that cannot
+reach the destination.
 
-`FewestEdgePath(A, A)` returns the one-node path `[A]`, which is consistent with
-the definition of reachability. A product operation named `WhyDepends` should
-not present that zero-edge path as evidence that `A` depends on itself. It can
-require two distinct target IDs and direct callers to cycle detection when they
-need to find a non-empty path from a target back to itself. Making that policy
-explicit avoids hiding either a self-edge or a longer cycle behind “no path.”
+`FewestEdgePath(A, A)` returns `[A]` because a node is reachable from itself.
+An operation named `WhyDepends` should not use that zero-edge path to claim
+that A depends on itself. It can require two different target IDs. Callers that
+need a non-empty path from A back to A should use cycle detection. This clear
+rule prevents a self-edge or longer cycle from being hidden as “no path.”
 
-The returned path is shortest only under the stated measure: number of edges.
-It is not necessarily the fastest build path, highest-risk path, or smallest
-set of source files. Those questions require more data—for example, duration
-or risk attached to an edge—and a rule that uses that data.
+The path is shortest only by number of edges. It may not be the fastest build
+path, the riskiest path, or the path with the fewest source files. Those
+questions need more data, such as duration or risk on each edge, and a rule for
+using it.
 
 {{< callout kind="contract" title="The local promise is stronger than Bazel somepath" >}}
 Bazel's `somepath` query returns one dependency path. Its documentation does
-not promise the shortest path. A local Go API may deliberately promise a
-fewest-edge path by using BFS, but it must present that as its own contract,
-not as a claim about Bazel's implementation.
+not promise the shortest one. This Go API makes a stronger promise by using
+BFS. That is the local API's contract, not a claim about Bazel.
 {{< /callout >}}
 
-## A global visited set alone does not detect directed cycles
+## One “seen” set cannot detect directed cycles
 
-A **directed cycle** is a path of one or more edges that returns to its
+A **directed cycle** is a path with at least one edge that returns to its
 starting node.
 
-A **cycle witness** is the concrete closed path that demonstrates the cycle.
-It gives a maintainer something to inspect rather than only reporting that the
-graph is invalid.
+A closed path that proves a cycle exists is called a **cycle witness**. It gives
+a maintainer something to inspect instead of saying only that the graph is
+invalid.
 
 Consider a separate four-node teaching graph shaped like a diamond. It is not
-another BUILD declaration from the running fixture:
+another BUILD declaration from the running example:
 
 ~~~text
     +----> B ----+
@@ -652,27 +625,26 @@ A --+            +----> D
     +----> C ----+
 ~~~
 
-Both branches reach D. The second visit to D is not a cycle. It is another path
-to a shared dependency.
+Both branches reach D. Visiting D a second time does not form a cycle; it is
+another path to a shared dependency.
 
 Cycle detection needs to distinguish three states:
 
-- **unseen:** traversal has not started this node;
+- **unseen:** the search has not started this node;
 - **active:** the node is on the DFS path currently being explored;
-- **finished:** every outgoing edge from the node has been explored.
+- **finished:** the search has checked every outgoing edge from the node.
 
-An edge to an active node closes a cycle. An edge to a finished node reaches
-work that has already been checked and does not imply a cycle.
+An edge to an active node closes a cycle. An edge to a finished node reaches a
+branch that has already been checked; it does not prove a cycle.
 
-For one connected search, the state changes are:
+For one DFS starting point, the state changes are:
 
 ~~~text
 unseen --enter DFS--> active --all outgoing edges checked--> finished
 ~~~
 
-The transition to finished matters. If every previously seen node remained
-active, the second route through a diamond would look indistinguishable from a
-return to the current path.
+The change from active to finished matters. If every seen node stayed active,
+the second branch of a diamond would look like a return to the current path.
 
 Now suppose `lib/logging/BUILD.bazel` is changed so the logging library names
 the HTTP library directly:
@@ -687,9 +659,9 @@ go_library(
 )
 ~~~
 
-This declaration would correspond to logging source importing HTTP. Together
-with HTTP's existing import of logging, it is an invalid Go package cycle. The
-two `deps` entries produce the closed path:
+This declaration would mean that logging imports HTTP. HTTP already imports
+logging, so the two packages now form an invalid cycle. Their `deps` entries
+produce this closed path:
 
 ~~~text
 //lib/http:http
@@ -697,8 +669,8 @@ two `deps` entries produce the closed path:
     -> //lib/http:http
 ~~~
 
-DFS sees the last edge return to a target still on the current path. That is
-the fact that distinguishes this cycle from shared node D in the diamond.
+The last edge returns to a target still on the current DFS path. Shared node D
+in the diamond was already finished when the second branch reached it.
 
 One way to express the state in Go is:
 
@@ -712,13 +684,13 @@ const (
 )
 ~~~
 
-The DFS marks a node active when it enters and appends it to the current path.
-When a call examines every dependency without finding a cycle, it removes the
-node from that path and marks it finished. When it finds an active dependency,
-it locates that node in the path, copies from that position to the current node,
-and appends the active dependency again to close the cycle.
+DFS marks a node active when it enters the node and adds it to the current path.
+After checking every dependency without finding a cycle, it removes the node
+from the path and marks it finished. If it finds an active dependency, it
+copies the part of the path that starts at that dependency. It then adds the
+dependency once more to close the cycle.
 
-The central control flow can be written directly in Go:
+The main part of the check can be written directly in Go:
 
 ~~~go
 func (s *cycleSearch) visit(target TargetID) bool {
@@ -745,12 +717,11 @@ func (s *cycleSearch) visit(target TargetID) bool {
 }
 ~~~
 
-`closeCycle` copies the suffix of `path` that begins with `dependency`, then
-appends `dependency` once more. The internal witness is therefore a closed
-node sequence such as `[A, B, C, A]`.
+`closeCycle` performs that copy. The result is a closed node list such as
+`[A, B, C, A]`.
 
-The public operation must also start from every disconnected component and
-choose that starting order deterministically:
+The public operation must check every disconnected part of the graph. It also
+needs a stable order for choosing where to start:
 
 ~~~go
 func (g *Graph) FindCycle() []CycleEdge {
@@ -768,22 +739,22 @@ func (g *Graph) FindCycle() []CycleEdge {
 }
 ~~~
 
-`sortedTargets` returns the node IDs in stable order; sorting only the
-dependency slices would not make the first reported cycle deterministic.
-`describeCycle` takes each adjacent pair in the closed node sequence, builds
-its `DependencyEdge`, and copies the locations from `sources` into a
-`CycleEdge`. The result identifies both the cycle and the declarations that
-created it.
+`sortedTargets` returns node IDs in stable order. Sorting only each dependency
+list would not make the first reported cycle stable across disconnected parts.
+`describeCycle` turns every adjacent pair in the closed path into a
+`DependencyEdge`. It copies the matching locations from `sources` into each
+`CycleEdge`. The result names both the cycle and the declarations that created
+it.
 
-`visit` returns as soon as it copies one witness, so the successful call stack
-does not finish changing its active states to finished. `FindCycle` does not
-reuse that search object: it immediately describes the copied witness and
-returns. Code that wanted to continue searching for additional cycles would
-need to unwind or create a new search instead of reusing these states.
+`visit` returns as soon as it copies one cycle. The earlier calls in the chain
+do not get a chance to mark their nodes finished. This is safe here because
+`FindCycle` immediately describes the copied path and discards the search
+state. Code that continues looking for more cycles must first let those calls
+finish normally or start a new search.
 
-Starting from only one target would leave disconnected components unchecked.
-Returning only “cycle detected” is enough for a boolean validity check but not
-for a maintainer who must remove or change a declaration.
+Starting from only one target could miss a cycle elsewhere. “Cycle detected”
+is enough for a yes-or-no check, but not for a maintainer who must change a
+declaration.
 
 A self-dependency is the smallest cycle:
 
@@ -793,45 +764,44 @@ A self-dependency is the smallest cycle:
 
 It has one edge even though its first and last node are the same.
 
-{{< callout kind="warning" title="Cycle checks do not bound legitimate depth" >}}
-Stopping when DFS returns to an active node prevents a cycle from causing
-unbounded recursion. A recursive implementation still uses stack space
-proportional to the longest acyclic path. If graph depth is untrusted or can be
-very large, use an explicit stack or enforce a documented bound.
+{{< callout kind="warning" title="A cycle check does not prevent every stack overflow" >}}
+Stopping at an active node prevents a cycle from causing endless recursion. A
+recursive function still uses stack space for the longest path even when the
+graph has no cycle. If input can contain very long paths, use your own stack
+data structure or set and document a maximum path length.
 {{< /callout >}}
 
 ## BuildKit turned a cycle into an editable error
 
-[BuildKit PR #999](https://github.com/moby/buildkit/pull/999) provides a direct
-production example. A cyclic relationship between Dockerfile stages could
-make `dockerd` recurse until the goroutine stack exceeded its limit. The patch
-validated the completed stage-dependency graph and tracked the current path so
-it could reject a circular dependency.
+[BuildKit PR #999](https://github.com/moby/buildkit/pull/999) shows this problem
+in production code. A cycle between Dockerfile stages could make `dockerd`
+keep calling the same recursive function until the goroutine ran out of stack
+space. The patch checked the completed stage-dependency graph. It tracked the
+current path so that it could reject a cycle.
 
-[BuildKit PR #4567](https://github.com/moby/buildkit/pull/4567) improved the
-same failure path. Dependency edges retained source locations, and the error
-showed the Dockerfile instructions involved in the cycle.
+[BuildKit PR #4567](https://github.com/moby/buildkit/pull/4567) later improved
+the same error. It kept a source location with each dependency edge, so the
+error could show the Dockerfile instructions that created the cycle.
 
-The two changes solve different parts of diagnosis:
+The two changes solve different parts of the problem:
 
-1. stop traversal from following the same active cycle indefinitely; and
-2. identify the declarations that created the bad edges.
+1. stop the graph walk from following the same cycle forever; and
+2. show which declarations created the bad edges.
 
-The source establishes a daemon stack overflow caused by cyclic stage
-dependencies. It does not establish that every recursive graph walk in
-BuildKit had the same failure or that the event caused a wider production
-outage.
+The pull requests show a daemon stack overflow caused by a cycle between
+stages. They do not show that every recursive graph walk in BuildKit had this
+problem or that it caused a wider production outage.
 
 ## A DAG is a result of validation, not an assumption
 
 A **directed acyclic graph**, or DAG, is a directed graph with no directed
 cycle.
 
-The dependency graph used to perform one configured build must be acyclic: a
-target cannot be completed if satisfying it eventually requires the same
-unfinished configured target again. Erroneous declarations and
-graph-construction bugs can still produce cycles. The small fixture has no
-configuration choices, so its validator begins with a directed graph:
+The dependency graph for one configured build must have no cycle. A target
+cannot finish if it eventually needs that same unfinished target again. A bad
+declaration or a bug that builds the graph can still create a cycle. The small
+example has no configuration choices, so its check begins with a directed
+graph:
 
 ~~~text
 directed graph
@@ -841,17 +811,17 @@ directed graph
     +-- no cycle ---------> DAG; an ordering exists
 ~~~
 
-Calling the input a DAG before checking it hides the condition that makes the
-ordering possible. Bazel's post-loading `query` graph needs a separate caveat:
-because it combines all possible `select()` results, it may contain an apparent
-cycle that no single configured build contains. The configured-target
-distinction is developed below.
+Do not call the input a DAG before checking it. The absence of a cycle is what
+makes ordering possible. Bazel's post-loading `query` graph is a special case.
+It combines every possible result of `select()`, so it can show a cycle that
+does not exist in any one configured build. A later section explains this
+difference.
 
-A directed graph has a topological order exactly when it is acyclic. Cycle
-detection and ordering are therefore related, but they answer different
-questions for the caller. DFS can return an explanatory cycle path. An
-ordering algorithm can detect that it processed too few nodes, but without
-additional work it may report only that some cycle exists.
+A directed graph has a topological order if and only if it has no cycle. Cycle
+detection and ordering are related, but they answer different questions. DFS
+can return a path that shows a cycle. An ordering algorithm can notice that it
+processed too few nodes, but it may report only that some cycle exists unless
+we add more work.
 
 ## Topological order follows the stored arrows
 
@@ -864,9 +834,9 @@ Our stored edge is:
 //app:server -> //lib/http:http
 ~~~
 
-Therefore a topological order of the stored graph places the server before the
-HTTP library. For the server's dependency closure, one valid topological order
-is:
+A topological order of the stored graph therefore places the server before the
+HTTP library. For the server and all the dependencies it can reach, one valid
+order is:
 
 ~~~text
 //app:server
@@ -891,14 +861,14 @@ plan would need the opposite:
 This is **dependency-first build order**. Every dependency appears before a
 target that needs it.
 
-This target-level build order is the reverse of a topological order of the
-stored graph. It is equivalently a topological order of the graph with every
-edge reversed.
+This target-level build order reverses a topological order of the stored
+graph. Another way to say this is that it is a topological order after every
+edge has been reversed.
 
-The list is an order for the six selected rule targets, not a literal Bazel
-execution schedule. During analysis, one Bazel target can produce several
-actions, and those actions are the units execution schedules. The distinction
-is developed below.
+This list orders the six selected rule targets. It is not the schedule that
+Bazel will run. During analysis, one Bazel target can produce several actions.
+Bazel schedules those actions, not the targets themselves. A later section
+explains the difference.
 
 {{< callout kind="warning" title="Bazel query order is not execution order" >}}
 With `--order_output=deps`, Bazel query prints a topological order of its
@@ -907,17 +877,17 @@ That output order describes the query graph. It is not the order in which
 build actions execute.
 {{< /callout >}}
 
-The name `BuildOrder` is clearer for a learner-facing API than
-`TopologicalOrder`. It states the operation's required direction instead of
-requiring every caller to remember which way the stored arrows point.
+For this API, `BuildOrder` is clearer than `TopologicalOrder`. The name states
+the direction we need. Callers do not have to remember which way the stored
+arrows point.
 
-## Derive dependency-first order from remaining counts
+## Build dependency-first order from remaining counts
 
-Restrict the selected graph to the requested roots—the targets named in the
-build request—and their dependency closure. This keeps a shared dependency's
-unrelated dependents out of the plan. For example, placing
-`//lib/config:config` in the server's order must not pull
-`//tool/migrate:migrate` into a request that named only the server.
+Start with the requested roots: the targets named in the build request. Add
+only the dependencies that those targets can reach. This keeps unrelated users
+of a shared dependency out of the plan. For example, a request for the server
+includes `//lib/config:config`, but it must not also pull in
+`//tool/migrate:migrate`.
 
 For `//app:server`, begin with:
 
@@ -928,19 +898,19 @@ For `//app:server`, begin with:
 | `//lib/http:http` | 1 |
 | `//app:server` | 2 |
 
-The **ready set** contains config and logging because neither needs another
-target to appear earlier in this build order.
+The **ready set** contains config and logging. Neither one needs another target
+to appear before it in this build order.
 
 To compute an order without executing anything, repeat:
 
 1. remove one target from the ready set and append it to the build order;
-2. follow its `requiredBy` edges to targets in this requested closure that are
-   still in the calculation;
+2. follow its `requiredBy` edges to targets in this request that have not yet
+   been added;
 3. decrement each such target's remaining-dependency count; and
 4. add a target to the ready set when its count reaches zero.
 
-Using lexicographic target-name order—the ordinary dictionary-like comparison
-of the label strings—to break ties gives this trace:
+When several targets are ready, compare their label strings as a dictionary
+would. This is called **lexicographic order**. It gives this result:
 
 | Step | Append to order | Newly ready | Ready afterward |
 |---:|---|---|---|
@@ -949,32 +919,32 @@ of the label strings—to break ties gives this trace:
 | 3 | `//lib/http:http` | `//app:server` | `//app:server` |
 | 4 | `//app:server` | none | empty |
 
-The result is dependency-first. If the ready set contains several targets,
-another choice can produce another valid order. A deterministic tie-break
-makes runs reproducible; it does not make one order the only correct order.
+The result is dependency-first. If several targets are ready, choosing a
+different one can produce another valid order. A fixed tie-breaking rule makes
+the result the same on every run. It does not make that result the only
+correct order.
 
-This is Kahn's algorithm applied to the graph with the stored edges reversed.
-The counts record which dependencies have not yet been placed earlier in the
-order. The `requiredBy` index identifies exactly which counts change when a
-dependency is appended. In this calculation, “remove” and “append” are
-bookkeeping operations: no build action has started or completed.
+These steps are Kahn's algorithm applied after reversing the stored edges. The
+counts show which dependencies still need to appear earlier in the order. The
+`requiredBy` index tells us exactly which counts to change when we add a
+dependency. This code is only calculating a list. Removing and adding targets
+does not start or finish any build action.
 
-If the process stops with nodes unprocessed and no ready target, the remaining
-subgraph contains a cycle. A separate DFS cycle witness can identify the
-closed path and its source declarations.
+If the process stops before it has handled every node and no target is ready,
+the remaining graph contains a cycle. A separate DFS check can return the
+closed path and the declarations that created it.
 
 ### The same counts can release work during execution
 
-A scheduler can use similar counts, but the event that changes a count is now
-real completion rather than removal from an abstract graph. After validating
-the graph, initialize each action's count to its unfinished prerequisites. A
-prerequisite that completes successfully—or whose result is satisfied from a
-cache—can decrement the counts of actions that depend on it. Merely starting
-the prerequisite must not decrement those counts.
+A scheduler can use similar counts, but now it changes a count only when real
+work finishes. After checking the graph, give each action a count of its
+unfinished prerequisites. When a prerequisite finishes successfully, lower
+the counts of the actions that need it. A cached result can count as finished
+too. Merely starting a prerequisite must not lower any count.
 
-Every action in the scheduler's ready set is allowed to proceed according to
-dependency constraints. It does not follow that every ready action will run
-immediately. A real build system also has:
+Every action in the scheduler's ready set is allowed to run by the dependency
+rules. That does not mean every ready action will run at once. A real build
+system must also handle:
 
 - a finite number of workers;
 - CPU, memory, network, and remote-execution limits;
@@ -983,103 +953,103 @@ immediately. A real build system also has:
 - failures and cancellation; and
 - scheduling policy among equally ready actions.
 
-“These actions are eligible to run concurrently” is therefore more accurate
-than “these actions run at the same time.”
+It is therefore better to say, “These actions may run at the same time,” than
+to say that they will do so.
 
 ## Go's command builder uses the same ready-work idea
 
-The Go command's builder is a useful implementation source because it shows
-how a completed prerequisite reaches only the actions waiting for it:
+The Go command's builder shows how a completed prerequisite updates only the
+actions that are waiting for it:
 
 - [`cmd/go/internal/work/action.go` at Go 1.26.5](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/action.go)
 - [`cmd/go/internal/work/exec.go` at Go 1.26.5](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/exec.go)
 
-An action records its prerequisite actions. The builder also constructs the
-reverse relation, stored in a field named `triggers`: for each action, this is
-the list of actions waiting for it. The builder counts pending prerequisites
-and makes an action ready when that count reaches zero. The reverse list lets a
-completed action update only its known dependents instead of scanning every
-action in the build.
+An action records the actions it needs first. The builder also records the
+relationship in the other direction, in a field named `triggers`. For each
+action, `triggers` lists the actions that are waiting for it. The builder
+counts unfinished prerequisites and makes an action ready when its count
+reaches zero. This reverse list lets a completed action update its known users
+instead of checking every action in the build.
 
-This production connection does not mean the foundations graph is a copy of
-`cmd/go`. The Go tool includes caching, failure propagation, resource limits,
-and many kinds of actions. The small model isolates one mechanism:
+The foundations graph is not a copy of `cmd/go`. The Go tool also handles
+caches, failures, resource limits, and many kinds of actions. Our small model
+focuses on one mechanism:
 
 ~~~text
 unfinished prerequisite count reaches zero -> action may become ready
 ~~~
 
 It also shows where the small target graph stops matching a full build system.
-A build target is not necessarily one action. One target can generate several
-compile, link, copy, or metadata actions.
+A build target is not always one action. One target can create several compile,
+link, copy, or metadata actions.
 
 ## Bazel contains several related graphs
 
-“The Bazel DAG” is too vague. A Bazel label does not identify the same kind of
-node in every phase, and a `deps` attribute is not the only source of an edge.
+“The Bazel DAG” is not a precise name. A Bazel label can identify different
+kinds of nodes during different phases. Also, `deps` is only one of several
+places where an edge can come from.
 
-| Graph or view | Nodes | Relationships | Public interface |
+| Graph or view | Nodes | What joins them | How to inspect it |
 |---|---|---|---|
-| Post-loading target graph | Rule targets and file targets | Rule inputs, including labels from `srcs`, `deps`, and `data`, plus implicit dependencies | `query` |
-| Configured target graph | Configured targets: a target label together with a build configuration | Dependencies after configuration choices, transitions, and toolchain resolution | `cquery` |
-| Action graph | Actions and artifacts | Which artifacts an action consumes and produces | `aquery` |
-| Skyframe graph | Internal evaluation keys and values | Which computations must be reevaluated when an input changes | Bazel's incremental-evaluation internals |
+| Post-loading target graph | Rule targets and file targets | Rule inputs from attributes such as `srcs`, `deps`, and `data`, plus dependencies added by rules | `query` |
+| Configured target graph | Configured targets: a target label together with a build configuration | Dependencies after Bazel chooses configurations and toolchains | `cquery` |
+| Action graph | Actions and artifacts | An action reads input artifacts and creates output artifacts | `aquery` |
+| Skyframe graph | Bazel's internal calculation keys and results | One calculation needs another; Bazel uses this graph to know what to repeat after an input changes | Bazel internals |
 
-The configured-target distinction is substantial: the same label may be
-analyzed in more than one configuration and therefore represent more than one
-configured target. A map keyed only by label would collapse those nodes if the
-operation needed to distinguish them.
+The difference between a target and a configured target matters. Bazel may
+analyze the same label in more than one configuration. Each combination is a
+separate configured target. If an operation needs to tell them apart, a map
+keyed only by label would incorrectly combine them.
 
 [Bazel's extension concepts](https://bazel.build/versions/9.1.0/extending/concepts)
 describe three broad phases:
 
-1. **Loading** evaluates needed BUILD and extension files and instantiates
-   rule targets.
-2. **Analysis** applies a build configuration, evaluates rule implementations,
-   and creates actions from the configured targets.
-3. **Execution** runs required actions.
+1. **Loading** reads and evaluates the needed BUILD and extension files. It
+   creates rule targets.
+2. **Analysis** applies a build configuration and runs rule implementations.
+   It creates actions from the configured targets.
+3. **Execution** runs the required actions.
 
 The
 [Bazel glossary](https://bazel.build/versions/9.1.0/reference/glossary)
-defines an action as a command with declared input and output artifacts—the
-files or file-like build objects that actions consume or produce. Its action
-graph is produced during analysis and used during execution.
+defines an action as a command with declared input and output artifacts.
+Artifacts are files or file-like build objects that actions read or create.
+Bazel creates the action graph during analysis and uses it during execution.
 
-Traditional `bazel query` examines the post-loading target graph before Bazel
-has applied one build configuration. Its graph is already broader than the
-running example: source files named by `srcs` are targets, and implicit
-dependencies are included by default. `--noimplicit_deps` suppresses implicit
-dependencies, but it does not remove explicit `srcs`, `data`, or other rule
-inputs.
+Traditional `bazel query` examines the target graph after loading but before
+Bazel applies one build configuration. This graph contains more than our
+example. Source files named by `srcs` are targets, and Bazel includes implicit
+dependencies by default. `--noimplicit_deps` hides implicit dependencies. It
+does not hide explicit `srcs`, `data`, or other rule inputs.
 
 A `select()` can name different dependencies for different platforms or build
-options. Traditional query returns every possible resolution because it has
-not selected one configuration, so its result can be a conservative
-overestimate of any one build. `cquery` examines configured targets after
-those choices and toolchains have been resolved. `aquery` exposes the actions
-and artifacts created during analysis:
+options. Traditional query has not selected one configuration, so it includes
+every possible choice. Its result can contain more dependencies than any one
+build uses. `cquery` examines configured targets after Bazel has made those
+choices and selected toolchains. `aquery` shows the actions and artifacts that
+analysis created:
 
 - [Bazel query reference](https://bazel.build/versions/9.1.0/query/language)
 - [Bazel action graph query](https://bazel.build/versions/9.1.0/query/aquery)
 
-Within the traditional target graph, Bazel's query operations make several
-production questions concrete:
+In the traditional target graph, Bazel's query operations answer several
+specific questions:
 
-- `labels(deps, //app:server)` evaluates the server rule's named `deps`
-  attribute; for the fixture above, it selects config and HTTP directly;
-- `deps(//app:server)` returns the server target and its closure across all
-  rule-input edges present in the query graph, not only `deps` attributes;
+- `labels(deps, //app:server)` reads the server rule's `deps` attribute. In
+  this example, it selects config and HTTP directly;
+- `deps(//app:server)` returns the server and every target it can reach across
+  all rule-input edges in the query graph, not only `deps` edges;
 - `rdeps(//..., //lib/http:http)` follows edges in reverse, but only within the
-  transitive dependency closure rooted at the main-repository rules matched by
-  its first argument, `//...`;
+  set selected by its first argument, `//...`. Here that set contains the
+  main repository's rules and everything they depend on;
 - `somepath(//app:server, //lib/logging:logging)` returns one path from the
-  server to logging, with no shortest-path guarantee; and
+  server to logging. It does not promise the shortest path; and
 - `allpaths(//app:server, //lib/logging:logging)` returns the graph formed by
   targets on dependency paths from the server to logging.
 
-The universe in `rdeps` is part of the question. A result means “reverse
-dependencies found inside this stated set,” not “every possible consumer in
-every repository.”
+The first argument to `rdeps` sets the search boundary, which Bazel calls the
+**universe**. The result means “reverse dependencies inside this set,” not
+“every possible user in every repository.”
 
 The distinction changes what a result means:
 
@@ -1087,54 +1057,59 @@ The distinction changes what a result means:
 bazel query 'deps(//app:server)'
 ~~~
 
-asks about the broader target dependency closure visible to traditional query.
-Its result can include `//app:main.go`, rules from external repositories, and
-implicit dependencies. It is not the six-node graph drawn in this lesson.
+asks for the server and every target it can reach in the broader traditional
+query graph. The result can include `//app:main.go`, rules from external
+repositories, and implicit dependencies. It is not the six-node graph in this
+lesson.
 
 ~~~text
 bazel aquery '//app:server'
 ~~~
 
-asks about actions generated for the configured build. It can show commands,
-inputs, outputs, and action mnemonics—the short names Bazel gives categories of
-work. The two commands do not traverse interchangeable node types.
+asks about actions created for the configured build. It can show commands,
+inputs, outputs, and action mnemonics. A mnemonic is Bazel's short name for a
+kind of work. The two commands walk different kinds of nodes.
 
-Traditional query deliberately continues when its pre-configuration graph
-contains a cycle rather than reporting that cycle as a build error. Bazel
-documents that a cycle formed by combining several possible configurations can
-disappear after one configuration is selected. `cquery` and `aquery` do report
-cycles in the configured target graph. This is another reason to ask which
-graph an operation is querying before interpreting “cycle” or “DAG.”
+Traditional query can continue when the graph before configuration contains a
+cycle. It does not treat that cycle as a build error. Bazel explains that
+combining several possible configurations can create an apparent cycle that
+disappears after Bazel chooses one configuration. `cquery` and `aquery` do
+report cycles in the configured target graph. Always ask which graph an
+operation uses before interpreting “cycle” or “DAG.”
 
 {{< callout kind="note" title="Why Bazel belongs in a Go production course" >}}
-Bazel is not implemented in Go. It belongs here because build graphs sit
-inside tools that infrastructure engineers use to build and deliver software,
-and its public documentation makes target dependencies and graph queries
-unusually explicit. The local implementation remains Go, while BuildKit, the
-Go command, Pulumi, Prometheus, and Argo provide Go source and patches.
+Bazel is not written in Go. It belongs in this unit because infrastructure
+engineers use build graphs to build and deliver software. Bazel also documents
+its target dependencies and graph queries clearly. The lab code remains Go.
+BuildKit, the Go command, Pulumi, Prometheus, and Argo provide additional Go
+source and patches.
 {{< /callout >}}
 
 ## Correct algorithms still need an accurate graph
 
-The algorithms so far assume that graph construction preserved the facts the
-operation needs. The next cases break that assumption in four different ways:
-a direct dependency is omitted, an analysis result is undetermined, two
-concrete nodes receive one identity, or a multi-parent relationship is reduced
-to one parent. BFS, DFS, and topological ordering cannot reconstruct
-information that never reached the graph.
+The algorithms work only with the facts that graph construction kept. The next
+cases show four ways to lose an important fact:
 
-### Declared edges can omit actual dependencies
+- a direct dependency is missing;
+- an analysis did not produce an answer;
+- two different nodes received the same identity; or
+- a relationship with several parents was reduced to one parent.
+
+BFS, DFS, and topological ordering cannot recover information that never
+entered the graph.
+
+### Declared edges can leave out actual dependencies
 
 [Bazel's dependency documentation](https://bazel.build/versions/9.1.0/concepts/dependencies)
 distinguishes two graphs:
 
 - the **declared dependency graph** comes from build metadata; and
-- the **actual dependency graph** contains what targets genuinely need to
+- the **actual dependency graph** contains what targets really need to
   build or execute correctly.
 
-For a correct build, every direct actual dependency must also be a direct
-declared dependency. In set language, the actual graph must be a subgraph of
-the declared graph.
+For a correct build, each direct dependency that the code needs must also be a
+direct declared dependency. In mathematical terms, the actual graph must be a
+subgraph of the declared graph.
 
 In the running BUILD declarations, logging is already transitively reachable:
 
@@ -1143,18 +1118,17 @@ declared:
 //app:server -> //lib/http:http -> //lib/logging:logging
 ~~~
 
-Now suppose `main.go` begins importing
-`example.com/buildgraph/lib/logging` directly, but `app/BUILD.bazel` still lists
-only config and HTTP. The source has introduced this direct requirement:
+Now suppose `main.go` starts importing
+`example.com/buildgraph/lib/logging` directly, but `app/BUILD.bazel` still
+lists only config and HTTP. The source code now has this direct requirement:
 
 ~~~text
 actual but undeclared:
 //app:server -----------------> //lib/logging:logging
 ~~~
 
-Reachability does not repair the missing declaration. The server now needs
-logging directly even though another path also reaches it. The correct BUILD
-change is to add the logging target to the server's own `deps` list:
+The existing path to logging does not repair the missing declaration. The
+server now uses logging directly, so its own `deps` list must include logging:
 
 ~~~starlark
 deps = [
@@ -1164,50 +1138,48 @@ deps = [
 ]
 ~~~
 
-`rules_go` enforces this principle while compiling: its
+`rules_go` checks this rule while compiling. Its
 [import check](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/go/tools/builders/importcfg.go)
-compares Go source imports with the packages supplied by direct `deps` and
-reports a missing strict dependency when they do not match. Other rule
-implementations may enforce the boundary differently or incompletely, which
-is why Bazel's general documentation still distinguishes the declared graph
-from the graph the code actually needs.
+compares imports in the Go source with the packages supplied by direct `deps`.
+It reports a missing strict dependency when they do not match. Other rule
+implementations may check this boundary differently or may not check it fully.
+For that reason, Bazel's general documentation still separates the declared
+graph from the graph that the code really needs.
 
-No traversal algorithm can infer the omitted direct edge from the declared
-graph. BFS, DFS, reverse reachability, and build ordering will all compute
-correct answers for the incomplete input they received.
+No graph walk can infer the missing direct edge. BFS, DFS, reverse reachability,
+and build ordering will all give correct answers for the incomplete graph that
+they received.
 
-Extra declarations cause a different problem. Bazel's documentation warns that
-redundant declared dependencies can make builds slower and binaries larger.
-Declaring every possible dependency “to be safe” therefore has a cost and
-cannot replace maintaining accurate direct dependencies.
+Extra declarations cause a different problem. Bazel warns that unneeded
+declared dependencies can make builds slower and binaries larger. Listing
+every possible dependency “to be safe” has a cost. It is not a substitute for
+maintaining the correct direct dependencies.
 
 {{< callout kind="production" title="The production connection" >}}
-A build tool repeatedly needs to answer questions about declared
-relationships: what a target needs, what depends on it, why one target reaches
-another, whether declarations form a cycle, and which work has no unfinished
-prerequisite. Adjacency lists support those repeated questions. They do not
-prove that every necessary declaration is present. Constructing and checking
-the graph are therefore part of correctness, not merely preparation for
-traversal.
+A build tool repeatedly asks what a target needs, what depends on it, why one
+target reaches another, whether the declarations contain a cycle, and which
+work has no unfinished prerequisite. Adjacency lists make those questions
+efficient. They do not prove that every needed declaration is present.
+Building and checking the graph are part of correctness, not only setup for a
+graph walk.
 {{< /callout >}}
 
 ### Missing, empty, and undetermined are different states
 
-A missing target is not the same as a known target with no dependencies. A
-known target whose dependency analysis did not finish is a third case: the
-program has a node, but it does not know whether that node is independent.
+A missing target is not the same as a known target with no dependencies. There
+is also a third case: the target exists, but the dependency check did not
+finish. The program does not yet know whether that target has dependencies.
 
 [Prometheus PR #15560](https://github.com/prometheus/prometheus/pull/15560)
 fixes this distinction in its rule dependency controller. A Prometheus rule
-group periodically evaluates recording or alerting rules; a recording rule can
-produce a time series that another group reads. For this case, treat each rule
-group as a node and `A -> B` as “group A depends on results produced by group
-B.” That edge requires the controller to respect B before A when it schedules
-their evaluation.
+group regularly evaluates recording or alerting rules. One recording rule can
+produce a time series that another group reads. For this case, make each rule
+group a node. `A -> B` means “group A depends on results from group B.” The
+controller must schedule B before A.
 
-The controller had treated an undetermined relation like an empty relation. It
-could therefore run rule groups concurrently even though dependency analysis
-had not established that concurrent evaluation was safe.
+The controller had treated “the check did not finish” as “there are no
+dependencies.” It could then run rule groups at the same time without knowing
+that this was safe.
 
 One possible result type makes the distinction visible:
 
@@ -1226,22 +1198,22 @@ type DependencyLookup struct {
 }
 ~~~
 
-`TargetMissing` means the requested node does not exist in the graph.
-`DependenciesUndetermined` means the target exists but the analysis could not
-answer. `DependenciesKnown` with an empty `IDs` slice means the analysis
-completed and found no dependencies under its stated rules. A Go API could
-return an error for the first case instead; the important requirement is not
-to encode all three cases as an empty slice.
+`TargetMissing` means that the requested node does not exist in the graph.
+`DependenciesUndetermined` means that the target exists but the check could
+not answer. `DependenciesKnown` with an empty `IDs` slice means that the check
+finished and found no dependencies under its stated rules. A Go API could
+return an error for a missing target instead. The important rule is that one
+empty slice must not stand for all three cases.
 
-What to do with an undetermined result depends on the operation. A scheduler
-may keep the work sequential or blocked and expose a diagnostic. It should not
-silently convert “could not determine” into “safe to run.”
+How to handle an undetermined result depends on the operation. A scheduler
+might keep the work in sequence or block it and show an error. It must not
+silently turn “could not determine” into “safe to run.”
 
-### Node identity must distinguish concrete nodes
+### Node identity must distinguish specific nodes
 
-An adjacency list assumes each key names exactly one node. If two concrete
-resources collapse to one key, the program can construct valid-looking edges
-between the wrong things.
+An adjacency list assumes that each key names exactly one node. If two
+different resources get the same key, the program can create edges between
+the wrong resources even though those edges look valid.
 
 #### Pulumi: current and pending-deletion resources
 
@@ -1254,116 +1226,118 @@ B depends on A
 old A, still awaiting deletion
 ~~~
 
-In Pulumi's deletion graph, each node should represent one concrete resource
-record. The edge `B -> A` means B depends on A, so A must remain while B still
-exists. That relationship can be correct only if the endpoint identifies the
-particular A that B uses.
+In Pulumi's deletion graph, each node should represent one specific resource
+record. The edge `B -> A` means that B depends on A, so A must remain while B
+still exists. The edge is correct only if it points to the specific A that B
+uses.
 
 Pulumi calls its logical resource identifier a **URN**, or uniform resource
-name. The current and old resources may share that URN. A lookup with one entry
-per URN associated B with the old A instead of the current A. Later deletion
-logic could then permit the current A to be deleted, leaving B with a dangling
-reference—that is, B would refer to a resource that no longer existed. The
-patch tracked current and pending-deletion resources separately.
+name. The current and old resources can share that URN. A lookup with one entry
+for each URN connected B to the old A instead of the current A. Later code
+could then allow deletion of the current A. This would leave B pointing to a
+resource that no longer existed, which is called a **dangling reference**. The
+patch tracked current resources and resources waiting for deletion separately.
 
-The graph lesson is not simply “use a longer string.” Define identity from the
-facts the operation must distinguish. If current and pending-deletion copies
-can coexist, the key must retain enough state to tell them apart.
+The lesson is not simply “use a longer string.” Define identity from the facts
+that the operation needs to tell apart. If current and pending-deletion copies
+can exist at the same time, the key must include enough information to
+distinguish them.
 
-Deletion also gives “dependency order” two possible meanings. If B depends on
-A, creation ordinarily needs A before B, while deletion ordinarily needs B
-before A. Name the operation and direction rather than saying only “sort the
+“Dependency order” can mean two different things during deletion. If B depends
+on A, creation usually needs A before B. Deletion usually needs B before A.
+Name the operation and direction instead of saying only “sort the
 dependencies.”
 
 #### Argo: a hash collision manufactured a cycle
 
 [Argo Workflows issue #16376](https://github.com/argoproj/argo-workflows/issues/16376)
-concerns Argo's records for pieces of a workflow, such as Pods and grouping
-nodes. In the recursive completion check, `A -> B` means record A names record
-B as a child whose completion contributes to A's result.
+concerns Argo's records for parts of a workflow, such as Pods and grouping
+nodes. In its recursive completion check, `A -> B` means that record A names B
+as a child. B's completion contributes to A's result.
 
-Two distinct node names produced the same node ID under a 32-bit FNV-1a hash. A
-hash converts a name into a fixed-size numeric value; a **collision** occurs
-when two different names produce the same value. A lookup returned an unrelated
-record, so the controller recorded an ancestor as one of its own descendants.
-The completion check then followed that false child link back around the cycle
-until the controller process overflowed its stack and restarted.
+Two different node names produced the same node ID under a 32-bit FNV-1a hash.
+A hash converts a name into a fixed-size number. A **collision** happens when
+two different names produce the same number. A lookup then returned an
+unrelated record. The controller recorded an ancestor as one of its own
+descendants. The completion check followed that false child link around the
+cycle until the process ran out of stack space and restarted.
 
 [Argo Workflows PR #16625](https://github.com/argoproj/argo-workflows/pull/16625),
 still open on August 12, 2026, prevents two recursive walks from descending
-into a child already on the current chain of calls. The function removes that
-child from the set when the recursive call returns. A malformed link can no
-longer make the function recurse forever.
+into a child that is already on the current chain of calls. When the recursive
+call returns, the function removes the child from that set. A bad link can no
+longer make the function call itself forever.
 
-The patch's tests include a diamond whose two branches share a child. That
-child may be visited once through each branch because it is no longer on the
-first chain when the second branch reaches it. This does not contradict the
-three-state DFS used earlier. A pure cycle validator may mark a node finished
-and skip its outgoing edges on a later visit because it has already proved
-that subgraph acyclic. Argo's functions perform completion work along each
-route; simply suppressing every later visit would change that operation. A
-global completed-node cache would require a separate proof that the computed
-result does not depend on the route.
+The patch's tests include a diamond whose two branches share a child. The walk
+may visit that child once through each branch. By the time the second branch
+reaches it, the child is no longer on the first chain. This does not conflict
+with the three-state DFS described earlier. A function that only checks for
+cycles can mark a node finished and skip its outgoing edges on a later visit.
+It has already proved that the graph below that node has no cycle. Argo's
+functions do completion work along each route, so skipping every later visit
+would change their result. A global cache of completed nodes would need proof
+that the result does not depend on the route used to reach a node.
 
-This change prevents a malformed graph from crashing the controller. It does
-not remove the source of the bad edge. Giving distinct node names distinct
-identities, detecting a collision during graph construction, and stopping a
-later recursive walk safely are three separate responsibilities.
+This change stops a bad graph from crashing the controller. It does not remove
+the source of the bad edge. Three separate protections are needed:
+
+- give different node names different identities;
+- detect a collision while building the graph; and
+- stop a later recursive walk safely.
 
 ### Keeping one parent discards the others
 
-A workflow node can appear beneath several parents. Argo's retry code needed
-to walk from a selected node back toward its ancestors, so it transformed the
-parent-to-children relation into `map[child]parent`. That map has room for only
-one parent per child; assigning another parent replaces the first. Reducing a
-richer relation in this way is sometimes called a **projection**.
+A workflow node can appear under several parents. Argo's retry code needed to
+walk from a selected node back to its ancestors. It changed the
+parent-to-children relationship into `map[child]parent`. This map can store
+only one parent for each child. Storing another parent replaces the first, so
+the other relationship is lost.
 
 [Argo Workflows issue #16450](https://github.com/argoproj/argo-workflows/issues/16450)
-documents that transformation while the code ranged over a Go map. For a node
-with several parents, whichever parent was visited last replaced the previous
-entry. Because Go does not define map iteration order, repeating the same retry
-could choose a different parent chain. A **TaskGroup** is Argo's node for tasks
-created by a loop. One resulting parent choice reset a TaskGroup to Running
-without resetting the work that could complete it. The group therefore
-remained Running after all Pods had finished.
+documents this change while the code looped over a Go map. For a node with
+several parents, the last parent visited replaced the previous entry. Go does
+not define map iteration order, so the same retry could choose a different
+parent chain on another run. A **TaskGroup** is Argo's node for tasks created
+by a loop. One parent choice reset a TaskGroup to Running but did not reset the
+work that could complete it. The group stayed Running after all Pods had
+finished.
 
 Merged
 [PR #16451](https://github.com/argoproj/argo-workflows/pull/16451)
-sorts node IDs before building that one-parent map. The selected chain is now
-stable across runs. The patch explicitly does not preserve every parent.
+sorts node IDs before building the one-parent map. The chosen chain is now the
+same on every run. The patch clearly states that it does not keep every parent.
 
 This supports two separate conclusions:
 
-- an output that depends on Go map order is not deterministic; and
-- deterministic selection of one parent does not restore the other parents.
+- output that depends on Go map order can change between runs; and
+- choosing the same parent every time does not restore the other parents.
 
-Sometimes keeping one parent is appropriate, such as when an operation asks
-for one explanation path rather than every path. Its contract must state how
-that parent is selected and that the other valid parents are intentionally
-omitted.
+Sometimes keeping one parent is correct. For example, an operation may ask for
+one explanation path rather than every path. Its contract must say how it
+chooses that parent and that it leaves out the other valid parents on purpose.
 
 ## Runtime service dependencies are not automatically a DAG
 
-The clean build example does not justify forcing every dependency-shaped
-production problem into the same model.
+The clean build example does not mean that every production dependency must
+use the same model.
 
 [GitHub's deployment-safety report](https://github.blog/engineering/infrastructure/how-github-uses-ebpf-to-improve-deployment-safety/)
-describes circular dependencies in deployment tooling. A script needed to
-repair an outage could itself call github.com, an internal service, or a tool
-that contacted an unavailable system. Such a dependency may remain hidden
-until an incident delays recovery.
+describes cycles in deployment tools. A script needed to repair an outage
+might itself call github.com, an internal service, or a tool that contacted a
+system that was down. The dependency might remain hidden until it delays
+recovery from an incident.
 
-The account begins with a Go proof of concept and describes a production
-system that uses Linux's eBPF facility to observe and optionally block network
-calls from deployment scripts. It does not topologically sort a general
-service graph.
+The report starts with a small Go experiment. It then describes a production
+system that uses Linux's eBPF feature to observe and sometimes block network
+calls from deployment scripts. It does not put a general service graph into
+topological order.
 
 That is the important boundary:
 
 - services can call one another in a cycle without every call being a design
   error;
-- the path by which one service failure affects another is not necessarily the
-  set of steps required to recover them;
+- the path by which one service failure affects another may differ from the
+  steps needed to recover the services;
 - services, deployment scripts, data stores, and repair actions are different
   possible node types; and
 - recovery may require a prebuilt tool or package, or a control route that
@@ -1374,16 +1348,16 @@ For recovery planning, ask:
 > Which actions must succeed for this specific recovery operation, and what
 > does each action require?
 
-If those action constraints form a cycle, the operation needs a design change
-or an independent recovery route that breaks the cycle. The existence of a
-cyclic service relationship alone does not prove that the services are
-incorrectly designed.
+If those action requirements form a cycle, the recovery operation needs a
+design change or an independent route that breaks the cycle. A cycle between
+running services does not by itself prove that the services are designed
+incorrectly.
 
 ## Account for both nodes and edges
 
-The production cases above establish what must be true of the input graph.
-With those limits stated, we can return to the adjacency-list algorithms and
-account for the work they perform after a valid requested subgraph exists.
+The production cases above show what the input graph must get right. We can
+now return to the adjacency-list algorithms and count the work that they do on
+a valid requested part of the graph.
 
 Let `V` be the number of nodes reached in the requested subgraph, `E` the
 number of edges among them, `d` the number of direct dependencies of one
@@ -1392,7 +1366,7 @@ returned cycle.
 
 | Operation | Time | Additional working space |
 |---|---:|---:|
-| Add one deduplicated edge | expected `O(1)` | `O(1)`, excluding evidence text |
+| Store a repeated edge only once | expected `O(1)` | `O(1)`, excluding evidence text |
 | List direct dependencies | `O(d)` | `O(d)` for a copied result |
 | Dependency closure with BFS or DFS | `O(V + E)` | `O(V)` |
 | Fewest-edge path with BFS | `O(V + E)` | `O(V)` |
@@ -1400,38 +1374,36 @@ returned cycle.
 | Dependency-first order with an unordered ready set | `O(V + E)` | `O(V)` |
 | Dependency-first order with a min-heap tie-break | `O(E + V log V)` | `O(V)` |
 
-The `O(V + E)` traversal bound comes from processing each reached node once and
-examining each outgoing edge of those nodes once. Saying only “linear time” is
-ambiguous because a graph can have far more edges than nodes.
+The `O(V + E)` limit comes from processing each reached node once and checking
+each outgoing edge from those nodes once. Saying only “linear time” is unclear
+because a graph can have many more edges than nodes.
 
-For a cycle report, DFS still examines at most `O(V + E)` graph data. Copying
-the source evidence into the returned diagnostic adds `O(S_cycle)` time and
-space.
+For a cycle report, DFS still checks at most `O(V + E)` graph data. Copying
+source locations into the returned error adds `O(S_cycle)` time and space.
 
-These bounds apply to one traversal after the adjacency lists exist. Loading,
-validating, deduplicating, and sorting declarations have their own costs.
-Repeatedly asking the same query can also justify another index or cached
-result, but cache invalidation must follow graph updates correctly.
+These limits apply to one graph walk after the adjacency lists exist. Loading,
+checking, removing duplicate declarations, and sorting have their own costs.
+If callers repeat the same query, another index or a cached result may help.
+The program must update or discard that cache when the graph changes.
 
 The expected constant-time edge insertion assumes a hash-set index and target
-IDs whose length is bounded, so computing one hash is treated as constant
-work. It is the usual average-case claim for a hash table, not a worst-case
-guarantee for every possible set of keys. Searching a slice to detect a
-duplicate would instead take time proportional to that target's existing
-direct dependencies.
+IDs with a limited length. Under that assumption, computing one hash counts as
+constant work. This is the usual average result for a hash table, not a promise
+for every possible set of keys. If the program instead searches a slice for a
+duplicate, the time grows with the target's existing direct dependencies.
 
-{{< callout kind="note" title="Be honest about deterministic tie-breaking" >}}
-Basic Kahn traversal is linear when the ready set may return any available
-node. Requiring the lexicographically smallest ready target can add work. A
-min-heap—a priority queue that returns the smallest target name—pushes and
-removes each node at most once, producing
-`O(E + V log V)` time. A small teaching implementation may instead sort a
-slice, but it should state the cost it actually pays.
+{{< callout kind="note" title="Include the cost of fixed tie-breaking" >}}
+Kahn's basic algorithm takes `O(V + E)` time when the ready set may return any
+available node. Always choosing the first target in dictionary order adds
+work. A **min-heap** is a priority queue that returns the smallest target name.
+It adds and removes each node at most once, for a total of
+`O(E + V log V)` time. A small teaching program may sort a slice instead, but
+it should state the cost of the code it actually uses.
 {{< /callout >}}
 
-## Test the graph contract before benchmarking it
+## Check correctness before measuring speed
 
-Graph tests should make the relationship and its edge cases visible.
+Graph tests should make the relationship and unusual cases easy to see.
 
 ### Use small named examples
 
@@ -1445,24 +1417,26 @@ Cover at least:
 - a cycle of several nodes;
 - duplicate declarations with the same dependent and dependency;
 - an edge that names an unknown target; and
-- two concrete records that would collide under an incomplete identity.
+- two different records that would receive the same incomplete identity.
 
-Small graphs are easy to draw, and the expected paths and orders can be checked
-by inspection.
+Small graphs are easy to draw. You can check their expected paths and orders
+by looking at them.
 
 ### Check every returned order
 
-For every stored `target -> dependency` edge in the requested closure, assert:
+For every stored `target -> dependency` edge among the requested targets and
+their dependencies, check:
 
 ~~~text
 position(dependency) < position(target)
 ~~~
 
-Also assert that the order contains each node in the requested closure exactly
-once and no disconnected node unless it was explicitly requested.
+Also check that the order contains each requested or reached node exactly
+once. It must not contain a disconnected node unless the request named that
+node.
 
-Do not assert one entire order when several are valid unless deterministic
-tie-breaking is part of the API contract.
+Do not require one exact order when several orders are valid. Require it only
+if the API promises a fixed tie-breaking rule.
 
 ### Check cycle witnesses
 
@@ -1473,41 +1447,42 @@ A returned cycle must:
   is the second edge's dependent;
 - have a last dependency equal to the first dependent;
 - use only edges present in the graph;
-- preserve edge source locations; and
+- keep edge source locations; and
 - report a self-edge as a one-edge cycle.
 
 A diamond must not be reported as a cycle.
 
 ### Check path promises
 
-If `FewestEdgePath` promises a fewest-edge path, verify every adjacent pair in
-the result is a declared edge. On tiny generated graphs, a separate test can
-enumerate all paths that do not repeat a node and compare the returned length
-with the smallest one. Exhaustive enumeration is too expensive for production,
-but on deliberately small test graphs it provides an independent check of the
-BFS result. Verify also that an unreachable known target returns “no path,”
-while an unknown target receives the API's distinct missing-target result.
+If `FewestEdgePath` promises a path with the fewest edges, check that every
+adjacent pair in the result is a declared edge. For a tiny generated graph, a
+separate test can list every path that does not repeat a node. It can then
+compare the returned length with the shortest one. This complete, or
+**exhaustive**, search is too expensive for production. On a deliberately
+small test graph, however, it provides an independent check of BFS. Also check
+that a known but unreachable target returns “no path,” while an unknown target
+gets the API's separate missing-target result.
 
-### Check determinism deliberately
+### Check promised output stability
 
-Build equivalent graphs from declarations in different input orders and call
-the public operations repeatedly. The returned direct-neighbor lists, equal
-length paths, cycle witnesses, and build plans should remain stable if the API
-promises stable output.
+Build the same graph from declarations in different input orders. Call the
+public operations several times. Direct-neighbor lists, equal-length paths,
+cycle reports, and build plans should stay the same if the API promises stable
+output.
 
 ### Measure after correctness
 
-Count reached nodes and examined edges before comparing elapsed time. Then
-benchmark sparse chains, graphs where one node has many outgoing edges,
-diamonds with shared dependencies, and invalid cycles separately. A benchmark
-of only one shape does not establish a general graph cost.
+Count reached nodes and checked edges before comparing elapsed time. Then
+measure sparse chains, graphs where one node has many outgoing edges, diamonds
+with shared dependencies, and invalid cycles separately. A measurement of only
+one graph shape does not show the cost for every graph.
 
 ## Read each source for one role
 
-This lesson uses formal sources, product documentation, source code, issue
-reports, and patches. They establish different things:
+This lesson uses course notes, product documentation, source code, issue
+reports, and patches. Each kind of source answers a different question:
 
-| Source | What it establishes |
+| Source | What it tells us |
 |---|---|
 | [MIT 6.006 Lecture 9](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/196a95604877d326c6586e60477b59d4_MIT6_006S20_lec9.pdf) | Directed graph representation, reachability, BFS, fewest-edge distance, and `O(V + E)` analysis |
 | [MIT 6.006 Lecture 10](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/f3e349e0eb3288592289d2c81e0c4f4d_MIT6_006S20_lec10.pdf) | DFS, directed cycles, DAGs, and topological order |
@@ -1516,74 +1491,75 @@ reports, and patches. They establish different things:
 | [Bazel rule concepts](https://bazel.build/versions/9.1.0/extending/rules) | How label-bearing attributes, private attributes, toolchains, rule analysis, and actions create different relationships |
 | [Bazel dependencies](https://bazel.build/versions/9.1.0/concepts/dependencies) | Bazel's target-dependency contract and declared-versus-actual distinction |
 | [Bazel query reference](https://bazel.build/versions/9.1.0/query/language) | Query graph direction, `deps`, `rdeps`, paths, cycles, configurations, and output order |
-| [`rules_go` v0.60.0 rule reference](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/docs/go/core/rules.md) | The actual `go_binary` and `go_library` attributes used by the fixture and the direct-import meaning of `deps` |
+| [`rules_go` v0.60.0 rule reference](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/docs/go/core/rules.md) | The actual `go_binary` and `go_library` attributes used by the example and the direct-import meaning of `deps` |
 | [`rules_go` v0.60.0 import check](https://github.com/bazel-contrib/rules_go/blob/v0.60.0/go/tools/builders/importcfg.go) | The pinned implementation that checks source imports against direct dependencies |
 | Pinned Go source | What one named Go release implements |
 | Public issue report | What a reporter observed and how they reproduced it |
-| Merged pull request | What maintainers changed, not proof that one patch explains every similar symptom |
-| Open pull request | A proposed and reviewable change, not released behavior |
+| Merged pull request | What maintainers changed; it does not prove that one patch explains every similar symptom |
+| Open pull request | A proposed change that reviewers can inspect; it is not released behavior |
 
 The
 [MIT BFS recitation](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/resources/mit6_006s20_r09/)
 and
 [DFS recitation](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/resources/mit6_006s20_r10/)
-provide supplementary worked problems.
+provide more worked problems.
 
-## Translate the model in a design conversation
+## Explain the design to a colleague
 
-A compact answer to “how would you model and schedule these build
+A short answer to “How would you represent and schedule these build
 dependencies?” might be:
 
-> I would first choose the graph. For this example, a node is one of the six
-> `rules_go` rule targets, and `A -> B` means A's explicit `deps` attribute
-> names B. That excludes source-file, implicit, configured-target, toolchain,
-> action, and artifact relationships. A production integration should obtain
-> its chosen graph through Bazel's supported query interfaces, not by scraping
-> BUILD text.
+> I would first define the graph. In this example, each node is one of the six
+> `rules_go` rule targets. `A -> B` means that A's explicit `deps` attribute
+> names B. This graph leaves out source files, implicit dependencies,
+> configured targets, toolchains, actions, and artifacts. Production code
+> should get its graph through Bazel's supported query tools. It should not try
+> to extract the graph by reading BUILD files as plain text.
 >
-> I would retain forward and reverse adjacency lists. Forward BFS can return a
-> fewest-edge explanation path, while reverse traversal can find declared
-> dependents. DFS can return a closed cycle. If the input provides trustworthy
-> source evidence for an edge, the diagnostic can preserve it; implicit or
-> macro-generated edges may have only a coarser location.
+> I would store adjacency lists in both directions. Forward BFS can return an
+> explanation path with the fewest edges. A walk in the other direction can
+> find declared users of a target. DFS can return a closed cycle. When the
+> input has a reliable source location for an edge, the error can keep it. An
+> implicit edge or an edge created by a macro may have only a less exact
+> location.
 >
-> For a valid requested subgraph, I would count each target's dependencies and
-> append it to a dependency-first order only after those dependencies have
-> appeared. Those traversals take `O(V + E)` time; a min-heap used to select
-> the smallest ready target adds `O(V log V)`. Before a scheduler uses the
-> result, I would validate node identity and distinguish declared, actual,
-> missing, empty, and undetermined relationships. I would also distinguish
-> placing a target in a calculated order from completing an action: running
-> work releases a dependent only after its prerequisite has completed
-> successfully or a cache has supplied its result.
+> For the requested targets and their dependencies, I would count how many
+> dependencies each target still needs. I would add a target to the
+> dependency-first order only after adding its dependencies. The graph walks
+> take `O(V + E)` time. A min-heap that always selects the smallest ready
+> target adds `O(V log V)` work. Before a scheduler uses the result, I would
+> check node identity. I would also keep declared, actual, missing, empty, and
+> undetermined relationships separate. Finally, putting a target in a
+> calculated list is not the same as completing an action. Running work can
+> release a dependent only after its prerequisite finishes successfully or a
+> cache supplies the result.
 
-That answer states the model, operations, direction, costs, correctness checks,
-and limits. It does not claim that the graph algorithm is a complete build
-system.
+That answer states the graph, operations, direction, costs, checks, and limits.
+It does not claim that a graph algorithm is a complete build system.
 
-## What comes next
+## Put the model to work
 
-The planned Build Graph Explorer lab will turn the running graph into a small
-Go API for direct dependencies, reverse dependencies, explanation paths, cycle
-witnesses, ready work, and dependency-first order. Its input will be explicit,
-already identified target and edge records based on the fixture above. Parsing
-or evaluating BUILD files is a separate Bazel-integration problem and is not
-silently included in that lab. The planned Wheel scenarios will use the
-BuildKit, Prometheus, and Pulumi failures without placing their solutions in
-the incoming reports.
+The [Build Graph Explorer lab](lab/) turns the example into a small Go API. The
+API finds direct dependencies, reverse dependencies, shortest explanation
+paths by edge count, cycles, ready work, and dependency-first order. It
+receives target and edge records whose identities are already known. Reading
+and evaluating BUILD files is a separate Bazel integration task.
 
-Those exercises are not published yet. The foundations lesson stands on its
-own and links only to the production and supplementary sources already
-available.
+The [Unit 04 Wheels of Misfortune](wheel/) begin with reports inspired by the
+BuildKit, Prometheus, and Pulumi changes in this lesson. You will distinguish a
+real cycle from a harmless second visit, an unfinished dependency check from a
+known empty result, and a logical resource name from the identity of one
+specific resource record. The reports and evidence do not reveal the repairs.
+Each hidden debrief explains one approach after the exercise.
 
 ## Reflection
 
-For each answer, name the graph and edge meaning you are using:
+For each answer, name the graph and say what one edge means:
 
 1. How do `app/BUILD.bazel`, package `app`, and `name = "server"` combine to
    identify `//app:server`?
 2. Why does `srcs = ["main.go"]` create a relationship in Bazel's target graph
-   even though the running teaching graph omits it?
+   even though the running teaching graph leaves it out?
 3. If `main.go` imports logging directly, why must the server declare logging
    directly instead of relying on the path through HTTP?
 4. Why can `bazel query 'deps(//app:server)'` return more targets than the
@@ -1595,19 +1571,20 @@ For each answer, name the graph and edge meaning you are using:
    back to the current path?
 8. Why is a dependency-first build order the reverse of a topological order of
    the stored explicit-`deps` edges?
-9. Why does appending a target to a calculated order not mean its work has
-   completed? What does a scheduler's ready set prove about concurrent work?
+9. Why does adding a target to a calculated order not mean that its work has
+   finished? What does a scheduler's ready set tell you about work that may
+   run at the same time?
 10. Why can `bazel query`, `cquery`, and `aquery` return information about
    different graphs for the same target label?
 11. What went wrong when Pulumi used a shared URN as the complete identity of
    both current and pending-deletion resources?
-12. Which problem did Argo's deterministic parent selection fix, and which
-   information did the one-parent map still discard?
+12. Which problem did Argo fix by choosing the same parent on every run? Which
+    information did the one-parent map still discard?
 13. Why does GitHub's circular deployment dependency call for an independent
     recovery route rather than a blanket rule that runtime service graphs must
     be DAGs?
 
 The durable production habit is:
 
-> Derive the graph from real declarations, state what the graph omits, and
-> verify it before trusting an algorithm's answer.
+> Build the graph from real declarations. State what it leaves out. Check it
+> before trusting an algorithm's answer.

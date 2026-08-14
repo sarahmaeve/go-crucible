@@ -365,6 +365,27 @@ retry, or whether strict priority is starving runnable work. The lab and
 Wheels therefore make ordering, retry timing, eligibility, and queue growth
 separately observable.
 
+## Unit 4: Build dependency graphs
+
+Unit 4 has a foundations lesson, a runnable Build Graph Explorer lab, and three
+Wheels. Its research, source audit, and implementation decisions are recorded
+in [`docs/cs-prod-bridge-unit-04.md`](./cs-prod-bridge-unit-04.md).
+
+The unit begins with explicit `rules_go` target declarations and uses the same
+target-to-dependency direction as Bazel query. The local graph keeps forward
+and reverse adjacency lists, returns a fewest-edge explanation path with BFS,
+reports a source-bearing cycle with DFS, and calculates a deterministic
+dependency-first order for requested roots. Operation counts and benchmarks
+separate node and edge growth from wall-clock measurements.
+
+The Wheels isolate three graph-construction and validation failures drawn from
+public Go changes: a build-stage cycle that must become an editable diagnostic,
+an undetermined dependency relation that must not be treated as independence,
+and current and pending-deletion resources that share a logical URN but remain
+different concrete nodes. Their ordinary tests preserve valid behavior; build
+tags `csbridgewheel8`, `csbridgewheel9`, and `csbridgewheel10` reproduce the
+three symptoms.
+
 ## Interview translation
 
 Interview preparation is an output of the learning process, not its organizing

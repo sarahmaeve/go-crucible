@@ -27,7 +27,7 @@ through benchmarks, profiles, and report-first debugging scenarios.
 | [01](./public/01-big-o-hash-tables/index.html) | Big-O and hash tables | Initial implementation |
 | [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
 | [03](./public/03-queues-heaps-scheduling/index.html) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
-| [04](./public/04-build-dependency-graphs/index.html) | Build dependency graphs | Foundations lesson |
+| [04](./public/04-build-dependency-graphs/index.html) | Build dependency graphs | Foundations, graph lab, and three Wheels |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and

@@ -1,9 +1,11 @@
 # Unit 04 Research and Design: Build Dependency Graphs
 
-**Status:** foundations lesson authored from the Bazel-centered research;
-lab and Wheel designs remain provisional and are not implemented
+**Status:** initial implementation complete: foundations lesson, Build Graph
+Explorer lab, and three Wheels
 
 **Research reviewed:** 2026-08-12
+
+**Implementation completed:** 2026-08-14
 
 **Target toolchain:** Go 1.26.x
 
@@ -720,7 +722,7 @@ sorting term.
 The adjacency maps consume O(V + E) space. Maintaining both directions roughly
 duplicates edge references, not the evidence records themselves.
 
-## Provisional Go lab: Build Graph Explorer
+## Implemented Go lab: Build Graph Explorer
 
 ### Domain
 
@@ -731,12 +733,12 @@ invalid graphs.
 The lab is Bazel-inspired but uses its own small text or Go fixture. It should
 not require Bazel to be installed.
 
-### Proposed types
+### Implemented types
 
 ~~~go
 type TargetID string
 
-type SourceRef struct {
+type SourceLocation struct {
     File string
     Line int
 }
@@ -744,7 +746,7 @@ type SourceRef struct {
 type Dependency struct {
     Target TargetID
     Needs  TargetID
-    Source SourceRef
+    Source SourceLocation
 }
 
 type Graph struct {
@@ -752,33 +754,38 @@ type Graph struct {
 }
 ~~~
 
-The field names encode direction: Target depends on Needs. Avoid a generic
-From/To pair in the public API.
+`DependencyEdge` and `CycleEdge` expose one logical target-to-dependency edge
+and its retained source locations. `TraversalStats` and `BuildStats` make node,
+edge, and ready-set work observable without using elapsed time. The field names
+encode direction: Target depends on Needs. The public input does not use a
+generic From/To pair.
 
-### Proposed operations
+### Implemented operations
 
 ~~~go
 func NewGraph(targets []TargetID, deps []Dependency) (*Graph, error)
 
 func (g *Graph) Dependencies(target TargetID) ([]TargetID, error)
 func (g *Graph) ReverseDependencies(target TargetID) ([]TargetID, error)
-func (g *Graph) WhyDepends(target, dependency TargetID) ([]TargetID, bool, error)
-func (g *Graph) Cycle() ([]Dependency, bool)
-func (g *Graph) BuildOrder(roots []TargetID) ([]TargetID, error)
+func (g *Graph) DependencyClosure(roots []TargetID) ([]TargetID, TraversalStats, error)
+func (g *Graph) FewestEdgePath(start, want TargetID) ([]TargetID, bool, TraversalStats, error)
+func (g *Graph) FindCycle() []CycleEdge
+func (g *Graph) BuildOrder(roots []TargetID) ([]TargetID, BuildStats, error)
 func (g *Graph) Ready(roots, completed []TargetID) ([]TargetID, error)
 ~~~
 
-Names and return shapes remain provisional. The design must preserve these
-contracts:
+The implementation preserves these contracts:
 
 - Unknown target is different from a known target with no dependencies.
 - Dependencies returns direct dependencies, not the full closure.
-- WhyDepends returns the fewest-edge path promised by the lab.
-- Cycle returns enough edge evidence to locate the declarations.
+- FewestEdgePath returns the fewest-edge path promised by the lab.
+- FindCycle returns enough edge evidence to locate the declarations.
 - BuildOrder includes only requested roots and their dependency closure.
 - BuildOrder places dependencies before dependents.
 - Ready is deterministic and contains only targets in the requested closure.
-- Duplicate edge declarations do not change counts or invent cycles.
+- Duplicate edge declarations do not change neighbor or readiness counts, but
+  distinct source records for the same logical edge remain available in a
+  cycle report.
 
 ### Error behavior
 
@@ -825,11 +832,12 @@ An invalid variant adds:
 The fixture is intentionally small enough to draw by hand. Larger production
 cases belong in the Wheels.
 
-## Wheel candidates
+## Implemented Wheels
 
-The Wheels should reuse the foundations vocabulary but introduce a different
-failure each time. Each production report or patch is inspiration, not a claim
-that the exercise reproduces the entire product.
+The Wheels reuse the foundations vocabulary but introduce a different failure
+each time. Each production report or patch is inspiration, not a claim that
+the exercise reproduces the entire product. Their symptom tests use build tags
+`csbridgewheel8`, `csbridgewheel9`, and `csbridgewheel10`.
 
 ### W01: The Build That Loops Back
 
@@ -972,48 +980,44 @@ Other wording rules:
 - Do not generalize one issue report into a product-wide architecture claim.
 - Paraphrase patches and reports; quote only when exact wording is necessary.
 
-## Open design questions
+## Implementation decisions
 
-1. Should the lab expose Cycle as a separate operation, or should BuildOrder
-   return a structured CycleError containing the witness?
-2. Should WhyDepends choose the lexically smallest path among equal-length
-   paths, or merely guarantee deterministic output?
-3. Should edge evidence allow several source references for one logical edge
-   in the foundations lab, or wait until W01?
-4. Should the foundations lesson demonstrate Bazel query commands in a small
-   checked-in example, or keep Bazel as linked production evidence so the
-   lesson requires only Go?
-5. Should declared-versus-actual dependency checking become W04, or remain a
-   discussion after the lab?
-6. Which small Go repository fixture best resembles a real build without
-   requiring learners to understand Bazel labels in depth?
+1. `FindCycle` is a separate whole-graph query. `BuildOrder` returns a
+   structured `CycleError` when the requested closure is cyclic.
+2. Sorted adjacency lists make equal-length BFS choices and the first cycle
+   witness deterministic. The contract does not claim that the chosen path or
+   cycle is mathematically unique.
+3. One logical edge can retain several distinct source locations. Duplicate
+   declarations do not inflate neighbor or dependency counts.
+4. A lexical min-heap selects ready targets. The documented ordering cost is
+   therefore `O(E + V log V)` for the requested closure.
+5. The fixture uses the six `rules_go` labels developed in the foundations
+   lesson. Bazel remains a linked production model; the Go lab does not require
+   Bazel or parse BUILD files.
+6. Declared-versus-actual checking remains a discussion and possible later
+   Wheel. The initial implementation contains the three selected scenarios.
 
-None of these questions changes the foundations model. They should be resolved
-before authoring the lab API and tests.
+## Validation and maintenance
 
-## Next research and design steps
+- Ordinary lab and Wheel tests must pass without build tags.
+- Each of tags `csbridgewheel8`, `csbridgewheel9`, and `csbridgewheel10` must
+  fail on the starting tree for its documented reason and pass after the
+  debrief repair.
+- Hugo must render the foundations, lab, Wheel overview, reports, candidate
+  guides, evidence packets, and hidden debriefs without unresolved source-tree
+  Markdown links.
+- Source and status claims should be reviewed when pinned versions or upstream
+  records change.
+- The plain-language review was completed on 2026-08-14. Later wording changes
+  must not change graph direction, ordering rules, source boundaries, or
+  exercise answers.
 
-1. Review the authored foundations lesson against the source boundaries and
-   writing guidance in this document.
-2. Verify every remaining Go source link against the pinned release or merge
-   commit and record the exact functions used.
-3. Prototype the Build Graph Explorer API on paper with the candidate fixture,
-   including unknown targets, duplicate edges, self-cycles, diamonds, and
-   disconnected targets.
-4. Decide the deterministic tie-break contract for BFS, cycle witnesses, and
-   build ordering.
-5. Design W01-W03 without embedding hints or solutions in learner-facing text.
-6. Run a technical-language review before implementation, checking especially
-   arrow direction, topological terminology, and target-versus-action claims.
+## Current implementation
 
-## Current recommendation
-
-Proceed with Bazel as Unit 04's foundations example.
-
-The unit should begin with a declared build target dependency because it is a
-real, explicit production relationship that naturally supports traversal,
-cycle detection, readiness, and ordering. It should then use Go production
-patches to show how those mechanics fail in real systems. End with runtime
-service and incident-recovery graphs as a modeling boundary: they are valuable
-precisely because they show that not every dependency-shaped problem is already
-a DAG.
+Bazel remains Unit 04's foundations example because a declared build target
+dependency is explicit and supports traversal, cycle detection, readiness, and
+ordering. The Go lab makes those operations inspectable. The BuildKit,
+Prometheus, and Pulumi Wheels then show that a correct graph algorithm still
+depends on validation, knowledge state, and concrete node identity. The lesson
+ends with runtime service and recovery relationships as a modeling boundary:
+not every dependency-shaped problem is already a DAG.
