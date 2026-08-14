@@ -1,6 +1,6 @@
 +++
 title = 'W02 debrief'
-description = 'A stable timestamp sort cannot resume inside a tied group; the cursor also needs a unique tie-breaker.'
+description = 'Cause, repair, and production checks for W02.'
 bookHidden = true
 bookSearchExclude = true
 bookToC = false

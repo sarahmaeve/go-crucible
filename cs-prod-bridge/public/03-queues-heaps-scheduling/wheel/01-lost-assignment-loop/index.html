@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Diagnose workers that remain connected but cannot move on from assignments that no longer exist.">
+<meta name="description" content="Find why valid work remains stuck after assignment capacity returns.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01: The Lost Assignment Loop">
-	<meta property="og:description" content="Diagnose workers that remain connected but cannot move on from assignments that no longer exist.">
+	<meta property="og:description" content="Find why valid work remains stuck after assignment capacity returns.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W01: The Lost Assignment Loop">
-	<meta itemprop="description" content="Diagnose workers that remain connected but cannot move on from assignments that no longer exist.">
-	<meta itemprop="wordCount" content="248">
+	<meta itemprop="description" content="Find why valid work remains stuck after assignment capacity returns.">
+	<meta itemprop="wordCount" content="234">
 
 <title>W01: The Lost Assignment Loop • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -671,31 +671,28 @@ https://github.com/alex-shpak/hugo-book
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
 <p>A routine deployment temporarily reduced the capacity of the service that
-assigns fleet-repair jobs to workers. Incoming repair events accumulated
-while the remaining assignment processes were saturated. The team restored
-that service&rsquo;s capacity and reduced new arrivals, but the valid-work backlog
-did not drain.</p>
-<p>Worker processes are connected and repeatedly ask for work. Each affected
-worker holds one assignment reference and keeps trying to acquire it. The
-assignment service reports that many of those referenced jobs no longer
-exist. Those workers do not request a different job between attempts.
-Newly started workers accept valid jobs normally.</p>
+assigns fleet-repair jobs. New repair events accumulated while the remaining
+assignment processes were full. The team restored capacity and reduced new
+arrivals, but the valid backlog did not drain.</p>
+<p>Workers are connected and repeatedly ask for work. Each affected worker holds
+one assignment reference and keeps trying to acquire it. Many referenced jobs
+no longer exist. These workers do not request a different job between
+attempts. New workers accept valid jobs normally.</p>
 <p>Your task is limited to the worker&rsquo;s response to an acquire result. Do not
-change queue ordering, assignment creation, capacity, or arrival throttling.
-Preserve retries for failures that can succeed on a later attempt. Decide
-what an ephemeral worker should do when its assigned job is already gone.</p>
-</blockquote><p>Before opening source, tests, or evidence, write down:</p>
+change queue ordering, assignment creation, capacity, or the rate of new work.
+Preserve retries for failures that can succeed later. Decide what a one-job,
+or <strong>ephemeral</strong>, worker should do when its assigned job is already gone.</p>
+</blockquote><p>Before you open the source, tests, or evidence, write:</p>
 <ul>
-<li>which part of the report describes the trigger and which part describes why
-recovery remained stuck;</li>
+<li>which event started the backlog and which later condition kept it stuck;</li>
 <li>why a connected worker can still provide no useful processing capacity;</li>
 <li>at least two explanations for a backlog that remains after capacity returns;</li>
 <li>which acquire results could change if the same worker tries again; and</li>
-<li>which acquire result means that this worker&rsquo;s assignment cannot be
-completed at all.</li>
+<li>which acquire result means this worker can never complete its named
+assignment.</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after recording your first
-explanation.</p>
+<p>After you record your first explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

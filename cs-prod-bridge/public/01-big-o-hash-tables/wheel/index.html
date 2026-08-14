@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Report-first debugging scenarios for Big-O, hash tables, and retained cardinality.">
+<meta name="description" content="Debug production reports about repeated work and growing map keys.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="Wheels of Misfortune">
-	<meta property="og:description" content="Report-first debugging scenarios for Big-O, hash tables, and retained cardinality.">
+	<meta property="og:description" content="Debug production reports about repeated work and growing map keys.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="Wheels of Misfortune">
-	<meta itemprop="description" content="Report-first debugging scenarios for Big-O, hash tables, and retained cardinality.">
-	<meta itemprop="wordCount" content="195">
+	<meta itemprop="description" content="Debug production reports about repeated work and growing map keys.">
+	<meta itemprop="wordCount" content="216">
 
 <title>Wheels of Misfortune • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -666,16 +666,16 @@ https://github.com/alex-shpak/hugo-book
       
       
   <article class="markdown book-article"><h1 id="unit-01-wheels-of-misfortune">Unit 01 Wheels of Misfortune</h1>
-<p>These scenarios begin with production evidence rather than an algorithm name.
+<p>These scenarios start with a production report, not the name of an algorithm.
 Use the shared <a href="worksheet/">Wheel worksheet</a>
-to maintain observations, hypotheses, and evidence choices.</p>
-<p>Unlike the repository&rsquo;s main Wheel track, these scenarios introduce new CS
-subject matter and are self-contained. Their deliberate scale checks use build
-tags, so normal repository tests remain green outside the existing numbered
-exercise failures.</p>
-<p>The reports and evidence packets are synthetic, production-shaped teaching
-artifacts. They exercise mechanisms found in the unit&rsquo;s first-party production
-sources but do not claim to reproduce those companies&rsquo; systems or incidents.</p>
+to record facts, possible causes, and evidence choices.</p>
+<p>These scenarios are different from the repository&rsquo;s main Wheel track. They
+introduce new CS material and contain everything you need. Their scale checks
+use build tags. Normal repository tests therefore stay green, apart from the
+existing numbered exercise failures.</p>
+<p>The reports and evidence packets are invented teaching examples based on
+production systems. They use mechanisms from the unit&rsquo;s production sources,
+but they do not reproduce those systems or incidents.</p>
 <table>
 	<thead>
 			<tr>
@@ -695,20 +695,21 @@ sources but do not claim to reproduce those companies&rsquo; systems or incident
 			<tr>
 					<td><a href="02-cache-without-hits/">W02</a></td>
 					<td>The Cache Without Hits</td>
-					<td>Key equality and retained cardinality</td>
+					<td>Key equality and the number of retained keys</td>
 					<td><code>go test -tags=csbridgewheel2 ./cs-prod-bridge/01-big-o-hash-tables/wheel/02-cache-without-hits -v</code></td>
 			</tr>
 	</tbody>
 </table>
 <p>For each scenario:</p>
 <ol>
-<li>Read only <code>REPORT.md</code> and write an initial model.</li>
-<li>Continue to <code>CANDIDATE.md</code> and choose evidence packets one at a time.</li>
-<li>State the expected component contract before opening source.</li>
-<li>Reproduce the deterministic symptom.</li>
-<li>Use benchmarks or a profile to confirm the mechanism.</li>
-<li>Make a bounded repair and rerun both tagged and ordinary tests.</li>
-<li>Compare your reasoning with the debrief only after writing a handoff.</li>
+<li>Read only <code>REPORT.md</code>. Write down what you think could cause the problem.</li>
+<li>Open <code>CANDIDATE.md</code>. Choose evidence packets one at a time.</li>
+<li>Before you open the source, state what the component must do.</li>
+<li>Run the test that reproduces the symptom.</li>
+<li>Use benchmarks or a profile to confirm the cause.</li>
+<li>Make the smallest fix inside your assigned area. Run the tagged and ordinary
+tests again.</li>
+<li>Write your handoff. Only then compare your reasoning with the debrief.</li>
 </ol>
 
 </article>
@@ -734,7 +735,7 @@ sources but do not claim to reproduce those companies&rsquo; systems or incident
     
       <a href="../../01-big-o-hash-tables/lab/" class="flex align-center">
         <img src="../../icons/backward.svg" class="book-icon" alt="Backward" />
-        <span>Exploration lab: scan or index?</span>
+        <span>Lab: scan or index?</span>
       </a>
     
     </span>

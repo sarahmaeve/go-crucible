@@ -1,6 +1,6 @@
 +++
 title = 'W01: The Innocent Nested Loop'
-description = 'Diagnose enrichment latency that grows with metadata cardinality.'
+description = 'Find why enrichment gets slower as the metadata set grows.'
 weight = 2
 bookCollapseSection = true
 bookToC = false

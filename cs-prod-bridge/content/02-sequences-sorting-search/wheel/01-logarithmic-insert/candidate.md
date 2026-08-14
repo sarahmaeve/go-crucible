@@ -1,6 +1,6 @@
 +++
 title = 'W01 candidate guide'
-description = 'Use measurements to find why refresh slows, repair it without changing the inputs, and verify the result.'
+description = 'Choose evidence, decide when to inspect the code, and verify your repair.'
 weight = 1
 bookToC = false
 +++

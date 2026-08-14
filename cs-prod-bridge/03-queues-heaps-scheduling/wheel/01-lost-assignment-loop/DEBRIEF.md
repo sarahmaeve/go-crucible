@@ -2,17 +2,16 @@
 
 Read this only after completing the handoff.
 
-## Diagnosis
+## Cause
 
-The incident has two causes at different points in time. Reduced capacity in
-the assignment service explains why the backlog formed. It does not explain
-why the backlog remained after capacity returned and arrivals were reduced.
+Two conditions acted at different times. Reduced assignment capacity explains
+why the backlog formed. It does not explain why the backlog remained after
+capacity returned and arrivals fell.
 
-Each affected ephemeral worker retained an assignment reference that the
-assignment service classified as missing or superseded. `RetryAssignment`
-does not send that worker back for a different job; it repeats the request for
-the same assignment. The worker is connected and busy, but its slot completes
-no job and never becomes available to valid queued work.
+Each affected one-job worker kept a reference to an assignment that was missing
+or superseded. `RetryAssignment` repeats that request; it does not select a new
+job. The worker stays connected and busy, but completes nothing and prevents
+valid work from using its slot.
 
 The defective response classification is:
 
@@ -23,21 +22,19 @@ if result == Acquired {
 return RetryAssignment
 ```
 
-That groups two different facts under “failure”:
+This code treats two different kinds of failure alike:
 
-- `ServiceUnavailable` and `RequestRejected` describe attempts that may
-  succeed after the service or request changes.
+- `ServiceUnavailable` and `RequestRejected` can succeed after the service or
+  request changes.
 - `AssignmentMissing` and `AssignmentSuperseded` describe a named assignment
-  that this ephemeral session can no longer acquire.
+  that this one-job session can no longer acquire.
 
-Backoff can reduce how often the second group retries, but waiting does not
-make a deleted assignment exist again. This is a terminal transition for the
-session, not a slower retry.
+Backoff can reduce the retry rate, but waiting cannot restore a deleted
+assignment. The session must end rather than retry more slowly.
 
-## Repair
+## Smallest repair
 
-Classify the result according to whether another attempt by the same worker can
-be useful:
+Classify each result by whether another request from the same worker can help:
 
 ```go
 func HandleAcquireResult(result AcquireResult) Action {
@@ -52,12 +49,11 @@ func HandleAcquireResult(result AcquireResult) Action {
 }
 ```
 
-Retirement releases the worker slot. The supervisor starts a fresh ephemeral
-worker, which can take a valid queued assignment. The repair therefore changes
-the lifecycle of an impossible assignment; it does not make enqueue, dequeue,
-or heap operations faster.
+Retirement releases the slot. The supervisor starts a new one-job worker that
+can take a valid assignment. The repair changes what happens to an impossible
+assignment. It does not speed up queue or heap operations.
 
-## Verification
+## Check the repair
 
 Run:
 
@@ -68,41 +64,37 @@ go test -tags=csbridgewheel5 \
   -count=1 -v
 ```
 
-The ordinary tests preserve success and temporary-failure behavior. The
-tagged test begins with every worker slot holding a missing or superseded
-assignment, followed by valid queued jobs. It gives the simulation only enough
-attempts to retire those sessions and complete the valid backlog. A policy that
-keeps retrying the lost assignments exhausts the budget without one
-completion.
+The ordinary tests preserve success and temporary failures. In the tagged
+test, every worker slot first holds a missing or superseded assignment, with
+valid jobs waiting behind them. The simulation permits only enough attempts to
+end those sessions and complete the valid work. Retrying the lost assignments
+uses every attempt without completing a job.
 
-## Production inspiration and its limits
+## What the production sources establish
 
 GitHub's official
 [August 6–7, 2026 Actions incident report](https://www.githubstatus.com/incidents/qcvjkzcs7j74)
 describes a routine deployment that exposed a capacity and concurrency
-weakness. GitHub expanded capacity and throttled webhook-triggered work, but a
-second stage remained: a latent job-assignment bug gave runners jobs that were
-no longer valid, and repeated attempts prevented those runners from taking
-valid work. GitHub reports that changes preventing those repeated attempts
-allowed queues to drain.
+weakness. GitHub expanded capacity and reduced webhook-triggered work, but a
+second stage remained. A previously hidden assignment bug gave runners jobs
+that were no longer valid. Repeated attempts prevented those runners from
+taking valid work. GitHub reports that stopping those attempts allowed queues
+to drain.
 
-That report establishes the production failure shape and mitigation. It does
-not state that GitHub used this Go function, these result names, this
-simulation, or a heap for runner assignment.
+The report establishes the production symptoms and response. It does not say
+that GitHub used this Go function, these names, this simulation, or a heap.
 
 An open community
 [actions/runner pull request #4618](https://github.com/actions/runner/pull/4618)
-provides a related, inspectable implementation proposal. As of August 12,
-2026, it proposes that an ephemeral runner exit when acquiring its assigned
-job returns the “not found” or “conflict” cases, allowing a supervisor to
-replace it; other cases continue through the existing retry path. The pull
-request is useful for studying a concrete control-flow distinction. It is
-still open and must not be described as GitHub's official incident fix.
+provides a related implementation proposal. As of August 12, 2026, it proposes
+that a one-job runner exit after “not found” or “conflict,” so a supervisor can
+replace it. Other results continue through the existing retry path. The pull
+request shows a concrete control-flow choice. It is still open and is not
+GitHub's official incident fix.
 
-## Production follow-up
+## What to measure in production
 
-Count connected workers, acquire attempts, terminal session exits, completed
-jobs, and valid backlog together. “Workers connected” measures process
-presence; it does not measure useful capacity. Alert when attempts remain high
-while completions and terminal exits remain low, and test that every response
-class has an explicit owner and next state.
+Count connected workers, acquire attempts, ended sessions, completed jobs, and
+valid backlog together. A connected-worker count measures process presence,
+not useful capacity. Alert when attempts stay high while completions and
+session exits stay low. Give every result a clear owner and next state.

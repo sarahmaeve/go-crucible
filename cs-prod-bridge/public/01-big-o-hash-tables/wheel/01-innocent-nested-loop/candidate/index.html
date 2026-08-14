@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence selection, localization, measurement, and verification for W01.">
+<meta name="description" content="Choose evidence, decide when to inspect the code, and verify your repair.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/01-innocent-nested-loop/candidate/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01 candidate guide">
-	<meta property="og:description" content="Evidence selection, localization, measurement, and verification for W01.">
+	<meta property="og:description" content="Choose evidence, decide when to inspect the code, and verify your repair.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="01-big-o-hash-tables">
 
 
 	<meta itemprop="name" content="W01 candidate guide">
-	<meta itemprop="description" content="Evidence selection, localization, measurement, and verification for W01.">
-	<meta itemprop="wordCount" content="216">
+	<meta itemprop="description" content="Choose evidence, decide when to inspect the code, and verify your repair.">
+	<meta itemprop="wordCount" content="259">
 
 <title>W01 candidate guide • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,32 +668,33 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><h1 id="w01-candidate-guide">W01 Candidate Guide</h1>
 <h2 id="boundary">Boundary</h2>
-<p>You own conversion of a batch of flow events plus a metadata snapshot into
-enriched events. Snapshot production, admission limits, deployment sizing, and
-downstream storage are outside your repair boundary.</p>
-<p>Until localization, do not open <code>service.go</code>, either test file, or <code>DEBRIEF.md</code>.</p>
-<h2 id="evidence-loop">Evidence loop</h2>
+<p>You can change how this component turns a batch of flow events and a metadata
+snapshot into enriched events. Do not change snapshot production, admission
+limits, deployment size, or downstream storage.</p>
+<p>Do not open <code>service.go</code>, either test file, or <code>DEBRIEF.md</code> until the evidence
+points to this component.</p>
+<h2 id="choose-evidence">Choose evidence</h2>
 <p>The <a href="../evidence/">evidence index</a> lists available packets without
-giving their contents. Before opening one, write:</p>
+showing their contents. Before you open a packet, write:</p>
 <ol>
-<li>which hypothesis or workload variable it tests</li>
-<li>which outcomes would strengthen or weaken the current explanations</li>
-<li>why it is more useful now than the other packets</li>
+<li>the possible cause or input quantity that the packet can test;</li>
+<li>the results that would make each possible cause more or less likely; and</li>
+<li>why this packet is more useful now than the other packets.</li>
 </ol>
 <p>You do not need every packet.</p>
-<h2 id="localization-checkpoint">Localization checkpoint</h2>
-<p>Open source only when you can state:</p>
+<h2 id="when-to-open-the-code">When to open the code</h2>
+<p>Open the source only when you can answer these questions:</p>
 <ul>
-<li>the relevant workload variables</li>
-<li>whether latency tracks event count, metadata count, or both</li>
-<li>whether allocation or CPU work is the stronger current explanation</li>
-<li>an expected complexity expression for the boundary</li>
+<li>Which input quantities affect this component?</li>
+<li>Does latency change with event count, metadata count, or both?</li>
+<li>Does the evidence point more strongly to memory allocation or CPU work?</li>
+<li>What complexity expression do you expect for this component?</li>
 </ul>
-<p>Then run the ordinary correctness checks:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop -v</span></span></code></pre></div><p>Reproduce the scaling contract:</p>
+<p>Then run the ordinary tests for correct results:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop -v</span></span></code></pre></div><p>Run the test that reproduces the growth problem:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel1 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run TestProductionScale -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>For measurement and profiling:</p>
+</span></span></span><span style="display:flex;"><span>  -run TestProductionScale -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>Measure and profile the component:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel1 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkHandleBatch -benchmem
@@ -702,9 +703,10 @@ giving their contents. Before opening one, write:</p>
 </span></span></span><span style="display:flex;"><span>  ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkHandleBatch -benchtime<span style="color:#ff6ac1">=</span>2s <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -cpuprofile /tmp/cs-bridge-wheel1.pprof
-</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-wheel1.pprof</span></span></code></pre></div><p>Make the smallest change that alters the derived growth while preserving
-missing-key and duplicate-key behavior. Verify ordinary and tagged tests, then
-write a three-minute handoff before reading <a href="../debrief/">the debrief</a>.</p>
+</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-wheel1.pprof</span></span></code></pre></div><p>Make the smallest change that improves the growth you calculated. Preserve the
+existing behavior for missing and duplicate keys. Run the ordinary and tagged
+tests again. Write a three-minute handoff before you read
+<a href="../debrief/">the debrief</a>.</p>
 
 </article>
  

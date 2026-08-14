@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="The heap selected active work correctly; the broad event check made impossible work active again.">
+<meta name="description" content="Cause, repair, and production checks for W02.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/debrief/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02 debrief">
-	<meta property="og:description" content="The heap selected active work correctly; the broad event check made impossible work active again.">
+	<meta property="og:description" content="Cause, repair, and production checks for W02.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W02 debrief">
-	<meta itemprop="description" content="The heap selected active work correctly; the broad event check made impossible work active again.">
-	<meta itemprop="wordCount" content="688">
+	<meta itemprop="description" content="Cause, repair, and production checks for W02.">
+	<meta itemprop="wordCount" content="592">
 
 <title>W02 debrief • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,21 +668,20 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><h1 id="w02-debrief">W02 Debrief</h1>
 <p>Read this only after completing the handoff.</p>
-<h2 id="diagnosis">Diagnosis</h2>
-<p>The max-priority order is not broken. Whenever the <code>gpu-v9</code> repair is active,
-its higher priority correctly puts it before routine work. The problem occurs
-before the heap chooses the next repair: unrelated hardware events move it from
-the blocked map back to the active heap even though its missing hardware class
-is still missing. This move is called <em>reactivation</em>.</p>
+<h2 id="cause">Cause</h2>
+<p>The priority order is correct. When the <code>gpu-v9</code> repair is active, its higher
+priority puts it before routine work. The problem occurs earlier. Unrelated
+hardware events move it from blocked state to the active heap even though
+<code>gpu-v9</code> is still missing. This move is called <strong>reactivation</strong>.</p>
 <p>The blocked record contains two pieces of information:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>kind = hardware
-</span></span><span style="display:flex;"><span>key  = gpu-v9</span></span></code></pre></div><p><code>OnEvent</code> compares only <code>kind</code>. An update about CPU metadata therefore moves
-the repair from blocked to active. The attempt tests the full condition, fails,
-and returns the item to blocked state. A <em>futile attempt</em> is one made while the
-recorded prerequisite is still unavailable. Across many events, the dispatcher
-repeatedly performs work it already has reason to expect will fail.</p>
-<h2 id="repair">Repair</h2>
-<p>Reactivate only when the concrete event matches the recorded condition:</p>
+</span></span><span style="display:flex;"><span>key  = gpu-v9</span></span></code></pre></div><p><code>OnEvent</code> compares only <code>kind</code>. A CPU metadata update therefore returns the
+repair to active work. The attempt tests the full condition, fails, and blocks
+the item again. An attempt made while its required resource is still missing
+cannot succeed. Many unrelated events make the dispatcher repeat this work.</p>
+<h2 id="smallest-repair">Smallest repair</h2>
+<p>Return the repair to active work only when the event matches its recorded
+condition:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff5c57">func</span> (d <span style="color:#ff6ac1">*</span>Dispatcher) <span style="color:#57c7ff">OnEvent</span>(event Event) {
 </span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">for</span> id, item <span style="color:#ff6ac1">:=</span> <span style="color:#ff6ac1">range</span> d.blocked {
 </span></span><span style="display:flex;"><span>        d.stats.EventChecks<span style="color:#ff6ac1">++</span>
@@ -693,62 +692,55 @@ repeatedly performs work it already has reason to expect will fail.</p>
 </span></span><span style="display:flex;"><span>        heap.<span style="color:#57c7ff">Push</span>(<span style="color:#ff6ac1">&amp;</span>d.active, item)
 </span></span><span style="display:flex;"><span>        d.stats.Activations<span style="color:#ff6ac1">++</span>
 </span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>This local repair still checks every blocked item for every event. It reduces
-activations and attempts, not the number of condition checks. An index from
-condition to blocked IDs could reduce lookup work too, but it would add another
-structure. Every path that blocks, reactivates, or completes a repair would then
-have to keep the map and the index consistent.</p>
-<p>Matching the event&rsquo;s <code>Kind</code> and <code>Key</code> does not prove that the repair is ready.
-It says that the event concerns the same prerequisite and that another attempt
-might now be useful. <code>Apply</code> records separately whether the prerequisite became
-available, and <code>AttemptNext</code> remains the authority on whether the repair can
-run. A matching event can therefore lead to another failed attempt if the
-prerequisite is still unavailable.</p>
-<p>Backoff—the delay before another attempt—is also a separate tool. It could
-reduce how often an incorrectly reactivated repair is tried. It cannot
-establish that CPU metadata created a <code>gpu-v9</code> device, so it does not replace
-the decision about whether the event concerns the blocked prerequisite.</p>
-<h2 id="verification">Verification</h2>
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>This repair still checks every blocked item for every event. It reduces
+activations and attempts, not condition checks. An index from conditions to
+blocked IDs could reduce lookup work, but would add another structure. Every
+block, reactivation, and completion would have to update both structures.</p>
+<p>Matching <code>Kind</code> and <code>Key</code> does not prove that the repair is ready. It says only
+that the event concerns the required resource and another attempt may help.
+<code>Apply</code> records whether the resource became available. <code>AttemptNext</code> still
+decides whether the repair can run. A matching event can lead to another
+failure if the resource remains unavailable.</p>
+<p>Backoff is also separate. It can reduce unnecessary retries, but cannot show
+that CPU metadata created a <code>gpu-v9</code> device. It does not replace the event
+check.</p>
+<h2 id="check-the-repair">Check the repair</h2>
 <p>Run:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/02-event-that-woke-everything -v
 </span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel6 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/02-event-that-woke-everything <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The tagged scenario first blocks a high-priority repair. Twelve irrelevant
-hardware events then arrive while twelve routine repairs are active. The fixed
-event check causes no reactivation and no new futile attempt, so the routine
-work completes. One matching event subsequently reactivates and completes the
-blocked repair exactly once because that event also records <code>gpu-v9</code> as
-available.</p>
-<h2 id="production-inspiration-and-its-limits">Production inspiration and its limits</h2>
+</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The tagged scenario blocks one high-priority repair. Twelve unrelated events
+arrive while twelve routine repairs are active. The repaired check does not
+reactivate the blocked repair, so routine work completes. A later matching
+event records <code>gpu-v9</code> as available, reactivates the repair, and completes it
+once.</p>
+<h2 id="what-the-production-sources-establish">What the production sources establish</h2>
 <p><a href="https://github.com/kubernetes/kubernetes/issues/81214">Kubernetes issue #81214</a>
 is a user report from a cluster with 5,000 nodes and more than 100,000 Pods. The
-reporter described unschedulable higher-priority Pods returning to active
-consideration after broad events, while lower-priority Pods waited. The report
-specifically mentions PVC and Service events that blindly moved unschedulable
-Pods.</p>
+reporter described blocked higher-priority Pods returning to active work after
+broad events while lower-priority Pods waited. The report specifically names
+PVC and Service events that moved all blocked Pods.</p>
 <p>Kubernetes&rsquo;s official
 <a href="https://kubernetes.io/blog/2024/12/12/scheduler-queueinghint/">QueueingHint account</a>
-explains the later design: the scheduling queue records which plugin rejected
-a Pod, and that plugin can examine a concrete cluster event to say whether it
-could make that Pod schedulable. The
+explains the later design. The queue records which plugin rejected a Pod. That
+plugin can inspect one cluster event and decide whether it might make the Pod
+runnable. The
 <a href="https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/4247-queueinghint/README.md">QueueingHint enhancement proposal</a>
-also states an important risk: an incorrect hint can leave work blocked, so
-selective reactivation needs tests for both missed and unnecessary retries. The
-proposal describes a periodic retry of the unschedulable pool—five minutes by
-default—as a fallback when a hint misses a useful event.</p>
-<p>The local <code>Kind</code>/<code>Key</code> equality rule is deliberately smaller than Kubernetes&rsquo;s
-plugin callbacks and object-specific checks. It demonstrates the decision
-boundary under a local assumption: an event can concern a prerequisite only by
-naming the same kind and key. Real systems may need to inspect old and new
-object state or account for indirect dependencies. The exercise does not
-reproduce Kubernetes source, scale, or scheduling semantics.</p>
-<h2 id="production-follow-up">Production follow-up</h2>
-<p>Measure event checks, activation requests, scheduling attempts, futile
-attempts, completions, and how long each repair remains blocked separately. A
-falling activation count is not sufficient if newly runnable work stops moving.
-For every hint, test both directions: events that cannot help do not reactivate
-the item, and events that may remove its recorded reason for failure do
-reactivate it.</p>
+also states a risk: a wrong hint can leave work blocked. Selective reactivation
+therefore needs tests for both missed and unnecessary retries. The proposal
+describes retrying the complete blocked pool every five minutes by default as a
+fallback for a missed event.</p>
+<p>The local <code>Kind</code>/<code>Key</code> rule is much smaller than Kubernetes&rsquo;s plugin callbacks
+and object checks. It assumes an event can concern a required resource only by
+naming the same kind and key. Real systems may need old and new object state or
+indirect dependencies. The exercise does not reproduce Kubernetes code, scale,
+or complete scheduling behavior.</p>
+<h2 id="what-to-measure-in-production">What to measure in production</h2>
+<p>Measure event checks, activation requests, scheduling attempts, attempts that
+cannot succeed, completions, and time spent blocked. Fewer activations are not
+an improvement if runnable work stays blocked. Test both directions for every
+rule: unrelated events do nothing, and events that may resolve the recorded
+failure return the item to active work.</p>
 
 </article>
  

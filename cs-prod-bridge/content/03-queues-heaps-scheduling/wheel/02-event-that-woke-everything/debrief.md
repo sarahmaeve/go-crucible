@@ -1,6 +1,6 @@
 +++
 title = 'W02 debrief'
-description = 'The heap selected active work correctly; the broad event check made impossible work active again.'
+description = 'Cause, repair, and production checks for W02.'
 bookHidden = true
 bookSearchExclude = true
 bookToC = false

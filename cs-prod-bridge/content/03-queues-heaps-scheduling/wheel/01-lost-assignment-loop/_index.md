@@ -1,6 +1,6 @@
 +++
 title = 'W01: The Lost Assignment Loop'
-description = 'Diagnose workers that remain connected but cannot move on from assignments that no longer exist.'
+description = 'Find why valid work remains stuck after assignment capacity returns.'
 weight = 2
 bookCollapseSection = true
 bookToC = false

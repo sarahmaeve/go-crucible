@@ -1,6 +1,6 @@
 +++
 title = 'Sequences, sorting, and ordered search'
-description = 'Sorting records can make later searches and merges cheaper, provided updates and readers use the same ordering rules.'
+description = 'Use ordered data to make searches and merges cheaper, and keep every reader and update on the same ordering rule.'
 weight = 2
 +++
 
@@ -8,65 +8,64 @@ weight = 2
 
 # Sequences, sorting, and ordered search
 
-{{< lead >}}Sorting is rarely the end of the job. Systems keep data ordered so
-later operations can avoid starting from scratch: binary search can discard
-half of the remaining records, two sorted lists can be merged in one pass, and
-a page token can identify where the next page begins. This unit examines the
-cost of creating that order and the failures that occur when different parts
-of a system disagree about what “ordered” means.{{< /lead >}}
+{{< lead >}}Systems keep data ordered to make later work cheaper. Binary search
+can discard half of the remaining records. Two sorted lists can merge in one
+pass. A page token can mark where the next page starts. This unit explains the
+cost of creating that order and the failures that occur when parts of a system
+use different ordering rules.{{< /lead >}}
 
 {{< callout kind="production" title="Incoming reports" >}}
-- A label-filter query is fast for ordinary metrics but times out when it has
-  to examine every series for a high-cardinality metric.
-- Reading a configuration snapshot is fast, but publishing a new snapshot
-  drives one CPU core to 100 percent because the builder inserts incoming
-  records into the middle of a sorted slice one at a time.
-- An incident endpoint returns HTTP 200 and normal latency for every page, but
-  omits records when many incidents share the boundary timestamp.
+- A label-filter query is fast for ordinary metrics. It times out when it must
+  examine every series for a metric with many distinct series.
+- Reading a configuration snapshot is fast. Publishing a new one uses a full
+  CPU core while the builder inserts records into a sorted slice one at a time.
+- An incident endpoint returns HTTP 200 with normal latency for every page. It
+  omits records when many incidents share the timestamp at a page boundary.
 {{< /callout >}}
 
-These incidents involve ordering at different stages. The metric query needs
-an index that narrows the records examined. The snapshot builder has made reads
-cheap by doing too much work during updates. The incident endpoint sorts its
-records but cannot identify an exact page boundary when timestamps tie.
+Each report concerns order at a different stage. The metric query needs an
+index that reduces the number of records it examines. The snapshot builder has
+made reads cheap by doing too much work during updates. The incident endpoint
+sorts its records but cannot identify one exact boundary when timestamps tie.
 
-We will treat those problems separately. Postings lists may use increasing
-document IDs because that order supports efficient intersection, while the
-same service may arrange final results by descending update time because that
-is what a user expects to see.
+These stages can use different orders for different purposes. A postings list
+can use increasing document IDs because that order makes intersection cheap.
+The same service can show final results by descending update time because users
+expect to see new records first.
 
 By the end of this unit, you should be able to:
 
-- choose a sequence representation from its operations and traversal pattern;
-- state the comparator and sortedness precondition behind a binary search,
+- choose a sequence representation from the operations it must support;
+- state the comparison rule and required input order for a binary search,
   merge, intersection, or cursor;
 - separate logarithmic search from linear movement in a contiguous slice;
-- derive the work for scanning, sorting, batch merging, and postings
+- calculate the work for scanning, sorting, batch merging, and postings
   intersection;
-- distinguish stable sorting from a total order;
-- keep exact matching separate from presentation order and relevance;
-- account for index construction, reuse, writes, storage, and updates; and
+- explain the difference between stable sorting and a total order;
+- keep exact matching separate from display order and relevance;
+- include index construction, reuse, writes, storage, and updates in a design
+  decision; and
 - use correctness tests, operation counts, benchmarks, and profiles to explain
-  how an implementation behaves as its inputs grow.
+  what happens as the inputs grow.
 
-## Start with workload variables
+## Start with the input sizes
 
-To estimate the cost, distinguish the size of the stored collection from the
-size of one update or query. This unit uses:
+Do not treat every input as one value called “size.” Separate the stored
+collection from one update or query. This unit uses:
 
-- `d`: documents or series eligible for a query
+- `d`: documents or series that a query could examine
 - `n`: entries already in a sorted sequence
 - `m`: entries in one update batch
-- `p`, `q`: lengths of two postings lists
-- `r`: records that match retrieval, before presentation sorting
+- `p`, `q`: entries in two postings lists
+- `r`: matching records before display sorting
 - `k`: records requested on one page
-- `Q`: queries served from the same index snapshot
+- `Q`: queries that reuse the same index snapshot
 
-These quantities lead to different design decisions. A service with a million
-stored records and ten updates does not have the same refresh problem as a
-million-record initial load. An indexed query also need not inspect all `d`
-documents: its work is often determined by the postings lengths `p` and `q`
-and by how much those lists overlap.
+These quantities lead to different decisions. A service with one million
+stored records and ten updates does different work from an initial load of one
+million records. An indexed query also does not always examine all `d`
+documents. Its work often depends on `p`, `q`, and how much the two postings
+lists overlap.
 
 | Operation | Modeled time | Condition behind the claim |
 |---|---:|---|
@@ -77,30 +76,29 @@ and by how much those lists overlap.
 | Insert `m` items at or near the front one by one | `Θ(mn+m²)` moves | Each insertion shifts almost the entire current slice |
 | Sort a batch, then merge | `O(m log m+n+m)` | Both inputs use one order and conflict rule |
 | Intersect two postings lists | `O(p+q)` advances | Both lists use the same document-ID order |
-| Merge-sort `r` results for display | `Θ(r log r)` comparisons | Retrieval order is not presentation order |
+| Merge-sort `r` results for display | `Θ(r log r)` comparisons | Index order is not display order |
 
-These bounds describe how work grows with the inputs. They do not determine
-elapsed time, cache behavior, or allocation counts on a particular machine;
-those require measurement.
+These bounds describe how work grows with the inputs. They do not predict
+running time, how well the data uses CPU caches, or allocation counts on a
+particular machine. Measure those values.
 
-## Choose a representation from the operations you need
+## Choose storage from the operations you need
 
 Arrays, slices, and linked lists can all store a sequence of values, but they
-make different operations cheap. Choose among them by asking which operations
-dominate this workload, rather than which structure is universally fastest.
+make different operations cheap. First ask which operations the service does
+most often. No representation is fastest for every operation.
 
-| Representation | Indexed access | Insert/delete near middle | Traversal behavior |
+| Representation | Indexed access | Insert/delete near middle | Iteration behavior |
 |---|---:|---:|---|
 | Fixed array | constant | linear movement | contiguous and cache-friendly |
 | Dynamic array / Go slice | constant | linear movement | contiguous; usually constant work per append over a long series of appends, with occasional copying |
 | Singly linked list | linear | constant after locating predecessor | pointer chasing; no random access |
 
-The complexity of one operation is not enough to choose a representation. A
-linked list can insert in constant time only after the caller has found the
-predecessor; finding that position still takes a linear walk. A dynamic array
-must move elements for a middle insertion, but it often traverses quickly
-because adjacent elements occupy adjacent memory and carry no per-element
-link.
+The cost of one operation is not enough to choose a representation. A linked
+list can insert in constant time after the caller finds the preceding node.
+Finding that node can still require a linear walk. A dynamic array must move
+elements for a middle insertion. It can still traverse quickly because adjacent
+elements occupy adjacent memory and do not store a link for each element.
 
 [MIT 6.006 Recitation 2](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/c08a3b63dfe5f6f6b32257d35f86ae63_MIT6_006S20_r02.pdf)
 works through these trade-offs formally for arrays, linked lists, and dynamic
@@ -108,20 +106,21 @@ arrays.
 
 {{< callout kind="production" title="A production example from Twitter" >}}
 [Twitter's real-time search indexing report](https://blog.x.com/engineering/en_us/topics/infrastructure/2020/reducing-search-indexing-latency-to-one-second)
-describes an index that initially used a cache-friendly, prepend-only unrolled
-linked list. When the service later needed to insert records that arrived out
-of order, the team moved to a skip list. That change accepted more pointer
-traversal in exchange for an operation the previous representation handled
-poorly. We will not implement a skip list here, but the example shows why the
-required update pattern matters as much as the lookup complexity.
+describes an index that first used a prepend-only unrolled linked list. Each
+node held several records together, which helped it use CPU caches well. Later,
+the service had to insert records that arrived out of order.
+The team moved to a skip list. The new structure required the service to follow
+more pointers, but it handled out-of-order insertion better. This unit does not
+implement a skip list. The example shows why the update pattern matters as much
+as lookup cost.
 {{< /callout >}}
 
 ## Go slices share backing arrays
 
-The [Go specification](https://go.dev/ref/spec#Slice_types) defines a slice as
-a descriptor over a contiguous segment of an underlying array. Its length is
-the number of accessible elements; its capacity is the size of the segment
-from the first accessible element to the end of that array.
+The [Go specification](https://go.dev/ref/spec#Slice_types) defines a slice as a
+description of a continuous part of an underlying array. The slice length is
+the number of elements you can access. Its capacity extends from the first
+accessible element to the end of the array.
 
 ```go
 base := []string{"a", "b", "c", "d"}
@@ -129,42 +128,44 @@ view := base[1:3] // "b", "c"; shares base's backing array
 view[0] = "B"    // base[1] is now "B"
 ```
 
-Creating `view` is cheap because Go does not copy the strings. The consequence
-is that `base` and `view` refer to the same memory: changing one can change the
-other. A function that promises to publish an immutable snapshot therefore
-cannot assume that returning a slice makes the data immutable. It must either
-keep every alias under its control or copy the data before publishing it. A
-small subslice can also keep a much larger backing array alive.
+Creating `view` is cheap because Go does not copy the strings. Both slices refer
+to the same memory. A change through one slice can therefore appear through the
+other.
 
-`append` exposes the same issue. When there is enough capacity, it may reuse
-the existing backing array, so another slice that shares that array can observe
-the writes. Otherwise it allocates a new array. The specification deliberately
-does not promise a particular capacity growth factor. The built-in `copy` can
-copy between overlapping slices, which is useful when elements must move
+A function can promise a read-only snapshot, but returning a slice does not
+enforce that promise. The function must control every other slice that shares
+the array, or it must copy the data before publication. A small subslice can
+also keep a much larger array in memory.
+
+`append` has the same sharing risk. When the slice has enough capacity, `append`
+can reuse the existing array. Another slice that shares the array can then see
+the writes. When capacity is insufficient, `append` allocates a new array. The
+specification does not promise a particular capacity growth rule. The built-in
+`copy` function supports overlapping slices, so code can use it to move elements
 within one array.
 
-The [`slices` package](https://pkg.go.dev/slices) provides convenient generic
-operations, but convenience does not change the representation cost.
-`slices.Insert` must open a gap and shift a suffix; its documented running time
-is `O(len(s)+len(v))`.
+The [`slices` package](https://pkg.go.dev/slices) provides generic operations.
+Those operations still pay the cost of the underlying representation.
+`slices.Insert` must open a gap and move the elements after it. Its documented
+running time is `O(len(s)+len(v))`.
 
 {{< callout kind="warning" title="Binary search finds; insertion moves" >}}
-Finding position `i` in `O(log n)` comparisons does not insert an item into a
-contiguous slice in `O(log n)` time. The suffix of length `n-i`
-still moves. Repeating front-heavy inserts can produce quadratic movement.
+Binary search can find position `i` in `O(log n)` comparisons. Inserting there
+is a separate operation. A contiguous slice must still move the `n-i` elements
+after that position. Many inserts near the front can cause quadratic movement.
 {{< /callout >}}
 
 The official [Go slices article](https://go.dev/blog/slices-intro) illustrates
-the relationship between a slice descriptor and its backing array. Its sample
-growth code is explanatory, however; production code may rely on the behavior
-specified by Go, but not on a runtime growth strategy that can change between
-releases.
+how a slice refers to its underlying array. Its sample growth code is an
+explanation, not a language guarantee. Production code can rely on the Go
+specification. It must not rely on a runtime growth strategy that can change
+between releases.
 
-## Establish one explicit order
+## Write down one comparison rule
 
-Representation determines the cost of storing and moving records. A
-comparison rule determines whether algorithms that rely on sorted input return
-the right answer.
+The representation determines the cost of storing and moving records. The
+comparison rule determines whether algorithms that require sorted input return
+the correct answer.
 
 “Sorted” is incomplete without a comparison rule. For incident records, these
 are different possible orders:
@@ -175,183 +176,178 @@ OccurredAt descending
 OccurredAt descending, then IncidentID ascending
 ```
 
-Code that sorts the incident records and code that later searches or merges
-them must use the same rule. That rule must also be transitive: if `a` sorts
-before `b`, and `b` sorts before `c`, then `a` must sort before `c`. Without
-that consistency, sorting and binary search cannot divide the records into
-dependable ranges. The `slices.SortFunc` documentation calls the complete
-comparator requirement a **strict weak ordering**.
+The code that sorts, searches, and merges the incident records must use the same
+rule. The rule must also be transitive. If `a` comes before `b`, and `b` comes
+before `c`, then `a` must come before `c`. Without this consistency, sorting and
+binary search cannot divide records into reliable ranges. The
+`slices.SortFunc` documentation calls this comparator requirement a **strict
+weak ordering**.
 
-### Stable order is not total order
+### A stable sort does not create a total order
 
-A stable sort keeps equal records in the relative order in which it received
-them. That is useful when the input order is meaningful, but it does not make
-ties reproducible across map iterations, replicas, independently built result
-sets, or later snapshots.
+A stable sort keeps equal records in their input order. This helps when the
+input order has meaning. It does not make ties reproducible across map
+iterations, replicas, separately built results, or later snapshots.
 
-A **total order** distinguishes every pair of records. If incident IDs are
-unique and immutable, `(OccurredAt DESC, IncidentID ASC)` supplies such an
-order: incidents with different timestamps sort by time, while incidents with
-the same timestamp sort by ID. A cursor can carry both values and identify the
-last record returned from a fixed snapshot.
+A **total order** gives every record a unique position. If incident IDs are
+unique and do not change, `(OccurredAt DESC, IncidentID ASC)` creates a total
+order. Incidents with different timestamps sort by time. Incidents with the
+same timestamp sort by ID. A cursor can carry both values and identify the last
+record returned from a fixed snapshot.
 
 [MIT 6.006 Lecture 3](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/6d1ae5278d02bbecb5c4428928b24194_MIT6_006S20_lec3.pdf)
 covers binary search, merge, and merge sort. The optional
 [linear-sorting lecture](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/78a3c3444de1ff837f81e52991c24a86_MIT6_006S20_lec5.pdf)
 develops stability and field-by-field tuple ordering further.
 
-## Binary search only works on the order it expects
+## Binary search requires the expected order
 
-Binary search compares a target with the middle item and discards one half of
-the remaining range. Because each comparison halves the range, it needs at
-most `O(log n)` comparisons to find the target or the position where that
-target could be inserted.
+Binary search compares the target with the middle item. It then discards half
+of the remaining range. It needs at most `O(log n)` comparisons to find the
+target or the position where the target could be inserted.
 
-This works only when the slice is already sorted by the same comparison used
-during the search. If the slice is in descending order and the search assumes
-ascending order, the function can return a plausible index that is still
-wrong. Binary search neither checks the entire slice nor accounts for the work
-required to sort or update it.
+This works only when the slice is already sorted by the comparison used for the
+search. If the slice is descending and the search assumes ascending order, the
+function can return a plausible but incorrect index. Binary search does not
+check the entire slice. It also does not include the work required to sort or
+update the slice.
 
 Go's `slices.BinarySearch` requires an increasing sorted slice and returns the
 earliest equal position or the insertion position. `BinarySearchFunc` requires
 its comparison function to implement the same order as the slice.
 
-Ask four questions when code says “we use binary search”:
+When code says “we use binary search,” ask four questions:
 
 1. Which function sorts the data?
 2. Where does the program verify that incoming data is already sorted?
 3. Does update work include movement or rebuilding after the search?
 4. Is the query frequent enough to repay sorting or index construction?
 
-## Merge updates instead of inserting them individually
+## Merge a batch instead of inserting one record at a time
 
-Suppose a published snapshot has `n` records and an incoming batch has `m`.
-In the worst case, every new key sorts before every item currently in the
-slice and the batch order keeps putting the next key at the front. The inserts
-then move `n`, `n+1`, `n+2`, and so on. The sum is:
+Suppose the published snapshot has `n` records and the incoming batch has `m`.
+In the worst case, every new key belongs before the current records. Each insert
+opens another gap near the front. The inserts move `n`, `n+1`, `n+2`, and so on.
+The sum is:
 
 \[
 mn + \frac{m(m-1)}{2} = \Theta(mn+m^2)
 \]
 
-Instead of modifying the published sequence after every record, the builder
-can process the incoming batch as a unit:
+The builder can process the complete incoming batch instead:
 
 1. validate the incoming records;
 2. sort them in `O(m log m)`;
 3. resolve repeated keys using the service's replacement rule; and
 4. linearly merge the two sorted inputs in `O(n+m)`.
 
-During the merge, compare the next unconsumed record from each input. Copy the
+During the merge, compare the next unused record from each input. Copy the
 record with the smaller key and advance that input. When the keys match, apply
-the replacement rule and advance both inputs. Because each pass through the
-loop consumes at least one record, the merge is linear in the combined input
-size. Building a new slice requires extra memory, but it avoids reopening a
-gap in the old slice for every incoming record and ensures that the returned
-records do not share mutable backing storage with either input.
+the replacement rule and advance both inputs. Each pass consumes at least one
+record, so the merge is linear in the combined input size.
+
+The new slice requires extra memory. It avoids opening a new gap for every
+incoming record, and it does not share writable array storage with either
+input.
 
 [W01: The Logarithmic Insert](wheel/01-logarithmic-insert/) turns this mistake
 into a debugging exercise.
 
-## Boolean search with sorted postings
+## Find shared IDs in sorted postings lists
 
 An inverted index maps each term or tag to a **postings list** of matching
-document IDs:
+document IDs. For example:
 
 ```text
 database -> [2, 5, 8, 13]
 latency  -> [1, 5, 8, 21]
 ```
 
-To evaluate `database AND latency`, keep one position in each list:
+To evaluate `database AND latency`, keep a position in each list:
 
-- equal IDs are added to the result and both pointers advance;
-- the smaller ID cannot appear later in the other sorted list, so its pointer
-  advances;
-- the operation ends when either input is exhausted.
+- If the IDs are equal, add the ID to the result and advance both positions.
+- If the IDs differ, advance the position with the smaller ID. That ID cannot
+  appear later in the other sorted list.
+- Stop when either list has no more IDs.
 
-The result is `[5, 8]`. Each comparison advances at least one position, so
-lists of lengths `p` and `q` require at most `O(p+q)` advances. This reasoning
-depends on both lists using the same increasing document-ID order. With several
-terms, intersecting shorter postings first often keeps the temporary result
-small.
+The result is `[5, 8]`. Each comparison advances at least one position. Lists
+of lengths `p` and `q` therefore require at most `O(p+q)` advances. Both lists
+must use the same increasing document-ID order. For several terms, start with
+the shorter postings lists to keep the temporary result small.
 
 The Stanford/Cambridge
 [Boolean retrieval chapter](https://nlp.stanford.edu/IR-book/html/htmledition/processing-boolean-queries-1.html)
-derives this algorithm and the shorter-list-first heuristic. It also makes a
-useful distinction: Boolean retrieval determines which documents match a
-query; it does not decide which matching document is most useful.
+derives this algorithm and explains why it helps to start with shorter lists.
+It also separates two questions. Boolean retrieval determines which documents
+match. It does not decide which matching document is most useful.
 
-### Scanning can still be correct
+### A scan can still be the right choice
 
-Building an index spends time, memory, and write bandwidth. A scan can be the
-right choice when the collection is small, the query is rare, the snapshot is
-replaced before many queries reuse it, or predicates cannot be indexed
-economically.
+Building an index uses time, memory, and write bandwidth. A scan can be the
+right choice when the collection is small or the query is rare. It can also be
+right when the service replaces a snapshot before many queries reuse it, or
+when an index would cost too much to maintain.
 
-Reuse is the central trade-off. If building an index costs `B`, each indexed
-query costs `C`, and `Q` queries share one snapshot, the average work per query
-is approximately `B/Q + C`. The lab's `index-reused` benchmark measures only
-`C`, after construction has already finished, so it does not describe the
-end-to-end cost when `Q` is small. The lengths of real postings lists matter as
-well: a common tag may leave most documents to examine, while a rare tag can
-reduce the candidate set immediately.
+Reuse is the central trade-off. Suppose building an index costs `B`, each
+indexed query costs `C`, and `Q` queries share one snapshot. The average work
+per query is approximately `B/Q + C`.
 
-## Collect all matches or produce them lazily
+The lab's `index-reused` benchmark measures only `C`. It starts after index
+construction, so it does not show the full cost when `Q` is small. The lengths
+of the postings lists matter too. A common tag can leave most documents to
+examine. A rare tag can reduce the possible matches immediately.
 
-After matching begins, the implementation still has a choice: collect every
-match in a slice, or return an iterator that produces one match at a time.
+## Collect matches now or produce them as needed
 
-Collecting all matches is simple and lets callers revisit the result, but it
-allocates space proportional to the number of matches. A lazy intersection can
-instead retain only the positions of its input iterators. Although this saves
-memory, early stopping is correct only when the consumer wants the iterator's
-order. The local index yields increasing document IDs, so its first `k` matches
-are not necessarily the `k` most recent runbooks. Filters can also require the
-iterator to inspect many rejected candidates before it produces `k` accepted
-ones.
+The implementation can collect every match in a slice. It can instead return
+an iterator that produces one match at a time.
+
+Collecting all matches is simple and lets callers read the results again. It
+uses memory in proportion to the number of matches. A lazy intersection can
+keep only the positions of its input iterators.
+
+This saves memory, but stopping early is correct only when the caller wants the
+iterator's order. The local index returns increasing document IDs. Its first
+`k` matches are not necessarily the `k` newest runbooks. A filter can also make
+the iterator examine many rejected records before it produces `k` results.
 
 [GitHub's Blackbird code-search report](https://github.blog/engineering/the-technology-behind-githubs-new-code-search/)
-describes sorted postings, lazy iterators, early termination, and index
-maintenance in a user-facing production search system. Blackbird can use early
-termination because its identifiers contain information about result rank.
-The local lab's IDs contain no such information; copying the technique would
-return low-numbered documents, not the best or newest documents.
+describes sorted postings, lazy iterators, early stopping, and index maintenance
+in a production search system. Blackbird can stop early because its identifiers
+contain information about result rank. The local lab's IDs do not. Using the
+same technique here would return low-numbered documents, not the best or newest
+documents.
 
-## Candidate retrieval is not result ranking
+## Matching records is different from ranking them
 
-The unit's runbook search has two explicit stages:
+The runbook search has two stages:
 
 ```text
 exact tag query -> matching IDs -> fixed display order
 ```
 
-The first stage answers “Which records have every requested tag?” The second
-answers “In what order should the user see those records?” Sorting the matches
-by `(UpdatedAt DESC, DocumentID ASC)` puts recently updated runbooks first and
-uses the document ID to resolve ties. It does not attempt to estimate which
-runbook best answers the user's underlying question.
+The first stage asks which records have every requested tag. The second asks
+which order the user should see. `(UpdatedAt DESC, DocumentID ASC)` puts recently
+updated runbooks first and uses the document ID to resolve ties. It does not
+estimate which runbook best answers the user's question.
 
-Recommendation systems go further: they define an objective, compute features,
-score candidates, and often run several ranking passes. **Top-k** means keeping
-the best `k` candidates according to such a score. LinkedIn's
+Recommendation systems do more. They define a goal, calculate features, score
+possible results, and often rank them more than once. **Top-k** means keeping
+the best `k` results under that score. LinkedIn's
 [feed architecture](https://engineering.linkedin.com/teams/data/artificial-intelligence/feed)
-provides a concrete production example: several initial rankers send candidates
-to a more expensive ranking stage, followed by a final pass that applies
-product rules. Later units will cover the heaps used for top-k selection and
-the graphs used by algorithms such as PageRank. Here we stop after exact
-matching and a fixed display order.
+provides a production example. Several fast scoring stages send results to a
+more expensive ranking stage. A final pass applies product rules. Later units cover
+heaps for top-k selection and graphs for algorithms such as PageRank. This unit
+stops after exact matching and a fixed display order.
 
-## Ordered postings in Prometheus
+## Optional: ordered postings in Prometheus
 
-Prometheus provides a real Go example of the same underlying mechanics. Its
-metrics index exposes postings through an iterator that promises increasing
-series references. The links below are pinned to version 3.13.1 so the source
-does not change underneath the explanation:
+Prometheus provides a Go example of the same operations. Its metrics index
+provides postings through an iterator that promises increasing series
+references. These links use version 3.13.1 so that the source stays fixed:
 
 1. The [Prometheus 3.13.1 index format](https://github.com/prometheus/prometheus/blob/v3.13.1/tsdb/docs/format/index.md)
-   stores postings as monotonically increasing series references.
+   stores postings as series references that always increase.
 2. [`Postings`](https://github.com/prometheus/prometheus/blob/v3.13.1/tsdb/index/postings.go)
    is an ordered iterator and `Seek` advances to a reference greater than or
    equal to a target.
@@ -361,46 +357,44 @@ does not change underneath the explanation:
 5. `Intersect` combines postings for AND queries.
 
 {{< callout kind="note" title="What carries over to the lab" >}}
-Prometheus shows why an iterator can implement `Seek` efficiently when its
-input is ordered. The lab uses ordinary slices to make those operations easy
-to inspect and count; its benchmark numbers describe only the lab. In both
-systems, the increasing internal ID order serves index operations and says
-nothing about the order in which a user should see results.
+Ordered input lets an iterator implement `Seek` efficiently. The lab uses
+ordinary slices so you can inspect and count the operations. Its benchmark
+numbers apply only to the lab. In both systems, increasing internal IDs support
+index operations. They do not determine the order shown to users.
 {{< /callout >}}
 
 ## Check correctness before timing
 
-Begin with tests that establish the expected result, then add measurements that
-explain its cost:
+First, use tests to establish the correct result. Then measure its cost:
 
-1. **Behavior tests:** the scan and index return the same match set; sorting
-   does not change membership; pagination returns every ID exactly once.
-2. **Ordering checks:** postings are duplicate-free and increasing; inputs to
-   binary search and merge satisfy the declared order.
-3. **Operation counts:** pointer advances and comparisons are bounded by
-   postings lengths; the insertion counter records how many existing elements
-   move when a gap is opened.
-4. **Benchmarks and profiles:** vary document count, selectivity, overlap,
-   index reuse, and update position, then identify where CPU time and
+1. **Behavior tests:** Check that the scan and index return the same matches.
+   Check that sorting keeps the same members and pagination returns each ID
+   once.
+2. **Ordering checks:** Check that postings have no duplicates and increase.
+   Check that binary search and merge receive data in the declared order.
+3. **Operation counts:** Bound position advances and comparisons by the postings
+   lengths. Count the elements moved when an insertion opens a gap.
+4. **Benchmarks and profiles:** Change document count, the fraction that
+   matches, overlap, index reuse, and update position. Find where CPU time and
    allocations occur.
 
-Elapsed time still matters, but it varies with the machine and its current
-load. In a fixed test case, a count of four million shifted records explains
-why the work grows even if the test happens to finish quickly. A CPU profile
-can then confirm that the process is spending its time moving those records.
+Running time still matters, but it changes with the machine and its current
+load. In a fixed test, four million moved records explain why the work grows,
+even if the test finishes quickly. A CPU profile can confirm that the process
+spends its time moving those records.
 
 The [exploration lab](lab/) compares scanning with indexed queries, both with
 and without index construction included. It also exercises postings overlap,
-presentation sorting, pagination, and sorted updates. The
+display sorting, pagination, and sorted updates. The
 [two Wheel scenarios](wheel/) ask you to diagnose the slice-update and
 pagination failures from incident reports and gradually revealed evidence.
 
 For cursor design and snapshot behavior, continue to
 [Paginating ordered results](result-ordering/).
 
-## Interview translation
+## Explain the decision to a colleague
 
-A concise answer might reason through the design this way:
+One explanation could be:
 
 > I would first ask how many queries reuse each snapshot. For repeated tag
 > queries, an inverted index can replace a scan over all `d` runbooks with an
@@ -420,14 +414,14 @@ A concise answer might reason through the design this way:
 > pagination over tied timestamps. Benchmarks would use the service's actual
 > tag frequencies, overlap, update positions, and queries per snapshot.
 
-## Reflection
+## Questions to review
 
 - Which operation must be fast, and how often does it run?
 - Where is the order established, and which code ensures that updates preserve
   it?
-- Which input distribution triggers the bad path?
+- Which input pattern causes the expensive path?
 - What does the service spend on construction, writes, memory, and snapshot
   replacement to make reads cheaper?
 - Does the cursor contain every field used to break ties?
-- Which claim came from a specification, current source, a production report,
-  or a calculation made in this unit?
+- For each claim, did it come from a specification, current source, production
+  report, or calculation in this unit?

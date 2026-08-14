@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Investigate why requests grow roughly with the square of group size even though the queue stores each repair ID once.">
+<meta name="description" content="Find why request and log counts grow while queue size stays small.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/03-sibling-stampede/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W03: The Sibling Stampede">
-	<meta property="og:description" content="Investigate why requests grow roughly with the square of group size even though the queue stores each repair ID once.">
+	<meta property="og:description" content="Find why request and log counts grow while queue size stays small.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W03: The Sibling Stampede">
-	<meta itemprop="description" content="Investigate why requests grow roughly with the square of group size even though the queue stores each repair ID once.">
-	<meta itemprop="wordCount" content="291">
+	<meta itemprop="description" content="Find why request and log counts grow while queue size stays small.">
+	<meta itemprop="wordCount" content="257">
 
 <title>W03: The Sibling Stampede • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -670,35 +670,31 @@ https://github.com/alex-shpak/hugo-book
 <p><strong>Application:</strong> maintenance-coordinator | <strong>Time box:</strong> 45–60 minutes</p>
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
-<p>A database-maintenance job consists of repairs on several machines and starts
-only when capacity is available for the whole group. When capacity is scarce,
-the group waits as intended. After a later update reports enough capacity to
-try the group again, CPU and log volume spike and unrelated one-machine
-repairs stop advancing.</p>
-<p>The coordinator then makes one pass over every group member. The code calls
-this pass a <em>reconciliation round</em>. Each member sees that the group is ready
-and asks the activation queue to add every other member. The queue retains at
-most one entry for each repair ID, but it logs every request for an ID that is
-already active.</p>
-<p>Your task is limited to deciding which member examined after the group becomes
-ready may initiate the group-wide activation during one pass. Do not remove
-group coordination, suppress the capacity update, or disable the queue&rsquo;s
-duplicate check. At least one member must still make every sibling eligible.</p>
+<p>A database-maintenance job contains repairs for several machines. It starts
+only when the whole group has enough capacity. The group waits correctly when
+capacity is scarce. After an update reports enough capacity, CPU use and log
+volume spike. Unrelated one-machine repairs stop advancing.</p>
+<p>The coordinator then visits every group member once. The code calls this pass
+a <strong>reconciliation round</strong>. Each member sees that the group is ready and asks
+the activation queue to add every other member. The queue stores each repair
+ID at most once, but logs every repeated request.</p>
+<p>Change only the decision to begin group-wide activation during one pass. Do
+not remove group coordination, ignore the capacity update, or disable the
+queue&rsquo;s duplicate check. Every required sibling must still become eligible.</p>
 </blockquote><p>Here, <em>activation</em> means asking the queue to reconsider a member; it does not
 mean that the member has completed its repair.</p>
-<p>Before opening source, tests, or evidence, write down:</p>
+<p>Before you open the source, tests, or evidence, write:</p>
 <ul>
 <li>why a queue that retains at most <code>g</code> IDs can still receive more than <code>g</code>
 requests;</li>
 <li>the number of requests produced when each of <code>g</code> members requests its other
 <code>g-1</code> siblings;</li>
-<li>what work occurs before the queue discovers that an ID is already active;</li>
+<li>which work happens before the queue discovers that an ID is already active;</li>
 <li>at least two other explanations for high CPU and log volume; and</li>
-<li>how long the coordinator should remember “group-wide activation already
-issued,” and when it must forget that fact.</li>
+<li>which facts must last for one round and which must reset before a later round.</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after recording your first
-explanation.</p>
+<p>After you record your first explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

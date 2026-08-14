@@ -2,39 +2,40 @@
 
 ## Boundary
 
-You own conversion of a batch of flow events plus a metadata snapshot into
-enriched events. Snapshot production, admission limits, deployment sizing, and
-downstream storage are outside your repair boundary.
+You can change how this component turns a batch of flow events and a metadata
+snapshot into enriched events. Do not change snapshot production, admission
+limits, deployment size, or downstream storage.
 
-Until localization, do not open `service.go`, either test file, or `DEBRIEF.md`.
+Do not open `service.go`, either test file, or `DEBRIEF.md` until the evidence
+points to this component.
 
-## Evidence loop
+## Choose evidence
 
 The [evidence index](./evidence/README.md) lists available packets without
-giving their contents. Before opening one, write:
+showing their contents. Before you open a packet, write:
 
-1. which hypothesis or workload variable it tests
-2. which outcomes would strengthen or weaken the current explanations
-3. why it is more useful now than the other packets
+1. the possible cause or input quantity that the packet can test;
+2. the results that would make each possible cause more or less likely; and
+3. why this packet is more useful now than the other packets.
 
 You do not need every packet.
 
-## Localization checkpoint
+## When to open the code
 
-Open source only when you can state:
+Open the source only when you can answer these questions:
 
-- the relevant workload variables
-- whether latency tracks event count, metadata count, or both
-- whether allocation or CPU work is the stronger current explanation
-- an expected complexity expression for the boundary
+- Which input quantities affect this component?
+- Does latency change with event count, metadata count, or both?
+- Does the evidence point more strongly to memory allocation or CPU work?
+- What complexity expression do you expect for this component?
 
-Then run the ordinary correctness checks:
+Then run the ordinary tests for correct results:
 
 ```bash
 go test ./cs-prod-bridge/01-big-o-hash-tables/wheel/01-innocent-nested-loop -v
 ```
 
-Reproduce the scaling contract:
+Run the test that reproduces the growth problem:
 
 ```bash
 go test -tags=csbridgewheel1 \
@@ -42,7 +43,7 @@ go test -tags=csbridgewheel1 \
   -run TestProductionScale -count=1 -v
 ```
 
-For measurement and profiling:
+Measure and profile the component:
 
 ```bash
 go test -tags=csbridgewheel1 \
@@ -56,7 +57,7 @@ go test -tags=csbridgewheel1 \
 go tool pprof -top /tmp/cs-bridge-wheel1.pprof
 ```
 
-Make the smallest change that alters the derived growth while preserving
-missing-key and duplicate-key behavior. Verify ordinary and tagged tests, then
-write a three-minute handoff before reading [DEBRIEF.md](./DEBRIEF.md).
-
+Make the smallest change that improves the growth you calculated. Preserve the
+existing behavior for missing and duplicate keys. Run the ordinary and tagged
+tests again. Write a three-minute handoff before you read
+[DEBRIEF.md](./DEBRIEF.md).

@@ -8,31 +8,31 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence Packet 3: One repair through three states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.
+<meta name="description" content="Evidence Packet 3: One repair changing states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/evidence/03/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="W02 evidence packet 3: One repair through three states">
-	<meta property="og:description" content="Evidence Packet 3: One repair through three states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.">
+	<meta property="og:title" content="W02 evidence packet 3: One repair changing states">
+	<meta property="og:description" content="Evidence Packet 3: One repair changing states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
-	<meta itemprop="name" content="W02 evidence packet 3: One repair through three states">
-	<meta itemprop="description" content="Evidence Packet 3: One repair through three states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.">
-	<meta itemprop="wordCount" content="56">
+	<meta itemprop="name" content="W02 evidence packet 3: One repair changing states">
+	<meta itemprop="description" content="Evidence Packet 3: One repair changing states 10:14:00 repair=gpu-firmware state=active 10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:00 repair=gpu-firmware state=blocked 10:14:03 event=hardware/cpu-metadata 10:14:03 repair=gpu-firmware state=active reason=event-kind-match 10:14:03 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9 10:14:03 repair=gpu-firmware state=blocked 10:14:07 event=hardware/gpu-v9 satisfies-condition=true 10:14:07 repair=gpu-firmware state=active reason=event-kind-and-key-match 10:14:07 repair=gpu-firmware attempt=succeeded 10:14:07 repair=gpu-firmware state=completedOnly the final event changes the fact tested by the repair’s readiness check.">
+	<meta itemprop="wordCount" content="55">
 
-<title>W02 evidence packet 3: One repair through three states • Computer Science Through Production Systems</title>
+<title>W02 evidence packet 3: One repair changing states • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
 <link rel="manifest" href="../../../../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/evidence/03/">
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -109,7 +109,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -286,7 +286,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -435,7 +435,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -653,7 +653,7 @@ https://github.com/alex-shpak/hugo-book
     <img src="../../../../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>W02 evidence packet 3: One repair through three states</h3>
+  <h3>W02 evidence packet 3: One repair changing states</h3>
 
   <label for="toc-control">
     
@@ -667,7 +667,7 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="evidence-packet-3-one-repair-through-three-states">Evidence Packet 3: One repair through three states</h1>
+  <article class="markdown book-article"><h1 id="evidence-packet-3-one-repair-changing-states">Evidence Packet 3: One repair changing states</h1>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>10:14:00 repair=gpu-firmware state=active
 </span></span><span style="display:flex;"><span>10:14:00 repair=gpu-firmware attempt=failed needs=hardware/gpu-v9
 </span></span><span style="display:flex;"><span>10:14:00 repair=gpu-firmware state=blocked

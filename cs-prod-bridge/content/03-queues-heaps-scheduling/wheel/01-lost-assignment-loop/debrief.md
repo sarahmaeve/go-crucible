@@ -1,6 +1,6 @@
 +++
 title = 'W01 debrief'
-description = 'Capacity returned, but workers kept impossible assignments until the response policy made those sessions terminal.'
+description = 'Cause, repair, and production checks for W01.'
 bookHidden = true
 bookSearchExclude = true
 bookToC = false

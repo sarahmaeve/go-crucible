@@ -1,6 +1,6 @@
 +++
 title = 'W02 debrief'
-description = 'Diagnosis, repair, and verification for W02.'
+description = 'Cause, repair, and checks for W02.'
 bookHidden = true
 bookSearchExclude = true
 bookToC = false

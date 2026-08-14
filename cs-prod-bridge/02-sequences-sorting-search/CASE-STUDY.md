@@ -1,9 +1,9 @@
 # Unit 02 Production Case Study
 
-The production case study is published with the unit:
+Open the HTML case study:
 
 **[Making high-cardinality metric filters predictable](../public/02-sequences-sorting-search/case-study/index.html)**
 
-It follows Datadog's timeseries-index redesign, then examines how Prometheus
-3.13.1 represents ordered postings in Go. The local lab uses a small runbook
-catalog, and its code and measurements apply only to that example.
+It follows Datadog's timeseries-index redesign. An optional section then shows
+how Prometheus 3.13.1 represents ordered postings in Go. The local lab uses a
+small runbook catalog, so its code and measurements apply only to that example.

@@ -6,21 +6,23 @@
 ## Incoming report
 
 > Flow enrichment is saturating one core and exceeding its 500 ms batch SLO in
-> the new shared-services region. The region has many more registered endpoints
-> than the original regions, but batch event count is within its configured
-> limit. The service owner thinks recent Go map changes increased GC cost and
-> proposes doubling the memory limit. No errors or missing enrichments have
-> been reported.
+> the new shared-services region. This region has many more registered endpoints
+> than the original regions. Its event count is still below the configured batch
+> limit. The service owner thinks recent Go map changes increased garbage
+> collection work and proposes doubling the current memory limit. No one has
+> reported errors or missing enrichments.
 >
-> You own the in-process enrichment boundary. Determine whether it explains the
-> scaling behavior and make a bounded repair if the evidence supports one.
+> You are responsible for in-process enrichment. Find out whether this component
+> explains the change at scale. If the evidence supports a fix within this
+> component, make the smallest such fix.
 
 Do not inspect source or tests yet. Record:
 
-- what is observed versus claimed
-- at least two explanations consistent with the report
-- the workload dimensions you need separately
-- the first evidence that would distinguish your explanations
+- facts reported by the team
+- claims that do not yet have evidence
+- at least two possible causes that fit the report
+- input quantities that you must measure separately
+- the first evidence that could help you choose between the possible causes
 
-Continue with [CANDIDATE.md](./CANDIDATE.md) after writing your initial model.
-
+After you write your initial explanation, continue with
+[CANDIDATE.md](./CANDIDATE.md).

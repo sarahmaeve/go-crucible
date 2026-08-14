@@ -8,37 +8,34 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence 04: API Requirements The API review records these requirements:
-ordering: newest incidents first identity: incident ID is unique and immutable pagination: every item in one immutable snapshot appears exactly once page token: opaque to clients; server may change its encoding mutation: snapshot updates are published atomically between traversalsThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.
-Write the comparison as two steps: compare timestamps first, then compare IDs when the timestamps match. Apply those steps to sorting, deciding whether an incident follows a cursor, and filling in the next cursor.
+<meta name="description" content="Evidence 04: API rules The API review records these rules:
+ordering: newest incidents first identity: each incident has one ID that does not change pagination: every item in one fixed snapshot appears exactly once page token: clients send it back unchanged; the server may change its encoding updates: the service publishes a complete new snapshot between page sequencesThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/evidence/04/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="W02 evidence packet 4: API requirements">
-	<meta property="og:description" content="Evidence 04: API Requirements The API review records these requirements:
-ordering: newest incidents first identity: incident ID is unique and immutable pagination: every item in one immutable snapshot appears exactly once page token: opaque to clients; server may change its encoding mutation: snapshot updates are published atomically between traversalsThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.
-Write the comparison as two steps: compare timestamps first, then compare IDs when the timestamps match. Apply those steps to sorting, deciding whether an incident follows a cursor, and filling in the next cursor.">
+	<meta property="og:title" content="W02 evidence packet 4: API rules">
+	<meta property="og:description" content="Evidence 04: API rules The API review records these rules:
+ordering: newest incidents first identity: each incident has one ID that does not change pagination: every item in one fixed snapshot appears exactly once page token: clients send it back unchanged; the server may change its encoding updates: the service publishes a complete new snapshot between page sequencesThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
-	<meta itemprop="name" content="W02 evidence packet 4: API requirements">
-	<meta itemprop="description" content="Evidence 04: API Requirements The API review records these requirements:
-ordering: newest incidents first identity: incident ID is unique and immutable pagination: every item in one immutable snapshot appears exactly once page token: opaque to clients; server may change its encoding mutation: snapshot updates are published atomically between traversalsThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.
-Write the comparison as two steps: compare timestamps first, then compare IDs when the timestamps match. Apply those steps to sorting, deciding whether an incident follows a cursor, and filling in the next cursor.">
-	<meta itemprop="wordCount" content="100">
+	<meta itemprop="name" content="W02 evidence packet 4: API rules">
+	<meta itemprop="description" content="Evidence 04: API rules The API review records these rules:
+ordering: newest incidents first identity: each incident has one ID that does not change pagination: every item in one fixed snapshot appears exactly once page token: clients send it back unchanged; the server may change its encoding updates: the service publishes a complete new snapshot between page sequencesThe current cursor type already has fields for OccurredAt and IncidentID. The endpoint populates and compares only OccurredAt.">
+	<meta itemprop="wordCount" content="104">
 
-<title>W02 evidence packet 4: API requirements • Computer Science Through Production Systems</title>
+<title>W02 evidence packet 4: API rules • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
 <link rel="manifest" href="../../../../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/evidence/04/">
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -115,7 +112,7 @@ Write the comparison as two steps: compare timestamps first, then compare IDs wh
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -292,7 +289,7 @@ Write the comparison as two steps: compare timestamps first, then compare IDs wh
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -441,7 +438,7 @@ Write the comparison as two steps: compare timestamps first, then compare IDs wh
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -659,7 +656,7 @@ Write the comparison as two steps: compare timestamps first, then compare IDs wh
     <img src="../../../../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>W02 evidence packet 4: API requirements</h3>
+  <h3>W02 evidence packet 4: API rules</h3>
 
   <label for="toc-control">
     
@@ -673,17 +670,17 @@ Write the comparison as two steps: compare timestamps first, then compare IDs wh
 
       
       
-  <article class="markdown book-article"><h1 id="evidence-04-api-requirements">Evidence 04: API Requirements</h1>
-<p>The API review records these requirements:</p>
+  <article class="markdown book-article"><h1 id="evidence-04-api-rules">Evidence 04: API rules</h1>
+<p>The API review records these rules:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>ordering: newest incidents first
-</span></span><span style="display:flex;"><span>identity: incident ID is unique and immutable
-</span></span><span style="display:flex;"><span>pagination: every item in one immutable snapshot appears exactly once
-</span></span><span style="display:flex;"><span>page token: opaque to clients; server may change its encoding
-</span></span><span style="display:flex;"><span>mutation: snapshot updates are published atomically between traversals</span></span></code></pre></div><p>The current cursor type already has fields for <code>OccurredAt</code> and <code>IncidentID</code>.
+</span></span><span style="display:flex;"><span>identity: each incident has one ID that does not change
+</span></span><span style="display:flex;"><span>pagination: every item in one fixed snapshot appears exactly once
+</span></span><span style="display:flex;"><span>page token: clients send it back unchanged; the server may change its encoding
+</span></span><span style="display:flex;"><span>updates: the service publishes a complete new snapshot between page sequences</span></span></code></pre></div><p>The current cursor type already has fields for <code>OccurredAt</code> and <code>IncidentID</code>.
 The endpoint populates and compares only <code>OccurredAt</code>.</p>
-<p>Write the comparison as two steps: compare timestamps first, then compare IDs
-when the timestamps match. Apply those steps to sorting, deciding whether an
-incident follows a cursor, and filling in the next cursor.</p>
+<p>Before you open the code, write which API rules need an exact order. Also write
+where the endpoint must apply that order and what each cursor field can
+identify.</p>
 
 </article>
  

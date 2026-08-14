@@ -8,31 +8,31 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence Packet 4: Acquire-result contract Result What is known Allowed worker response acquired The assignment is valid and owned by this worker Run it service unavailable The assignment state is unknown because the service could not answer Retry the same assignment later request rejected The assignment exists, but this request cannot be accepted in its current form Refresh or correct the request, then retry assignment missing The named assignment no longer exists End this ephemeral session so its supervisor can replace it assignment superseded The assignment now belongs to another generation or worker End this ephemeral session so its supervisor can replace it Retiring a worker is not a punishment for an unhealthy process. An ephemeral worker is created for one assignment. Once that assignment cannot be acquired, the session has no remaining useful transition. Its supervisor owns creating a replacement that can request valid work.
+<meta name="description" content="Evidence Packet 4: What each acquire result means Result What is known acquired The assignment is valid and owned by this worker service unavailable The service could not report the assignment state request rejected The assignment exists, but the current request was not accepted assignment missing The named assignment no longer exists assignment superseded The assignment now belongs to another generation or worker The worker is a one-assignment session. Its supervisor can replace a session when the worker action ends it.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/evidence/04/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="W01 evidence packet 4: Acquire-result contract">
-	<meta property="og:description" content="Evidence Packet 4: Acquire-result contract Result What is known Allowed worker response acquired The assignment is valid and owned by this worker Run it service unavailable The assignment state is unknown because the service could not answer Retry the same assignment later request rejected The assignment exists, but this request cannot be accepted in its current form Refresh or correct the request, then retry assignment missing The named assignment no longer exists End this ephemeral session so its supervisor can replace it assignment superseded The assignment now belongs to another generation or worker End this ephemeral session so its supervisor can replace it Retiring a worker is not a punishment for an unhealthy process. An ephemeral worker is created for one assignment. Once that assignment cannot be acquired, the session has no remaining useful transition. Its supervisor owns creating a replacement that can request valid work.">
+	<meta property="og:title" content="W01 evidence packet 4: What each acquire result means">
+	<meta property="og:description" content="Evidence Packet 4: What each acquire result means Result What is known acquired The assignment is valid and owned by this worker service unavailable The service could not report the assignment state request rejected The assignment exists, but the current request was not accepted assignment missing The named assignment no longer exists assignment superseded The assignment now belongs to another generation or worker The worker is a one-assignment session. Its supervisor can replace a session when the worker action ends it.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
-	<meta itemprop="name" content="W01 evidence packet 4: Acquire-result contract">
-	<meta itemprop="description" content="Evidence Packet 4: Acquire-result contract Result What is known Allowed worker response acquired The assignment is valid and owned by this worker Run it service unavailable The assignment state is unknown because the service could not answer Retry the same assignment later request rejected The assignment exists, but this request cannot be accepted in its current form Refresh or correct the request, then retry assignment missing The named assignment no longer exists End this ephemeral session so its supervisor can replace it assignment superseded The assignment now belongs to another generation or worker End this ephemeral session so its supervisor can replace it Retiring a worker is not a punishment for an unhealthy process. An ephemeral worker is created for one assignment. Once that assignment cannot be acquired, the session has no remaining useful transition. Its supervisor owns creating a replacement that can request valid work.">
-	<meta itemprop="wordCount" content="146">
+	<meta itemprop="name" content="W01 evidence packet 4: What each acquire result means">
+	<meta itemprop="description" content="Evidence Packet 4: What each acquire result means Result What is known acquired The assignment is valid and owned by this worker service unavailable The service could not report the assignment state request rejected The assignment exists, but the current request was not accepted assignment missing The named assignment no longer exists assignment superseded The assignment now belongs to another generation or worker The worker is a one-assignment session. Its supervisor can replace a session when the worker action ends it.">
+	<meta itemprop="wordCount" content="106">
 
-<title>W01 evidence packet 4: Acquire-result contract • Computer Science Through Production Systems</title>
+<title>W01 evidence packet 4: What each acquire result means • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
 <link rel="manifest" href="../../../../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/evidence/04/">
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -109,7 +109,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -286,7 +286,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -435,7 +435,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -653,7 +653,7 @@ https://github.com/alex-shpak/hugo-book
     <img src="../../../../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>W01 evidence packet 4: Acquire-result contract</h3>
+  <h3>W01 evidence packet 4: What each acquire result means</h3>
 
   <label for="toc-control">
     
@@ -667,47 +667,41 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="evidence-packet-4-acquire-result-contract">Evidence Packet 4: Acquire-result contract</h1>
+  <article class="markdown book-article"><h1 id="evidence-packet-4-what-each-acquire-result-means">Evidence Packet 4: What each acquire result means</h1>
 <table>
 	<thead>
 			<tr>
 					<th>Result</th>
 					<th>What is known</th>
-					<th>Allowed worker response</th>
 			</tr>
 	</thead>
 	<tbody>
 			<tr>
 					<td>acquired</td>
 					<td>The assignment is valid and owned by this worker</td>
-					<td>Run it</td>
 			</tr>
 			<tr>
 					<td>service unavailable</td>
-					<td>The assignment state is unknown because the service could not answer</td>
-					<td>Retry the same assignment later</td>
+					<td>The service could not report the assignment state</td>
 			</tr>
 			<tr>
 					<td>request rejected</td>
-					<td>The assignment exists, but this request cannot be accepted in its current form</td>
-					<td>Refresh or correct the request, then retry</td>
+					<td>The assignment exists, but the current request was not accepted</td>
 			</tr>
 			<tr>
 					<td>assignment missing</td>
 					<td>The named assignment no longer exists</td>
-					<td>End this ephemeral session so its supervisor can replace it</td>
 			</tr>
 			<tr>
 					<td>assignment superseded</td>
 					<td>The assignment now belongs to another generation or worker</td>
-					<td>End this ephemeral session so its supervisor can replace it</td>
 			</tr>
 	</tbody>
 </table>
-<p>Retiring a worker is not a punishment for an unhealthy process. An ephemeral
-worker is created for one assignment. Once that assignment cannot be acquired,
-the session has no remaining useful transition. Its supervisor owns creating a
-replacement that can request valid work.</p>
+<p>The worker is a one-assignment session. Its supervisor can replace a session
+when the worker action ends it.</p>
+<p>For each result, choose an action from the candidate guide. Explain what would
+have to change before another request for the same assignment could succeed.</p>
 
 </article>
  

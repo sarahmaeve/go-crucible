@@ -1,9 +1,9 @@
 # W01 Evidence Index
 
-Choose packets by diagnostic value, not number:
+Choose the packet that can best test your current explanation. You do not need
+to read them in number order.
 
-- [Packet 1](./01.md): traffic and metadata cardinality by region
-- [Packet 2](./02.md): allocation and GC comparison
+- [Packet 1](./01.md): event and metadata counts by region
+- [Packet 2](./02.md): memory allocation and garbage collection
 - [Packet 3](./03.md): CPU profile excerpt
-- [Packet 4](./04.md): controlled scaling experiment
-
+- [Packet 4](./04.md): experiment that changes one input

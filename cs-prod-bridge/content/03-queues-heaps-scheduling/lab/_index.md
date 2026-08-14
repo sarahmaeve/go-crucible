@@ -1,6 +1,6 @@
 +++
-title = 'Exploration lab: keep the highest-risk k'
-description = 'Compare sorting every candidate with a bounded heap that retains only the highest-risk services.'
+title = 'Lab: keep the highest-risk k'
+description = 'Compare sorting every candidate with a heap that keeps only the highest-risk services.'
 weight = 4
 bookToC = false
 +++

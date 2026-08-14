@@ -2,35 +2,35 @@
 
 Read this only after completing the handoff.
 
-## Diagnosis
+## Cause
 
-Finding an insertion point and making room in a slice are separate operations.
-Binary search finds the position in `O(log n)` comparisons. The records live
-in one contiguous backing array, however, so `slices.Insert` must copy every
-record after that position one place to the right.
+Binary search finds an insertion position in `O(log n)` comparisons. Making
+room at that position is a separate operation. The records share one contiguous
+array, so `slices.Insert` must move every later record one position to the
+right.
 
-In this scenario, each incoming key sorts before the existing snapshot. Each
-of the `m` insertions therefore moves roughly `n` existing records:
+In this scenario, every incoming key belongs before the existing snapshot. Each
+of the `m` insertions moves approximately `n` existing records:
 
 ```text
 n + n + ... + n = Theta(m*n)
 ```
 
 The growing batch can add another `Theta(m^2)` moves in the worst case. If `m`
-grows in proportion to `n`, the refresh performs quadratic copying; the cheap
-position searches do not change that total.
+grows with `n`, the total copying is quadratic. Fast position searches do not
+change the cost of moving records.
 
-The insertion-position experiment makes this visible: batches of the same size
-take very different times depending on where their keys belong. The movement
-counter explains that difference, while the CPU profile confirms that the
-program spends most of the delay copying records.
+The insertion-position experiment shows this behavior. Batches of the same size
+take different amounts of time when their keys belong in different positions.
+The movement counter explains the difference. The CPU profile confirms that
+copying uses most of the time.
 
-## A repair with predictable cost
+## Smallest repair
 
-First collapse duplicate keys in the incoming batch, retaining the last
-occurrence of each key. Sort the remaining incoming records once, then merge
-them with the current snapshot into a new slice. When both inputs contain the
-same key, copy the incoming record.
+First, reduce duplicate keys in the incoming batch to the last record for each
+key. Sort the remaining incoming records once. Then merge them with the current
+snapshot into a new slice. When both inputs contain the same key, use the
+incoming record.
 
 This takes:
 
@@ -38,15 +38,14 @@ This takes:
 - `Theta(n+m)` to merge; and
 - `Theta(n+m)` output space.
 
-The duplicate rule must be applied before sorting, or the original batch
-position must be retained as a tie-breaker. Otherwise, sorting can change
-which duplicate is considered last.
+Apply the duplicate rule before sorting, or keep the original batch position as
+a tie-breaker. Otherwise, sorting can change which duplicate counts as last.
 
-Construct the result in a new slice because readers may still be using the
-current snapshot. A map alone is not a complete replacement: callers also
-require iteration in key order.
+Build the result in a new slice because readers can still use the current
+snapshot. A map alone does not meet the contract because callers also require
+iteration in key order.
 
-## Verification
+## Check the repair
 
 Run:
 
@@ -58,15 +57,14 @@ go test -tags=csbridgewheel3 \
 ```
 
 The ordinary tests check sorted output, duplicate handling, unchanged inputs,
-and the counter definitions. The tagged test counts writes instead of imposing
-a machine-specific time limit. The original implementation performs millions
-of writes on the front-heavy batch; the repaired implementation writes each
+and counter definitions. The tagged test counts writes instead of using a
+machine-specific time limit. The original implementation writes millions of
+records for the front-heavy batch. The repaired implementation writes each
 final record once.
 
-## Production follow-up
+## What to measure in production
 
-In production, record the current snapshot size, incoming batch size, number
-of inserted and replaced keys, and number of records copied during refresh.
-Also record where incoming keys fall relative to the current key range. Two
-regions can have snapshots of the same size while doing very different amounts
-of copying.
+Record the current snapshot size, incoming batch size, inserted and replaced
+keys, and records copied during refresh. Also record where incoming keys belong
+relative to the current key range. Two regions can have equal snapshot sizes
+but do very different amounts of copying.

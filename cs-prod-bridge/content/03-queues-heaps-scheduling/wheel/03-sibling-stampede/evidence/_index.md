@@ -1,6 +1,6 @@
 +++
 title = 'W03 evidence index'
-description = 'Selectable evidence packets for W03.'
+description = 'Evidence packets for W03.'
 bookHidden = true
 bookToC = false
 +++

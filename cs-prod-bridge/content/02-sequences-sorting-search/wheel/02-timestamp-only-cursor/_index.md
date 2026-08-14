@@ -1,6 +1,6 @@
 +++
 title = 'W02: The Timestamp-Only Cursor'
-description = 'Diagnose missing incidents when more tied records exist than one page can hold.'
+description = 'Find why incident pages omit records during bursts of equal timestamps.'
 weight = 3
 bookCollapseSection = true
 bookToC = false

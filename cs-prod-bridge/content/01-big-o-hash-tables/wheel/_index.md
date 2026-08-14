@@ -1,6 +1,6 @@
 +++
 title = 'Wheels of Misfortune'
-description = 'Report-first debugging scenarios for Big-O, hash tables, and retained cardinality.'
+description = 'Debug production reports about repeated work and growing map keys.'
 weight = 4
 bookCollapseSection = true
 bookToC = false

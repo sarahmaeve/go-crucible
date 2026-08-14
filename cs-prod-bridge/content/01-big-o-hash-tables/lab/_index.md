@@ -1,6 +1,6 @@
 +++
-title = 'Exploration lab: scan or index?'
-description = 'Benchmark and profile repeated scans, one-use indexes, and reused indexes.'
+title = 'Lab: scan or index?'
+description = 'Measure repeated scans, one-use indexes, and reused indexes.'
 weight = 3
 bookToC = false
 +++

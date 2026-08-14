@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Find where repeated group-wide requests begin while preserving the one necessary wake-up.">
+<meta name="description" content="Inspect group evidence, test the coordinator, and verify your repair.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/03-sibling-stampede/candidate/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W03 candidate guide">
-	<meta property="og:description" content="Find where repeated group-wide requests begin while preserving the one necessary wake-up.">
+	<meta property="og:description" content="Inspect group evidence, test the coordinator, and verify your repair.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W03 candidate guide">
-	<meta itemprop="description" content="Find where repeated group-wide requests begin while preserving the one necessary wake-up.">
-	<meta itemprop="wordCount" content="347">
+	<meta itemprop="description" content="Inspect group evidence, test the coordinator, and verify your repair.">
+	<meta itemprop="wordCount" content="337">
 
 <title>W03 candidate guide • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -669,47 +669,45 @@ https://github.com/alex-shpak/hugo-book
   <article class="markdown book-article"><h1 id="w03-candidate-guide">W03 Candidate Guide</h1>
 <h2 id="what-you-may-change">What you may change</h2>
 <p>Change only <code>beginSiblingActivation</code> in <code>group.go</code>.</p>
-<p><code>RoundState</code> is synthetic state shared during one pass over the member
-observations. The code calls that pass a <em>reconciliation round</em>.
-<code>SimulateRound</code> creates a new state value for each later pass. Preserve these
-behaviors:</p>
+<p><code>RoundState</code> is state shared during one pass over the member observations.
+<code>SimulateRound</code> creates a new value for each later pass. Preserve these rules:</p>
 <ul>
 <li>a member observed before the group is ready issues no sibling requests;</li>
-<li>the first member observed after the group is ready may request all of its
-<code>g-1</code> siblings;</li>
-<li>later members in the same pass do not repeat those group-wide requests;</li>
+<li>once the group is ready, the pass makes every required sibling eligible;</li>
+<li>the pass does not repeat group-wide work unnecessarily;</li>
 <li>a later round may issue a new group-wide request; and</li>
 <li>the activation queue continues to retain at most one stored entry per ID.</li>
 </ul>
-<p>Do not special-case a group size or remove observations from the fixture. The
-code change belongs where the coordinator decides whether the current member
-may start the group-wide loop.</p>
-<h2 id="choose-the-next-evidence-packet">Choose the next evidence packet</h2>
-<p>The <a href="../evidence/">evidence index</a> names available packets without
-revealing their contents. Before opening one, record the question it answers,
-the results you expect, and which explanation each result would weaken.</p>
+<p>Do not special-case a group size or remove observations from the test data.
+Keep the change in the decision to start the group-wide loop.</p>
+<h2 id="choose-evidence">Choose evidence</h2>
+<p>The <a href="../evidence/">evidence index</a> names packets without showing their
+contents. Before you open one, record its question, likely results, and which
+explanation each result would weaken.</p>
 <p>You do not need every packet.</p>
-<h2 id="before-opening-the-source">Before opening the source</h2>
-<p>Open <code>group.go</code> only after you can explain:</p>
+<h2 id="decide-when-to-open-the-code">Decide when to open the code</h2>
+<p>Open <code>group.go</code> only after you can answer these questions:</p>
 <ul>
 <li>why <code>g(g-1)</code> is quadratic even though only <code>g</code> IDs exist;</li>
 <li>what work the queue may perform before it rejects a repeated ID;</li>
-<li>why the state must cover one round rather than the lifetime of the group;
-and</li>
+<li>which facts need to survive between member observations, and which must reset
+before the next round; and</li>
 <li>what should happen to an unrelated repair under the fixed operation allowance
 described below.</li>
 </ul>
-<p>Run the ordinary behavior tests:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/03-sibling-stampede -v</span></span></code></pre></div><p>Run the test that reproduces the report&rsquo;s failure pattern:</p>
+<p>Run the ordinary tests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/03-sibling-stampede -v</span></span></code></pre></div><p>Run the test that reproduces the report:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel7 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/03-sibling-stampede <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run TestOneGroupWideActivationPerRound -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The tagged test checks group sizes from 4 through 256. It also gives the pass a
-fixed allowance of modeled operations: one activation request or one unrelated
-dispatch uses one unit. This makes the amount of work deterministic; it does
-not claim that every operation takes the same amount of time.</p>
-<p>Write a three-minute handoff that states where the repeated calls originate,
-why queue deduplication does not erase them, what state you added, and when
-that state resets. Then read <a href="../debrief/">the debrief</a>.</p>
+</span></span></span><span style="display:flex;"><span>  -run TestOneGroupWideActivationPerRound -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The tagged test checks group sizes from 4 through 256. It gives each pass a
+fixed operation allowance: one activation request or unrelated dispatch uses
+one unit. This makes the work count repeatable. It does not claim that every
+production operation takes equal time.</p>
+<p>After you diagnose the failure, make the smallest change that satisfies the
+tagged test and the rules above. Run both test modes again.</p>
+<p>Write a three-minute handoff. State where the repeated calls begin, why storing
+each ID once does not erase them, what you changed, and when any new state
+resets. Then read <a href="../debrief/">the debrief</a>.</p>
 
 </article>
  

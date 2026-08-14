@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="How Datadog replaced unpredictable metric-wide scans with an index that covered every tag.">
+<meta name="description" content="How Datadog replaced unpredictable full-metric scans with an index for every tag.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/case-study/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="Making high-cardinality metric filters predictable">
-	<meta property="og:description" content="How Datadog replaced unpredictable metric-wide scans with an index that covered every tag.">
+	<meta property="og:description" content="How Datadog replaced unpredictable full-metric scans with an index for every tag.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
 	<meta itemprop="name" content="Making high-cardinality metric filters predictable">
-	<meta itemprop="description" content="How Datadog replaced unpredictable metric-wide scans with an index that covered every tag.">
-	<meta itemprop="wordCount" content="1517">
+	<meta itemprop="description" content="How Datadog replaced unpredictable full-metric scans with an index for every tag.">
+	<meta itemprop="wordCount" content="1477">
 
 <title>Making high-cardinality metric filters predictable • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,15 +668,15 @@ https://github.com/alex-shpak/hugo-book
   
 <nav id="TableOfContents">
   <ul>
-    <li><a href="#why-the-original-design-worked-for-repeated-queries">Why the original design worked for repeated queries</a></li>
-    <li><a href="#interactive-queries-triggered-the-fallback">Interactive queries triggered the fallback</a></li>
-    <li><a href="#the-redesign-indexed-every-tag">The redesign indexed every tag</a></li>
-    <li><a href="#predictability-required-more-writes-and-storage">Predictability required more writes and storage</a></li>
-    <li><a href="#sharding-had-to-be-measured-under-production-traffic">Sharding had to be measured under production traffic</a></li>
-    <li><a href="#reported-production-outcome">Reported production outcome</a></li>
-    <li><a href="#how-prometheus-exposes-ordered-postings-in-go">How Prometheus exposes ordered postings in Go</a></li>
-    <li><a href="#explore-the-same-trade-off-in-the-local-lab">Explore the same trade-off in the local lab</a></li>
-    <li><a href="#design-review-checklist">Design review checklist</a></li>
+    <li><a href="#why-repeated-queries-were-fast">Why repeated queries were fast</a></li>
+    <li><a href="#new-queries-fell-back-to-a-full-scan">New queries fell back to a full scan</a></li>
+    <li><a href="#the-new-design-indexed-every-tag">The new design indexed every tag</a></li>
+    <li><a href="#predictable-queries-cost-more-writes-and-storage">Predictable queries cost more writes and storage</a></li>
+    <li><a href="#the-team-tested-sharding-with-production-traffic">The team tested sharding with production traffic</a></li>
+    <li><a href="#what-datadog-measured">What Datadog measured</a></li>
+    <li><a href="#optional-how-prometheus-exposes-ordered-postings-in-go">Optional: how Prometheus exposes ordered postings in Go</a></li>
+    <li><a href="#test-the-same-trade-off-in-the-lab">Test the same trade-off in the lab</a></li>
+    <li><a href="#questions-for-a-design-review">Questions for a design review</a></li>
   </ul>
 </nav>
 
@@ -691,80 +691,76 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><p><strong>Unit 02 · Production case study</strong></p>
 <h1 id="making-high-cardinality-metric-filters-predictable">Making high-cardinality metric filters predictable</h1>
-<p class="book-lead">Datadog's timeseries index was fast when a query matched an index
-that the service had already generated, and slow when it did not. The team
-replaced that unpredictable fallback with an index for every tag. The new
-design stored and wrote more data, but it made interactive queries more
-predictable and sharply reduced timeouts.</p>
+<p class="book-lead">Datadog's timeseries index was fast when an existing index covered
+a query. Otherwise, the service used a slow fallback. The team replaced that
+fallback with an index for every tag. The new design wrote and stored more data,
+but it made interactive queries more predictable and reduced timeouts.</p>
 
-<p>This case follows Datadog&rsquo;s first-party report,
+<p>This case study follows Datadog&rsquo;s report,
 <a href="https://www.datadoghq.com/blog/engineering/timeseries-indexing-at-scale/">Timeseries indexing at scale</a>.
-The article explains which queries triggered the slow path, how those queries
-affected users and operators, what the team changed, and what the redesigned
-system cost to run. All production measurements below come from that article.
-The complexity analysis and runbook lab are simplified teaching examples; the
-later Prometheus section examines a separate Go implementation.</p>
-<h2 id="why-the-original-design-worked-for-repeated-queries">Why the original design worked for repeated queries</h2>
-<p>Datadog&rsquo;s service receives a metric name and a set of tag filters, then returns
-the matching timeseries. A metric&rsquo;s <strong>cardinality</strong> is the number of distinct
-timeseries recorded under that metric name. The original index maintained two
-basic relationships:</p>
+The article explains which queries used the slow path, how users and operators
+were affected, what the team changed, and what the new system cost. All
+production measurements below come from that article. The complexity analysis
+and runbook lab are smaller teaching examples. The later Prometheus section
+examines a separate Go implementation.</p>
+<h2 id="why-repeated-queries-were-fast">Why repeated queries were fast</h2>
+<p>Datadog&rsquo;s service receives a metric name and tag filters. It returns the
+matching timeseries. A metric&rsquo;s <strong>cardinality</strong> is its number of distinct
+timeseries. The original index stored two relationships:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>metric name -&gt; series IDs
-</span></span><span style="display:flex;"><span>series ID   -&gt; tags</span></span></code></pre></div><p>Without a more specific index, a query could retrieve all series IDs for a
-metric and check each series&rsquo; tags. The query-time work therefore grew with
-the metric&rsquo;s cardinality, even if only a small fraction matched.</p>
-<p>Rather than index every possible tag, the service watched its query log and
-generated indexes for filter patterns that callers had used before. This saved
-storage: Datadog reports that callers consistently queried only about 30
-percent of the series being written. It also worked well for monitors and
-scheduled jobs, which tend to repeat the same queries.</p>
-<h2 id="interactive-queries-triggered-the-fallback">Interactive queries triggered the fallback</h2>
-<p>Interactive users did not repeat queries so predictably. When a user combined
-tags in a new way, no generated index necessarily covered that combination.
-The service then retrieved every series for the metric and checked the tags on
-each one.</p>
-<p>High-cardinality metrics made that fallback expensive. Datadog describes full
-scans, timeouts, and a poor interactive experience. Even a small change to a
-recurring query could miss its old generated index and place substantial load
-on the database, and engineers sometimes had to create or remove indexes by
-hand. The service saved disk space by indexing familiar queries, but the cost
-was unpredictable CPU use and latency for unfamiliar ones.</p>
-<h2 id="the-redesign-indexed-every-tag">The redesign indexed every tag</h2>
+</span></span><span style="display:flex;"><span>series ID   -&gt; tags</span></span></code></pre></div><p>Without a more specific index, a query retrieved every series ID for the metric
+and checked the tags for each series. The work grew with metric cardinality,
+even when few series matched.</p>
+<p>The service did not index every possible tag. It watched its query log and
+built indexes for filter patterns that callers had used before. This saved
+storage. Datadog reports that callers regularly queried only about 30 percent
+of the series being written. The design worked well for monitors and scheduled
+jobs because they tend to repeat queries.</p>
+<h2 id="new-queries-fell-back-to-a-full-scan">New queries fell back to a full scan</h2>
+<p>Interactive users changed their queries more often. A new combination of tags
+might not have an index. The service then retrieved every series for the metric
+and checked the tags for each one.</p>
+<p>Metrics with many series made the fallback expensive. Datadog reports full
+scans, timeouts, and poor interactive use. A small query change could miss the
+old index and add substantial database load. Engineers sometimes had to create
+or remove indexes by hand. The service saved disk space for familiar queries,
+but CPU use and latency became unpredictable for unfamiliar queries.</p>
+<h2 id="the-new-design-indexed-every-tag">The new design indexed every tag</h2>
 <p>The new design creates an inverted relationship for every tag:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>(metric, tag) -&gt; set of series IDs</span></span></code></pre></div><p>For a conjunction, the service retrieves one series-ID set per tag and
-intersects them. For a disjunction, it unions them. A stored sequence of IDs is
-often called a <strong>postings list</strong>. The report also describes sorted integer
-arrays in merge-heavy parts of the service.</p>
-<p>The lab illustrates intersection with two sorted postings lists of lengths <code>p</code>
-and <code>q</code>. Two pointers can find their common IDs in <code>O(p+q)</code> advances because
-every comparison consumes at least one input. For a query with several tags,
-starting with the shortest postings lists will often keep the temporary result
-small. Datadog&rsquo;s article describes set operations and sorted integer arrays,
-but it does not specify that this exact loop handled its queries.</p>
-<p>The exact intersection loop mattered less than the fact that every tag now had
-an index. A query could no longer miss the generated-index set and fall back to
-scanning every series for the metric.</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>(metric, tag) -&gt; set of series IDs</span></span></code></pre></div><p>For an AND query, the service retrieves one series-ID set for each tag and
+finds the IDs shared by all sets. For an OR query, it combines the sets. A
+stored sequence of IDs is often called a <strong>postings list</strong>. The report also
+describes sorted integer arrays in parts of the service that do many merges.</p>
+<p>The lab finds shared IDs in two sorted postings lists of lengths <code>p</code> and <code>q</code>.
+Two positions can find the shared IDs in <code>O(p+q)</code> advances because every
+comparison advances at least one position. For several tags, starting with the
+shortest lists often keeps the temporary result small. Datadog&rsquo;s article
+describes set operations and sorted integer arrays. It does not say that this
+exact loop handled the production queries.</p>
+<p>The important change was that every tag had an index. A query could no longer
+miss the available indexes and fall back to scanning every series for the
+metric.</p>
 <blockquote class="book-hint tip">
   <p><strong>Two properties the index must preserve</strong></p>
-  <div class="markdown-inner">First, every <code>(metric, tag)</code> entry must contain all of its matching series IDs;
-otherwise a query can silently miss data. Second, if those IDs are stored in
-sorted order for merging or intersection, every operation must agree on the
-same ID order. Sorting does not change which IDs belong to the set, but it does
-determine whether the ordered algorithm returns that set correctly.</div>
+  <div class="markdown-inner">Each <code>(metric, tag)</code> entry must contain all matching series IDs. Otherwise, a
+query can silently miss data. If the service stores those IDs in sorted order,
+every merge and intersection must use the same order. Sorting does not change
+which IDs belong to the set. It does determine whether the ordered algorithm
+returns the correct set.</div>
 </blockquote>
 
-<h2 id="predictability-required-more-writes-and-storage">Predictability required more writes and storage</h2>
-<p>An unconditional inverted index writes a series ID once for every tag attached
-to that series. Datadog reports that one ID may consequently be stored more
-than ten times. That repetition increased both write traffic and disk use.</p>
-<p>Some queries that previously matched one purpose-built generated index now
-require several postings lookups and set operations. The report says these
-queries became slightly more expensive on average. The improvement appeared
-in predictability and in the slowest queries, rather than in every individual
-request.</p>
-<p>This was an attractive trade because the old system was limited by CPU while
-disk capacity remained available. The new index used more of that disk to
-avoid full scans and reduce manual index maintenance.</p>
+<h2 id="predictable-queries-cost-more-writes-and-storage">Predictable queries cost more writes and storage</h2>
+<p>The new inverted index writes a series ID once for every tag on that series.
+Datadog reports that one ID can therefore be stored more than ten times. This
+increases write traffic and disk use.</p>
+<p>Some queries previously used one index built for that exact query. They now
+require several postings lookups and set operations. Datadog reports that these
+queries became slightly more expensive on average. The main improvement was
+more predictable behavior and fewer very slow queries, not a faster result for
+every request.</p>
+<p>This trade fit the system because CPU was the limit and disk capacity was still
+available. The new index used more disk to avoid full scans and reduce manual
+index work.</p>
 <table>
 	<thead>
 			<tr>
@@ -775,7 +771,7 @@ avoid full scans and reduce manual index maintenance.</p>
 	<tbody>
 			<tr>
 					<td>One series ID recorded for each tag</td>
-					<td>Every tag is queryable without a generated-index miss</td>
+					<td>Every tag query has an index</td>
 			</tr>
 			<tr>
 					<td>More storage and write I/O</td>
@@ -791,42 +787,41 @@ avoid full scans and reduce manual index maintenance.</p>
 			</tr>
 	</tbody>
 </table>
-<h2 id="sharding-had-to-be-measured-under-production-traffic">Sharding had to be measured under production traffic</h2>
-<p>The team also split each node&rsquo;s RocksDB indexes into several independent
-shards. A query could then search those shards in parallel and use more CPU
-cores, although the service had to coordinate the work and merge the partial
-results. The best number of shards depended on the workload and the machine.</p>
-<p>Datadog tested this with production traffic. On a 32-core node, the team
-selected eight shards and reported nearly an eightfold performance
-improvement. The number of shards is an observed design point for that system,
-not a portable rule of “one shard per four cores.”</p>
-<p>The larger project also rewrote this service from Go to Rust. In this
-particular workload, Datadog measured roughly 30 percent of the Go version&rsquo;s
-CPU time in garbage collection. That explains why the rewrite contributed to
-their result; it does not imply that every inverted index should avoid Go. The
-local lab stays in Go so that its own allocations and CPU profile remain
-visible.</p>
-<h2 id="reported-production-outcome">Reported production outcome</h2>
-<p>Datadog reports the combined redesign supported queries over metrics with 20
-times higher cardinality on the same hardware, reduced query timeouts by 99
-percent, and made the index nearly 50 percent cheaper to operate.</p>
-<p>Those figures describe the combined result of the new indexing strategy,
-storage representation, sharding, language rewrite, and production rollout.
-They should not be attributed to the small two-pointer loop in the lab alone.</p>
-<p>For an SRE, the sequence of questions is more reusable than any one of those
-numbers:</p>
+<h2 id="the-team-tested-sharding-with-production-traffic">The team tested sharding with production traffic</h2>
+<p>The team also split each node&rsquo;s RocksDB indexes into independent shards. A query
+could search the shards in parallel and use more CPU cores. The service then
+had to coordinate that work and merge partial results. The best shard count
+depended on the workload and machine.</p>
+<p>Datadog tested the choices with production traffic. On a 32-core node, the team
+selected eight shards and reported that performance improved by almost a
+factor of eight. This shard count was the measured choice for that system. It
+is not a general rule of one shard for every four cores.</p>
+<p>The larger project also rewrote the service from Go to Rust. For this workload,
+Datadog measured approximately 30 percent of the Go version&rsquo;s CPU time in
+garbage collection. This helps explain why the rewrite contributed to the
+result. It does not mean that every inverted index should avoid Go. The local
+lab stays in Go so you can measure its allocations and CPU use.</p>
+<h2 id="what-datadog-measured">What Datadog measured</h2>
+<p>Datadog reports that the combined redesign supported metrics with 20 times more
+series on the same hardware. It reduced query timeouts by 99 percent and made
+the index almost 50 percent cheaper to operate.</p>
+<p>Those figures describe the combined result of the new index, storage format,
+sharding, language rewrite, and production rollout. The small two-position loop
+in the lab did not produce those results by itself.</p>
+<p>The following questions apply to other systems:</p>
 <ol>
-<li>identify an unpredictable fallback and what triggers it;</li>
-<li>build and maintain the index coverage that removes the fallback;</li>
-<li>name the write, memory, and average-query costs moved elsewhere;</li>
-<li>experiment with parallelism and representation using representative traffic;</li>
-<li>measure user-visible tail failures and operating cost, not only microbenchmarks.</li>
+<li>What fallback makes the work unpredictable, and what causes it?</li>
+<li>What index would remove that fallback, and how will the service maintain it?</li>
+<li>Which write, memory, and average-query costs does the change add?</li>
+<li>How should the team test parallel work and storage with representative traffic?</li>
+<li>Do user-visible timeouts and operating cost improve, not only a small
+benchmark?</li>
 </ol>
-<h2 id="how-prometheus-exposes-ordered-postings-in-go">How Prometheus exposes ordered postings in Go</h2>
-<p>Datadog&rsquo;s article explains why the architecture changed, but it does not show
-the Go interface behind its postings operations. Prometheus provides a related
-example that we can inspect directly: production Go code whose index exposes
-ordered postings, seeking, and intersection.</p>
+<h2 id="optional-how-prometheus-exposes-ordered-postings-in-go">Optional: how Prometheus exposes ordered postings in Go</h2>
+<p>Datadog&rsquo;s article explains why the architecture changed. It does not show the
+Go interface behind its postings operations. Prometheus provides related
+production Go code that we can inspect. Its index supports ordered postings,
+seeking, and intersection.</p>
 <p>In the <a href="https://github.com/prometheus/prometheus/blob/v3.13.1/tsdb/docs/format/index.md">Prometheus 3.13.1 index format</a>,
 postings contain increasing series references. In the pinned
 <a href="https://github.com/prometheus/prometheus/blob/v3.13.1/tsdb/index/postings.go"><code>tsdb/index/postings.go</code></a>:</p>
@@ -837,43 +832,44 @@ postings contain increasing series references. In the pinned
 <li>the list seek currently delegates to <code>slices.BinarySearch</code>; and</li>
 <li><code>Intersect</code> combines ordered postings for conjunction.</li>
 </ul>
-<p><code>NewListPostings</code> requires its input to be ordered, and the iterator preserves
-that order. Those two facts make its binary search valid; the query path does
-not sort arbitrary input before every seek. The increasing references are an
-internal index order, not a ranking shown to Prometheus users.</p>
-<h2 id="explore-the-same-trade-off-in-the-local-lab">Explore the same trade-off in the local lab</h2>
-<p>The <a href="../lab/">runbook-search lab</a> applies the same ideas to a much smaller data
-set. One implementation scans every runbook; the other maps each tag to a
-sorted list of document IDs. After retrieving the matching IDs, both paths use
-a separate comparison to arrange the runbooks for display.</p>
+<p><code>NewListPostings</code> requires ordered input, and the iterator preserves that
+order. These facts make its binary search valid. The query does not sort
+arbitrary input before every seek. The increasing references are an internal
+index order, not a ranking shown to users.</p>
+<h2 id="test-the-same-trade-off-in-the-lab">Test the same trade-off in the lab</h2>
+<p>The <a href="../lab/">runbook-search lab</a> applies the same ideas to a smaller data set.
+One implementation scans every runbook. The other maps each tag to a sorted
+list of document IDs. After finding the matching IDs, both versions use a
+separate rule to order the runbooks for display.</p>
 <p>Before running it, predict:</p>
 <ul>
-<li>whether index construction dominates when a snapshot serves only one query;</li>
+<li>whether index construction uses most of the work when a snapshot serves only
+one query;</li>
 <li>how rare and common tags change the postings lengths;</li>
 <li>whether disjoint and heavily overlapping postings require the same number of
-pointer advances;</li>
+position advances;</li>
 <li>when sorting the displayed matches costs more than retrieving them;</li>
-<li>how much write and storage growth one postings entry per document tag adds;
+<li>how many writes and how much storage one postings entry per document tag adds;
 and</li>
 <li>whether each snapshot serves enough queries to repay its build cost.</li>
 </ul>
-<p>Before comparing speed, confirm that the scan and the index return the same
-IDs for empty, missing, repeated, and differently cased tags. Operation counts
-and benchmarks can then show when the up-front index build is repaid and how
-the cost changes with postings length and overlap.</p>
-<h2 id="design-review-checklist">Design review checklist</h2>
+<p>Before you compare speed, check that the scan and index return the same IDs for
+empty, missing, repeated, and differently cased tags. Then use operation counts
+and benchmarks to find when reuse repays the initial index build. Also measure
+how postings length and overlap change the cost.</p>
+<h2 id="questions-for-a-design-review">Questions for a design review</h2>
 <ul>
 <li>Is the original fallback still reachable?</li>
-<li>What workload dimension triggers it: total documents, metric cardinality,
-postings density, overlap, or update rate?</li>
+<li>Which input causes it: total documents, metric cardinality, fraction of
+documents in each postings list, overlap, or update rate?</li>
 <li>Where does the system verify that an input claimed to be ordered actually is?</li>
 <li>How many queries reuse the constructed index?</li>
-<li>What is the per-record write and storage amplification?</li>
-<li>Does the system build intermediate sets or iterate lazily?</li>
+<li>How many writes and stored entries does each source record add?</li>
+<li>Does the system build temporary sets or produce matches as needed?</li>
 <li>Which production measurements would show that users actually benefited?</li>
 <li>For every reported result, is its source clear?</li>
 </ul>
-<p>Continue with the <a href="../">unit guide</a>, the <a href="../lab/">exploration lab</a>, or
+<p>Continue with the <a href="../">unit guide</a>, the <a href="../lab/">lab</a>, or
 <a href="../result-ordering/">result ordering and cursor design</a>.</p>
 </article>
  
@@ -938,15 +934,15 @@ postings density, overlap, or update rate?</li>
   
 <nav id="TableOfContents">
   <ul>
-    <li><a href="#why-the-original-design-worked-for-repeated-queries">Why the original design worked for repeated queries</a></li>
-    <li><a href="#interactive-queries-triggered-the-fallback">Interactive queries triggered the fallback</a></li>
-    <li><a href="#the-redesign-indexed-every-tag">The redesign indexed every tag</a></li>
-    <li><a href="#predictability-required-more-writes-and-storage">Predictability required more writes and storage</a></li>
-    <li><a href="#sharding-had-to-be-measured-under-production-traffic">Sharding had to be measured under production traffic</a></li>
-    <li><a href="#reported-production-outcome">Reported production outcome</a></li>
-    <li><a href="#how-prometheus-exposes-ordered-postings-in-go">How Prometheus exposes ordered postings in Go</a></li>
-    <li><a href="#explore-the-same-trade-off-in-the-local-lab">Explore the same trade-off in the local lab</a></li>
-    <li><a href="#design-review-checklist">Design review checklist</a></li>
+    <li><a href="#why-repeated-queries-were-fast">Why repeated queries were fast</a></li>
+    <li><a href="#new-queries-fell-back-to-a-full-scan">New queries fell back to a full scan</a></li>
+    <li><a href="#the-new-design-indexed-every-tag">The new design indexed every tag</a></li>
+    <li><a href="#predictable-queries-cost-more-writes-and-storage">Predictable queries cost more writes and storage</a></li>
+    <li><a href="#the-team-tested-sharding-with-production-traffic">The team tested sharding with production traffic</a></li>
+    <li><a href="#what-datadog-measured">What Datadog measured</a></li>
+    <li><a href="#optional-how-prometheus-exposes-ordered-postings-in-go">Optional: how Prometheus exposes ordered postings in Go</a></li>
+    <li><a href="#test-the-same-trade-off-in-the-lab">Test the same trade-off in the lab</a></li>
+    <li><a href="#questions-for-a-design-review">Questions for a design review</a></li>
   </ul>
 </nav>
 

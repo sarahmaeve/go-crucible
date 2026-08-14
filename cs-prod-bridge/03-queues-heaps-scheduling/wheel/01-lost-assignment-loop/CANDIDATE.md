@@ -4,32 +4,27 @@
 
 Change only `HandleAcquireResult` in `runner.go`.
 
-The function receives an ephemeral worker session and the result of trying to
-acquire its one assigned job. It must return one of three actions:
+The function receives a one-job worker session and the result of its acquire
+request. It returns one of three actions:
 
 - `RunJob`: the worker acquired the job and should run it;
 - `RetryAssignment`: the same worker should try the same assignment later; or
-- `RetireWorker`: this ephemeral session cannot do useful work and its
+- `RetireWorker`: this session cannot do useful work and its
   supervisor should replace it.
 
-A successful change must preserve these distinctions:
-
-- an accepted assignment runs;
-- an unavailable assignment service is retried because the same assignment may
-  become obtainable;
-- a rejected request is retried because the assignment still exists and the
-  worker may correct or refresh its request; and
-- a missing or superseded assignment retires an ephemeral worker because the
-  named job cannot become obtainable by repeating that request.
+The result contract tells you what is known about each acquire result. Classify
+each result by asking whether another request from this same worker can still
+acquire this same assignment. Preserve successful work, retry results that can
+change, and release a worker slot when repeating the request cannot help.
 
 Do not add a second queue, change the backlog order, or make the worker select
-a different assignment. This exercise is about deciding whether another
-attempt can be useful, not about making queue operations faster.
+a different assignment. Decide whether another attempt can be useful. Do not
+try to make queue operations faster.
 
-## Choose the next evidence packet
+## Choose evidence
 
-The [evidence index](./evidence/README.md) names available packets without
-revealing their contents. Before opening one, write down:
+The [evidence index](./evidence/README.md) names the packets without showing
+their contents. Before you open one, write:
 
 1. the question it should answer;
 2. what each likely result would imply; and
@@ -37,25 +32,25 @@ revealing their contents. Before opening one, write down:
 
 You do not need every packet.
 
-## Before opening the source
+## Decide when to open the code
 
-Open `runner.go` only after you can explain:
+Open `runner.go` only after you can answer these questions:
 
 - why adding assignment capacity fixed the first stage but not the second;
 - why retry count, completions, and connected-worker count must be read
   together;
 - why backoff would reduce retry traffic but would not make a deleted
   assignment valid; and
-- why retiring this ephemeral session can restore capacity even though the
-  worker process itself is healthy.
+- how ending a one-job session might release useful capacity even if its
+  process is healthy.
 
-From the `cs-prod-bridge` directory, run the ordinary behavior tests:
+From the `cs-prod-bridge` directory, run the ordinary tests:
 
 ```bash
 go test ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop -v
 ```
 
-Run the incident-shaped test:
+Run the test that reproduces the incident:
 
 ```bash
 go test -tags=csbridgewheel5 \
@@ -63,10 +58,11 @@ go test -tags=csbridgewheel5 \
   -run TestLostAssignmentsDoNotConsumeEveryWorker -count=1 -v
 ```
 
-Change `HandleAcquireResult`, then run both commands again. The tagged test
-uses attempt and completion counts, not a wall-clock timeout.
+After you diagnose the failure, make the smallest change that passes the tagged
+test while preserving required retries. Run both commands again. The tagged
+test counts attempts and completions instead of using a time limit.
 
-Write a three-minute handoff that explains the trigger, the condition that
-prevented recovery, the response classification you changed, and why the
-remaining retry cases still deserve retries. Then read
+Write a three-minute handoff. Explain the trigger, the condition that stopped
+recovery, the classification you changed, and why the remaining cases still
+deserve retries. Then read
 [DEBRIEF.md](./DEBRIEF.md).

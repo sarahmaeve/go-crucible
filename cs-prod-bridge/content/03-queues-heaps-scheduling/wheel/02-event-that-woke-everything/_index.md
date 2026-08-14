@@ -1,6 +1,6 @@
 +++
 title = 'W02: The Event That Woke Everything'
-description = 'Investigate why inventory events repeatedly return a repair that still cannot run to the front of a priority queue.'
+description = 'Find why routine repairs wait during a burst of inventory changes.'
 weight = 3
 bookCollapseSection = true
 bookToC = false

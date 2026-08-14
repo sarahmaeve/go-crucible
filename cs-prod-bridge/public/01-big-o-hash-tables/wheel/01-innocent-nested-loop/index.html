@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Diagnose enrichment latency that grows with metadata cardinality.">
+<meta name="description" content="Find why enrichment gets slower as the metadata set grows.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/01-innocent-nested-loop/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01: The Innocent Nested Loop">
-	<meta property="og:description" content="Diagnose enrichment latency that grows with metadata cardinality.">
+	<meta property="og:description" content="Find why enrichment gets slower as the metadata set grows.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W01: The Innocent Nested Loop">
-	<meta itemprop="description" content="Diagnose enrichment latency that grows with metadata cardinality.">
-	<meta itemprop="wordCount" content="153">
+	<meta itemprop="description" content="Find why enrichment gets slower as the metadata set grows.">
+	<meta itemprop="wordCount" content="177">
 
 <title>W01: The Innocent Nested Loop • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -671,21 +671,24 @@ https://github.com/alex-shpak/hugo-book
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
 <p>Flow enrichment is saturating one core and exceeding its 500 ms batch SLO in
-the new shared-services region. The region has many more registered endpoints
-than the original regions, but batch event count is within its configured
-limit. The service owner thinks recent Go map changes increased GC cost and
-proposes doubling the memory limit. No errors or missing enrichments have
-been reported.</p>
-<p>You own the in-process enrichment boundary. Determine whether it explains the
-scaling behavior and make a bounded repair if the evidence supports one.</p>
+the new shared-services region. This region has many more registered endpoints
+than the original regions. Its event count is still below the configured batch
+limit. The service owner thinks recent Go map changes increased garbage
+collection work and proposes doubling the current memory limit. No one has
+reported errors or missing enrichments.</p>
+<p>You are responsible for in-process enrichment. Find out whether this component
+explains the change at scale. If the evidence supports a fix within this
+component, make the smallest such fix.</p>
 </blockquote><p>Do not inspect source or tests yet. Record:</p>
 <ul>
-<li>what is observed versus claimed</li>
-<li>at least two explanations consistent with the report</li>
-<li>the workload dimensions you need separately</li>
-<li>the first evidence that would distinguish your explanations</li>
+<li>facts reported by the team</li>
+<li>claims that do not yet have evidence</li>
+<li>at least two possible causes that fit the report</li>
+<li>input quantities that you must measure separately</li>
+<li>the first evidence that could help you choose between the possible causes</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after writing your initial model.</p>
+<p>After you write your initial explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

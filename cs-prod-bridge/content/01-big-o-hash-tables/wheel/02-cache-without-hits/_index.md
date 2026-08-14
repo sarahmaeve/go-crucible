@@ -1,6 +1,6 @@
 +++
 title = 'W02: The Cache Without Hits'
-description = 'Diagnose a map-backed cache whose keys grow with observations.'
+description = 'Find why a map-backed cache does not reduce metadata-store reads.'
 weight = 3
 bookCollapseSection = true
 bookToC = false

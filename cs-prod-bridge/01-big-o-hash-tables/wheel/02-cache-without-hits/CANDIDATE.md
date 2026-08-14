@@ -2,34 +2,36 @@
 
 ## Boundary
 
-You own how endpoint metadata is keyed and reused inside one resolver process.
-The loader contract is that metadata changes are published by replacing the
-resolver; time-based refresh and eviction are outside this scenario.
+You can change how one resolver process keys and reuses endpoint metadata. The
+loader promises that a metadata update replaces the resolver. Do not add
+time-based refresh or eviction in this scenario.
 
-Until localization, do not open `cache.go`, either test file, or `DEBRIEF.md`.
+Do not open `cache.go`, either test file, or `DEBRIEF.md` until the evidence
+points to this component.
 
-## Evidence loop
+## Choose evidence
 
-Choose from the [evidence index](./evidence/README.md). Before reading a packet,
-write the hypothesis it tests, the outcomes you expect, and what action each
-outcome would suggest.
+Choose from the [evidence index](./evidence/README.md). Before you read a packet,
+write the possible cause it can test. Also write the results you expect and
+what you would do after each result.
 
-## Localization checkpoint
+## When to open the code
 
-Open source only when you can state:
+Open the source only when you can answer these questions:
 
-- the semantic identity of the metadata being cached
-- the expected maximum useful key cardinality
-- whether observed cardinality follows endpoints or observations
-- why expected constant-time lookup can coexist with unbounded total memory
+- What information identifies one cached metadata item?
+- What is the largest useful number of cache keys?
+- Does the number of observed keys follow endpoint count or observation count?
+- How can each lookup have expected constant cost while total memory continues
+  to grow?
 
-Run the normal behavior tests:
+Run the ordinary tests for correct behavior:
 
 ```bash
 go test ./cs-prod-bridge/01-big-o-hash-tables/wheel/02-cache-without-hits -v
 ```
 
-Then reproduce the production-shaped contract:
+Then run the test that reproduces the production behavior:
 
 ```bash
 go test -tags=csbridgewheel2 \
@@ -37,7 +39,7 @@ go test -tags=csbridgewheel2 \
   -run TestRepeatedObservationsReuseEndpointMetadata -count=1 -v
 ```
 
-Measure the defective form:
+Measure the current implementation:
 
 ```bash
 go test -tags=csbridgewheel2 \
@@ -45,7 +47,6 @@ go test -tags=csbridgewheel2 \
   -run '^$' -bench BenchmarkResolveRepeatedEndpoints -benchmem
 ```
 
-Make the smallest repair supported by the loader and cache-lifetime contracts.
-Do not add a timer, arbitrary capacity, or periodic map copy. Verify both test
-modes and write a handoff before reading [DEBRIEF.md](./DEBRIEF.md).
-
+Make the smallest repair permitted by the loader and cache-lifetime rules. Do
+not add a timer, an arbitrary capacity, or a periodic map copy. Run both test
+modes again. Write a handoff before you read [DEBRIEF.md](./DEBRIEF.md).

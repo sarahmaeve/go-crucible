@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Questions for separating queue activity from useful progress before changing code.">
+<meta name="description" content="Questions for separating queue activity from completed work before changing code.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/worksheet/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="Investigation worksheet">
-	<meta property="og:description" content="Questions for separating queue activity from useful progress before changing code.">
+	<meta property="og:description" content="Questions for separating queue activity from completed work before changing code.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="Investigation worksheet">
-	<meta itemprop="description" content="Questions for separating queue activity from useful progress before changing code.">
-	<meta itemprop="wordCount" content="222">
+	<meta itemprop="description" content="Questions for separating queue activity from completed work before changing code.">
+	<meta itemprop="wordCount" content="219">
 
 <title>Investigation worksheet • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -669,7 +669,7 @@ https://github.com/alex-shpak/hugo-book
 <nav id="TableOfContents">
   <ul>
     <li><a href="#read-the-report">Read the report</a></li>
-    <li><a href="#describe-the-work-lifecycle">Describe the work lifecycle</a></li>
+    <li><a href="#trace-one-work-item">Trace one work item</a></li>
     <li><a href="#list-possible-causes">List possible causes</a></li>
     <li><a href="#choose-the-next-investigation-step">Choose the next investigation step</a></li>
     <li><a href="#explain-and-repair-the-failure">Explain and repair the failure</a></li>
@@ -692,12 +692,12 @@ https://github.com/alex-shpak/hugo-book
 <p><strong>What did users or operators observe?</strong></p>
 <p><strong>Which condition started the incident?</strong></p>
 <p><strong>Which later condition prevented recovery?</strong></p>
-<p><strong>Which code are you responsible for, and which parts must remain unchanged?</strong></p>
-<h2 id="describe-the-work-lifecycle">Describe the work lifecycle</h2>
+<p><strong>What can you change? What must stay unchanged?</strong></p>
+<h2 id="trace-one-work-item">Trace one work item</h2>
 <p><strong>What is the logical work item?</strong></p>
 <p><strong>Which state owns it now: queued, assigned, delayed, running, completed, or
-terminal?</strong></p>
-<p><strong>What event or time boundary permits the next transition?</strong></p>
+ended?</strong></p>
+<p><strong>Which event or time permits the next state change?</strong></p>
 <p><strong>Does another attempt repeat the same request, or can it select different
 work?</strong></p>
 <h2 id="list-possible-causes">List possible causes</h2>
@@ -716,13 +716,12 @@ trace.</p>
 <p><strong>Which operation is repeated?</strong></p>
 <p><strong>Can the condition needed for that operation to succeed still occur?</strong></p>
 <p><strong>What useful capacity does each repeated attempt consume?</strong></p>
-<p><strong>Which transition should replace the repetition, and who owns that
-transition?</strong></p>
+<p><strong>Which state change should replace the repetition, and who owns that change?</strong></p>
 <p><strong>Which tests preserve genuinely recoverable retries?</strong></p>
 <h2 id="three-minute-handoff">Three-minute handoff</h2>
-<p>Summarize the trigger, the condition that prevented recovery, the evidence
-that separated them, the state transition you changed, the verification you
-ran, and one remaining risk.</p>
+<p>Summarize the trigger, the condition that stopped recovery, the evidence that
+separated them, the state change you made, the checks you ran, and one
+remaining risk.</p>
 </article>
  
       
@@ -787,7 +786,7 @@ ran, and one remaining risk.</p>
 <nav id="TableOfContents">
   <ul>
     <li><a href="#read-the-report">Read the report</a></li>
-    <li><a href="#describe-the-work-lifecycle">Describe the work lifecycle</a></li>
+    <li><a href="#trace-one-work-item">Trace one work item</a></li>
     <li><a href="#list-possible-causes">List possible causes</a></li>
     <li><a href="#choose-the-next-investigation-step">Choose the next investigation step</a></li>
     <li><a href="#explain-and-repair-the-failure">Explain and repair the failure</a></li>

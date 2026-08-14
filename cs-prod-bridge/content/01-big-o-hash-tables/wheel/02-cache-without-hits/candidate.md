@@ -1,6 +1,6 @@
 +++
 title = 'W02 candidate guide'
-description = 'Evidence selection, localization, measurement, and verification for W02.'
+description = 'Choose evidence, decide when to inspect the code, and verify your repair.'
 weight = 1
 bookToC = false
 +++

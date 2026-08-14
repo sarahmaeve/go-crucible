@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="The queue stored one copy of each ID, but it still processed every repeated request.">
+<meta name="description" content="Cause, repair, and production checks for W03.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/03-sibling-stampede/debrief/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W03 debrief">
-	<meta property="og:description" content="The queue stored one copy of each ID, but it still processed every repeated request.">
+	<meta property="og:description" content="Cause, repair, and production checks for W03.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W03 debrief">
-	<meta itemprop="description" content="The queue stored one copy of each ID, but it still processed every repeated request.">
-	<meta itemprop="wordCount" content="609">
+	<meta itemprop="description" content="Cause, repair, and production checks for W03.">
+	<meta itemprop="wordCount" content="514">
 
 <title>W03 debrief • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,75 +668,65 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><h1 id="w03-debrief">W03 Debrief</h1>
 <p>Read this only after completing the handoff.</p>
-<h2 id="diagnosis">Diagnosis</h2>
+<h2 id="cause">Cause</h2>
 <p>For a group of <code>g</code> members, each member requests activation of its other
 <code>g-1</code> siblings:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>g members * (g - 1) requests per member = g(g - 1)</span></span></code></pre></div><p>The activation queue stores at most <code>g</code> distinct IDs, but deduplication occurs
-inside each request. The caller has already entered the queue code, looked up
-the ID, and possibly acquired a lock or formatted a log message. A bound on
-retained entries therefore does not bound request-processing work.</p>
-<p>The sibling loop is necessary once: one member examined after the group becomes
-ready must make the other members eligible. The defect is allowing every such
-member in the same pass to initiate the whole loop again.</p>
-<h2 id="repair">Repair</h2>
-<p>Record whether the action has already been issued during this pass:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>g members * (g - 1) requests per member = g(g - 1)</span></span></code></pre></div><p>The activation queue stores at most <code>g</code> IDs, but it rejects repeats only after a
+request enters the queue code. By then, the request may have looked up the ID,
+taken a lock, and formatted a log. A limit on stored entries does not limit the
+work spent processing requests.</p>
+<p>The sibling loop is needed once after the group becomes ready. The defect is
+letting every later member in the same pass start the whole loop again.</p>
+<h2 id="smallest-repair">Smallest repair</h2>
+<p>Record whether this pass has already issued the action:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff5c57">func</span> <span style="color:#57c7ff">beginSiblingActivation</span>(state <span style="color:#ff6ac1">*</span>RoundState) <span style="color:#9aedfe">bool</span> {
 </span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">if</span> state.activationIssued {
 </span></span><span style="display:flex;"><span>        <span style="color:#ff6ac1">return</span> <span style="color:#ff6ac1">false</span>
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>    state.activationIssued = <span style="color:#ff6ac1">true</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#ff6ac1">return</span> <span style="color:#ff6ac1">true</span>
-</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>The first member examined after the group becomes ready makes <code>g-1</code> requests.
-Later members see the state and make none. <code>SimulateRound</code> creates a fresh
-<code>RoundState</code>, so a later pass can issue a new activation if the group still
-requires it. Remembering the bit forever would suppress legitimate future
-work.</p>
-<p>The fixed operation allowance in the tagged test makes the consequence
-explicit. With one group-wide activation, <code>g-1</code> requests leave room for an
-unrelated dispatch within <code>2g</code> modeled operations. When every member starts the
-loop, activation requests consume that allowance first. This counts operations;
-it does not claim that every production request has the same CPU cost.</p>
-<h2 id="verification">Verification</h2>
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div><p>The first member examined after readiness makes <code>g-1</code> requests. Later members
+make none. <code>SimulateRound</code> creates a new <code>RoundState</code>, so a later pass can act
+again if needed. Keeping the Boolean for the group&rsquo;s lifetime would incorrectly
+block future work.</p>
+<p>The tagged test gives each pass a fixed operation allowance. One group-wide
+action uses <code>g-1</code> requests and leaves room for unrelated work within <code>2g</code>
+operations. If every member starts the loop, activation requests use the whole
+allowance first. This is an operation count, not a claim that every production
+request has equal CPU cost.</p>
+<h2 id="check-the-repair">Check the repair</h2>
 <p>Run:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/03-sibling-stampede -v
 </span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel7 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/03-sibling-stampede <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The ordinary tests preserve the behavior when only one member is observed,
-confirm that no activation occurs before the group is ready, and confirm that a
-later pass may activate the group again. The tagged test checks the number of
-requests, the set of activated siblings, the absence of repeated requests, and
-progress for unrelated work.</p>
-<h2 id="production-inspiration-and-its-limits">Production inspiration and its limits</h2>
+</span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The ordinary tests cover one observed member, no activation before readiness,
+and a later pass acting again. The tagged test checks request count, activated
+siblings, repeated requests, and progress for unrelated work.</p>
+<h2 id="what-the-production-sources-establish">What the production sources establish</h2>
 <p><a href="https://github.com/kubernetes-sigs/scheduler-plugins/issues/682">Scheduler-plugins issue #682</a>
 reports a production machine-learning workload using the Kubernetes
-coscheduling plugin. Under quota and resource restrictions, Pod groups could
-remain pending; the reporter observed millions of activation-related log lines,
-much higher CPU, and no useful scheduling progress for some unrelated Pods
-whose resources were available.</p>
+coscheduling plugin. Quota and resource limits left Pod groups waiting. The
+reporter observed millions of activation logs, much higher CPU use, and no
+progress for some unrelated Pods that could run.</p>
 <p>The merged
 <a href="https://github.com/kubernetes-sigs/scheduler-plugins/pull/700">scheduler-plugins PR #700</a>
-stores an <code>Activate</code> flag in the state for one Pod&rsquo;s scheduling attempt. In the
-plugin&rsquo;s <code>Permit</code> step, it sets that flag only for an attempt that sees zero
-already assigned group members. <code>ActivateSiblings</code> later reads the same
-attempt&rsquo;s state and returns without waking the group unless the flag is present.
-In plain terms, the patch identifies the one scheduling attempt that may wake
-the group instead of letting every attempt do so.</p>
-<p>The exercise uses a different mechanism. Its <code>RoundState</code> is shared by all
-member observations in one synthetic pass; Kubernetes&rsquo;s scheduling-attempt
-state is not. The local Boolean directly records “already issued during this
-pass,” while the production patch selects one attempt using the assigned-member
-count and carries permission only through that attempt. Both limit repeated
-group-wide work, but their state ownership and lifetimes are different.</p>
-<p>The exact <code>g(g-1)</code> counts, fixed operation allowance, maintenance domain, and
-logs are synthetic. The public issue supplies the reported production symptoms;
-the merged patch supplies an inspectable code change intended to eliminate the
-repeated wake-ups.</p>
-<h2 id="production-follow-up">Production follow-up</h2>
-<p>Measure activation requests, distinct activated IDs, duplicate requests, log
-volume, and how long unrelated work waits separately. Include the group size
-and the number of passes. Even <code>g-1</code> requests per pass can become excessive if
-the system starts passes without limit, so also count how often a member is
-allowed to initiate the group-wide action.</p>
+stores an <code>Activate</code> flag for one Pod&rsquo;s scheduling attempt. In <code>Permit</code>, it sets
+the flag only when no group member is already assigned. <code>ActivateSiblings</code>
+later reads the same state and returns unless the flag is present. The patch
+therefore selects one attempt that may wake the group.</p>
+<p>The exercise uses a different mechanism. All member observations share one
+<code>RoundState</code> during an invented pass; Kubernetes&rsquo;s attempt state is not shared
+that way. The local Boolean records “already issued this pass.” The production
+patch selects one attempt using the assigned-member count. Both reduce repeated
+group-wide work, but the state has a different owner and lifetime.</p>
+<p>The exact <code>g(g-1)</code> counts, operation allowance, maintenance domain, and logs are
+invented. The public issue supplies the production symptoms. The merged patch
+supplies a code change intended to remove repeated wakeups.</p>
+<h2 id="what-to-measure-in-production">What to measure in production</h2>
+<p>Measure activation requests, distinct IDs, repeated requests, log volume, and
+unrelated wait time separately. Include group size and number of passes. Even
+<code>g-1</code> requests per pass become excessive if passes repeat without limit. Count
+how often the system permits a group-wide action.</p>
 
 </article>
  

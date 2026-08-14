@@ -1,6 +1,6 @@
 +++
 title = 'W03 debrief'
-description = 'The queue stored one copy of each ID, but it still processed every repeated request.'
+description = 'Cause, repair, and production checks for W03.'
 bookHidden = true
 bookSearchExclude = true
 bookToC = false

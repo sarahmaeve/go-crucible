@@ -1,60 +1,60 @@
 +++
 title = 'Investigation worksheet'
-description = 'A reusable worksheet for report-first debugging investigations.'
+description = 'Questions to guide a report-first debugging exercise.'
 weight = 1
 +++
 
 # Investigation worksheet
 
-Copy these prompts into your notes before beginning a Wheel scenario.
+Copy these questions into your notes before you start a Wheel scenario.
 
 ## Incoming report
 
-**Observed or reported:**
+**What facts does the report give?**
 
-**Claimed but unproven:**
+**What claims do not yet have evidence?**
 
-**Important unknowns:**
+**What do I still need to know?**
 
-**My component boundary:**
+**What can I change?**
 
-## Working model
+## Possible causes
 
-**Hypothesis A:**
+**Possible cause A:**
 
-**Hypothesis B:**
+**Possible cause B:**
 
-**Hypothesis C, if useful:**
+**Possible cause C, if useful:**
 
-## Evidence loop
+## Choose evidence
 
-Repeat this section for each meaningful investigation step.
+Repeat these questions for each useful investigation step.
 
-**Evidence or question selected:**
+**What evidence or question did I select?**
 
-**Why it discriminates between hypotheses:**
+**Which possible causes can it help me compare?**
 
-**Possible outcomes and what they would imply:**
+**What results could I get, and what would each result mean?**
 
-**Result:**
+**What did I find?**
 
-**Updated belief:**
+**What do I now think is most likely?**
 
 ## Resolution
 
-**Smallest trustworthy reproduction:**
+**What is the smallest reliable way to reproduce the problem?**
 
-**First local contract violation:**
+**What is the first place where the component breaks its expected behavior?**
 
-**Root cause:**
+**What caused the problem?**
 
-**Repair:**
+**What did I change?**
 
-**Verification:**
+**How did I check the change?**
 
-**Remaining uncertainty or neighboring concern:**
+**What remains uncertain or outside my assigned area?**
 
 ## Three-minute handoff
 
-What happened, what proved it, what changed, how it was verified, and what
-should happen next:
+Explain what happened, what proved the cause, what you changed, how you checked
+the change, and what should happen next:

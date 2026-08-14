@@ -8,25 +8,25 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence Packet 1: Queue size hides caller work Synthetic counters for one reconciliation round:
-Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never retains two entries for the same repair. The local model counts request handling, ID lookup, and one diagnostic log for each repeated request. It does not model CPU time or heap comparisons.
+<meta name="description" content="Evidence Packet 1: Queue size hides caller work Invented counters for one reconciliation round:
+Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never stores two entries for one repair. The local model counts request handling, ID lookup, and one log for each repeat. It does not model CPU time or heap comparisons.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/03-sibling-stampede/evidence/01/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W03 evidence packet 1: Queue size hides caller work">
-	<meta property="og:description" content="Evidence Packet 1: Queue size hides caller work Synthetic counters for one reconciliation round:
-Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never retains two entries for the same repair. The local model counts request handling, ID lookup, and one diagnostic log for each repeated request. It does not model CPU time or heap comparisons.">
+	<meta property="og:description" content="Evidence Packet 1: Queue size hides caller work Invented counters for one reconciliation round:
+Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never stores two entries for one repair. The local model counts request handling, ID lookup, and one log for each repeat. It does not model CPU time or heap comparisons.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W03 evidence packet 1: Queue size hides caller work">
-	<meta itemprop="description" content="Evidence Packet 1: Queue size hides caller work Synthetic counters for one reconciliation round:
-Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never retains two entries for the same repair. The local model counts request handling, ID lookup, and one diagnostic log for each repeated request. It does not model CPU time or heap comparisons.">
-	<meta itemprop="wordCount" content="95">
+	<meta itemprop="description" content="Evidence Packet 1: Queue size hides caller work Invented counters for one reconciliation round:
+Workload Activation queue depth Activation requests Duplicate-request logs Unrelated repair dispatched within 128 operations 64 independent repairs 64 64 0 yes one 64-member group 64 4,032 3,968 no The activation queue uses an ID set and never stores two entries for one repair. The local model counts request handling, ID lookup, and one log for each repeat. It does not model CPU time or heap comparisons.">
+	<meta itemprop="wordCount" content="90">
 
 <title>W03 evidence packet 1: Queue size hides caller work • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
@@ -35,7 +35,7 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -112,7 +112,7 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -289,7 +289,7 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -438,7 +438,7 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -671,7 +671,7 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
       
       
   <article class="markdown book-article"><h1 id="evidence-packet-1-queue-size-hides-caller-work">Evidence Packet 1: Queue size hides caller work</h1>
-<p>Synthetic counters for one reconciliation round:</p>
+<p>Invented counters for one reconciliation round:</p>
 <table>
 	<thead>
 			<tr>
@@ -699,11 +699,10 @@ Workload Activation queue depth Activation requests Duplicate-request logs Unrel
 			</tr>
 	</tbody>
 </table>
-<p>The activation queue uses an ID set and never retains two entries for the same
-repair. The local model counts request handling, ID lookup, and one diagnostic
-log for each repeated request. It does not model CPU time or heap comparisons.</p>
-<p>These measurements belong to the local model, not the public production
-report.</p>
+<p>The activation queue uses an ID set and never stores two entries for one repair.
+The local model counts request handling, ID lookup, and one log for each repeat.
+It does not model CPU time or heap comparisons.</p>
+<p>These measurements belong to the exercise, not the production report.</p>
 
 </article>
  

@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Find how timestamp ties cause skipped incidents, then repair and test pagination across every page.">
+<meta name="description" content="Inspect tied-timestamp evidence, test the endpoint, and verify your repair.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/candidate/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02 candidate guide">
-	<meta property="og:description" content="Find how timestamp ties cause skipped incidents, then repair and test pagination across every page.">
+	<meta property="og:description" content="Inspect tied-timestamp evidence, test the endpoint, and verify your repair.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
 	<meta itemprop="name" content="W02 candidate guide">
-	<meta itemprop="description" content="Find how timestamp ties cause skipped incidents, then repair and test pagination across every page.">
-	<meta itemprop="wordCount" content="293">
+	<meta itemprop="description" content="Inspect tied-timestamp evidence, test the endpoint, and verify your repair.">
+	<meta itemprop="wordCount" content="270">
 
 <title>W02 candidate guide • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -666,9 +666,9 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="w02-candidate-workspace">W02 Candidate Workspace</h1>
+  <article class="markdown book-article"><h1 id="w02-candidate-guide">W02 Candidate Guide</h1>
 <h2 id="what-must-stay-true">What must stay true</h2>
-<p>You may change files in this Wheel only. Preserve the following behavior:</p>
+<p>Change files in this Wheel only. Preserve these rules:</p>
 <ul>
 <li>incidents are presented newest first;</li>
 <li>following cursors through a fixed snapshot returns every incident once;</li>
@@ -676,40 +676,37 @@ https://github.com/alex-shpak/hugo-book
 <li>non-positive page sizes return an error; and</li>
 <li><code>ListPage</code> does not modify the caller&rsquo;s slice.</li>
 </ul>
-<p>Do not replace cursor pagination with offsets. Do not solve the incident by
-increasing the page size or timestamp precision.</p>
-<h2 id="read-the-evidence-in-this-order">Read the evidence in this order</h2>
+<p>Do not replace cursors with offsets. Do not increase the page size or timestamp
+precision as a fix.</p>
+<h2 id="read-the-evidence-before-the-code">Read the evidence before the code</h2>
 <ol>
-<li>Use <a href="../evidence/01/">Packet 1</a> to mark where the first page stops and
-identify the missing records.</li>
-<li>Use <a href="../evidence/02/">Packet 2</a> to determine how common tied timestamps are
-in this workload.</li>
-<li>Use <a href="../evidence/03/">Packet 3</a> to check whether stable sorting gives two
-replicas the same order.</li>
-<li>Use <a href="../evidence/04/">Packet 4</a> to list the API requirements and the fields
-already available in <code>Cursor</code>.</li>
-<li>Then inspect <code>page.go</code> and its ordinary tests.</li>
+<li>In <a href="../evidence/01/">Packet 1</a>, mark where the first page stops and identify
+the missing records.</li>
+<li>In <a href="../evidence/02/">Packet 2</a>, find how often timestamps tie in this
+workload.</li>
+<li>In <a href="../evidence/03/">Packet 3</a>, check whether two replicas get the same
+order from a stable sort.</li>
+<li>In <a href="../evidence/04/">Packet 4</a>, list the API rules and the fields already
+available in <code>Cursor</code>.</li>
+<li>Then open <code>page.go</code> and its ordinary tests.</li>
 </ol>
-<p>From the <code>cs-prod-bridge</code> module directory, confirm that the ordinary tests
-pass:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/wheel/02-timestamp-only-cursor -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span></span></span></code></pre></div><p>Then run the opt-in test that covers the timestamp tie:</p>
+<p>From the <code>cs-prod-bridge</code> module directory, run the ordinary tests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/wheel/02-timestamp-only-cursor -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span></span></span></code></pre></div><p>Then run the opt-in test for the timestamp tie:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags csbridgewheel4 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./02-sequences-sorting-search/wheel/02-timestamp-only-cursor <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run TestPaginationIsCompleteAtTimestampBoundary -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span></span></span></code></pre></div><h2 id="repair-the-ordering-and-cursor">Repair the ordering and cursor</h2>
-<p>Choose enough fields to give every incident a unique position in the sorted
-result. Use the same field order when sorting incidents, deciding which
-incident comes after a cursor, and constructing the next cursor. Keep the
-public <code>Cursor</code> type unchanged, and add or strengthen a regression test.</p>
+</span></span></span><span style="display:flex;"><span>  -run TestPaginationIsCompleteAtTimestampBoundary -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span></span></span></code></pre></div><h2 id="make-and-test-the-repair">Make and test the repair</h2>
+<p>After you inspect the evidence and code, write your diagnosis. Make the smallest
+change that satisfies the tagged test while preserving the rules above. Keep
+the public <code>Cursor</code> type unchanged. Add or strengthen a test for the failure.</p>
 <p>Write a short handoff containing:</p>
 <ul>
-<li>how the old sort and cursor skipped records;</li>
+<li>how the old sort and cursor could skip records;</li>
 <li>why the ordinary tests did not expose the problem;</li>
 <li>the fields and directions used by the repaired sort;</li>
-<li>what the implementation assumes about changes to the snapshot between page
-requests; and</li>
-<li>one metric or automated traversal test that would catch the problem again.</li>
+<li>what the implementation assumes about snapshot changes between requests; and</li>
+<li>one metric or automated page-sequence test that would find the problem again.</li>
 </ul>
-<p>Read <a href="../debrief/">the debrief</a> only after your tests pass.</p>
+<p>After your tests pass, read <a href="../debrief/">the debrief</a>.</p>
 
 </article>
  

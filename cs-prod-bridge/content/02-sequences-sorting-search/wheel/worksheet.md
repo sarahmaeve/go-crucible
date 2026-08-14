@@ -16,8 +16,7 @@ Copy these questions into your notes before starting a Wheel.
 
 **What important facts are still missing?**
 
-**Which code are you responsible for, and which parts must you leave
-unchanged?**
+**What can you change? What must stay unchanged?**
 
 ## List possible causes
 
@@ -35,7 +34,7 @@ unchanged?**
 
 **Which function creates or checks the order?**
 
-**Can the data change while the operation or page traversal is in progress?**
+**Can the data change while the operation or page sequence is in progress?**
 
 ## Choose the next investigation step
 

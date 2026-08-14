@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
+<meta name="description" content="Use Big-O and Go maps to explain CPU growth, lookup cost, and memory growth in production services.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="Big-O and hash tables">
-	<meta property="og:description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
+	<meta property="og:description" content="Use Big-O and Go maps to explain CPU growth, lookup cost, and memory growth in production services.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="Big-O and hash tables">
-	<meta itemprop="description" content="A production-oriented introduction to Big-O, hash tables, and Go maps.">
-	<meta itemprop="wordCount" content="1632">
+	<meta itemprop="description" content="Use Big-O and Go maps to explain CPU growth, lookup cost, and memory growth in production services.">
+	<meta itemprop="wordCount" content="1707">
 
 <title>Big-O and hash tables • Computer Science Through Production Systems</title>
 <link rel="icon" href="../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,21 +668,21 @@ https://github.com/alex-shpak/hugo-book
 <nav id="TableOfContents">
   <ul>
     <li><a href="#start-with-a-prediction">Start with a prediction</a></li>
-    <li><a href="#what-the-notation-means">What the notation means</a></li>
-    <li><a href="#how-a-hash-table-changes-the-work">How a hash table changes the work</a>
+    <li><a href="#how-big-o-describes-growth">How Big-O describes growth</a></li>
+    <li><a href="#why-an-index-reduces-repeated-work">Why an index reduces repeated work</a>
       <ul>
-        <li><a href="#required-cs-sources">Required CS sources</a></li>
+        <li><a href="#read-the-cs-model">Read the CS model</a></li>
       </ul>
     </li>
-    <li><a href="#what-go-promises-about-maps">What Go promises about maps</a></li>
-    <li><a href="#go-124-and-swiss-tables">Go 1.24 and Swiss Tables</a></li>
-    <li><a href="#where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</a>
+    <li><a href="#what-go-guarantees-about-maps">What Go guarantees about maps</a></li>
+    <li><a href="#optional-how-go-currently-implements-maps">Optional: how Go currently implements maps</a></li>
+    <li><a href="#use-maps-for-the-operations-they-support">Use maps for the operations they support</a>
       <ul>
-        <li><a href="#failure-modes-to-check">Failure modes to check</a></li>
+        <li><a href="#common-design-mistakes">Common design mistakes</a></li>
       </ul>
     </li>
-    <li><a href="#work-the-unit">Work the unit</a></li>
-    <li><a href="#translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</a></li>
+    <li><a href="#do-the-exercises">Do the exercises</a></li>
+    <li><a href="#explain-the-decision-to-a-colleague">Explain the decision to a colleague</a></li>
   </ul>
 </nav>
 
@@ -697,47 +697,48 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><p><strong>Unit 01 · Foundations</strong></p>
 <h1 id="big-o-and-hash-tables">Big-O and hash tables</h1>
-<p class="book-lead">Learn to spot three production signals: code that repeatedly scans
-the same data, workloads dominated by exact-key lookups, and maps whose retained
-keys grow without a bound.</p>
+<p class="book-lead">Learn when repeated scanning makes CPU work grow, when a Go map can
+reduce that work, and why a map can still use too much memory.</p>
 
 <blockquote class="book-hint important">
   <p><strong>Incoming reports</strong></p>
   <div class="markdown-inner"><ul>
-<li>An inventory reconciler is fast with 50 test objects but consumes a full CPU
-core in a 50,000-object cluster.</li>
-<li>A network collector spends most of its CPU time matching each event to an
-endpoint record it has already searched many times.</li>
-<li>A map-backed cache performs fast lookups, yet its heap grows throughout the
-day because almost every request creates a new key.</li>
+<li>An inventory reconciler is fast with 50 test objects. In a cluster with
+50,000 objects, it uses a full CPU core.</li>
+<li>A network collector searches the same endpoint records for every event. This
+work uses most of its CPU time.</li>
+<li>A map-backed cache has fast lookups, but its heap grows all day. Almost every
+request creates a new key.</li>
 </ul>
 </div>
 </blockquote>
 
-<p>All three failures involve growth. The reconciler and collector repeat more
-work as their inputs grow. The cache retains more state as new keys arrive.
-Big-O describes how the work grows; distinct-key count and entry lifetime
-explain the retained state.</p>
-<p>This unit connects those ideas to Go maps. By the end, you should be able to:</p>
+<p>The first two reports concern CPU work. Both services repeat more work as their
+inputs grow. The third report concerns memory. The cache keeps more keys as new
+requests arrive.</p>
+<p>Big-O helps explain how the CPU work grows. The number of distinct keys and the
+time that each key stays in memory help explain memory growth.</p>
+<p>By the end of this unit, you should be able to:</p>
 <ul>
-<li>derive the work performed by one scan, repeated scans, and a prebuilt index;</li>
-<li>distinguish worst-case, expected, and amortized costs;</li>
-<li>state the assumptions behind expected constant-time hash-table operations;</li>
-<li>separate Go&rsquo;s map contract from its current implementation;</li>
-<li>include construction cost, update rate, memory, distinct-key count, and
-ownership in a design decision; and</li>
-<li>test a scaling claim with benchmarks and profiles.</li>
+<li>calculate the work for one scan, repeated scans, and a prebuilt index;</li>
+<li>explain worst-case, expected, and amortized costs;</li>
+<li>state when a hash-table operation has expected constant cost;</li>
+<li>separate what Go guarantees from how Go currently implements maps;</li>
+<li>compare construction cost, update rate, memory use, key count, and ownership;
+and</li>
+<li>use benchmarks and profiles to test a claim about growth.</li>
 </ul>
 <h2 id="start-with-a-prediction">Start with a prediction</h2>
-<p>The running example is a batch enrichment service. Its workload has three
-relevant quantities:</p>
+<p>The running example is a batch enrichment service. Keep track of three input
+quantities:</p>
 <ul>
 <li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> is the number of events in one batch.</li>
 <li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> is the number of endpoint records in the metadata snapshot.</li>
-<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> is the number of distinct endpoint keys, so <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>≤</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">u \le m</annotation></semantics></math></span></span>.</li>
+<li><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> is the number of distinct endpoint keys, so <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>≤</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">u \le m</annotation></semantics></math></span></span>. Production
+engineers often call this count <strong>cardinality</strong>.</li>
 </ul>
-<p>Each event asks one exact-key question: which metadata record has this IP
-address? Before choosing a data structure, answer four questions:</p>
+<p>For each event, the service must find the metadata record with the same IP
+address. Before you choose a data structure, answer four questions:</p>
 <ol>
 <li>If every event scans the metadata slice, how many key comparisons can the
 batch perform?</li>
@@ -747,21 +748,20 @@ batch perform?</li>
 </ol>
 <blockquote class="book-hint note">
   <p><strong>Count the operations first</strong></p>
-  <div class="markdown-inner"><p>A scan can find a match after one comparison, but a missing key or a match at
-the far end requires <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> comparisons. Repeating that worst case for <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>
-events produces <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>×</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">e \times m</annotation></semantics></math></span></span> comparisons.</p>
-<p>Building an index examines the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records once and stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span>
-entries. Enriching the batch then performs <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> index lookups. This count
-does not yet prove how long a lookup takes; that requires the hash-table model
-and its assumptions.</p>
+  <div class="markdown-inner"><p>A scan can find a match after one comparison. A missing key, or a match at the
+far end, requires <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> comparisons. If this happens for all <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> events, the
+batch makes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>×</mo><mi>m</mi></mrow><annotation encoding="application/x-tex">e \times m</annotation></semantics></math></span></span> comparisons.</p>
+<p>To build an index, the service examines the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records once and
+stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> entries. It then does <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> index lookups. These counts do not tell
+us how long each lookup takes. For that, we need a model of hash-table behavior.</p>
 </div>
 </blockquote>
 
-<h2 id="what-the-notation-means">What the notation means</h2>
-<p><strong>Asymptotic notation</strong> describes how resource use grows as inputs become
-large. It ignores constant factors and small-input effects, so it can
-distinguish one pass through the metadata from a metadata pass repeated for
-every event. It does not predict milliseconds on a particular machine.</p>
+<h2 id="how-big-o-describes-growth">How Big-O describes growth</h2>
+<p><strong>Asymptotic notation</strong> describes how work or storage changes as an input grows.
+It ignores fixed factors and small-input effects. This lets us compare one pass
+through the metadata with one pass for every event. It does not predict an
+exact running time on a particular machine.</p>
 <table>
 	<thead>
 			<tr>
@@ -774,85 +774,84 @@ every event. It does not predict milliseconds on a particular machine.</p>
 			<tr>
 					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(f(n))</annotation></semantics></math></span></span></td>
 					<td>An upper bound on growth</td>
-					<td>For sufficiently large inputs, growth is no faster than this bound, apart from a constant factor.</td>
+					<td>For large enough inputs, growth is no faster than this bound, apart from a constant factor.</td>
 			</tr>
 			<tr>
 					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Ω</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Omega(f(n))</annotation></semantics></math></span></span></td>
 					<td>A lower bound on growth</td>
-					<td>For sufficiently large inputs, growth is at least this fast, apart from a constant factor.</td>
+					<td>For large enough inputs, growth is at least this fast, apart from a constant factor.</td>
 			</tr>
 			<tr>
 					<td><span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(f(n))</annotation></semantics></math></span></span></td>
 					<td>Matching upper and lower bounds</td>
-					<td>This describes the growth tightly, apart from constant factors.</td>
+					<td>For large enough inputs, this is a tight description of growth, apart from constant factors.</td>
 			</tr>
 	</tbody>
 </table>
 <p>The worst-case repeated scan is:</p>
 <div class="math-block"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
 \Theta(e \times m)
-</annotation></semantics></math></span></div><p>If event count and metadata count both grow in proportion to a common input
-size <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span></span>, then <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> becomes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(n^2)</annotation></semantics></math></span></span>. Keeping
-<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> separate avoids assuming that traffic and metadata grow
-together. A traffic increase changes <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>; onboarding a large region may
-change <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>.</p>
-<p>Under the assumptions described in the next section, building the index and
-enriching the batch take expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo>+</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m + e)</annotation></semantics></math></span></span> time. The completed index
-contains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> logical entries, so its additional logical storage is
-<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span>.</p>
+</annotation></semantics></math></span></div><p>If event count and metadata count grow together, both can be represented by
+one input size, <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span></span>. In that case, <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> becomes
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(n^2)</annotation></semantics></math></span></span>.</p>
+<p>In production, these inputs can change independently. More traffic increases
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>. Adding a large region can increase <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>. Keep the variables separate
+when the workload does not make them grow together.</p>
+<p>Under the conditions in the next section, building the index and enriching the
+batch take expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo>+</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m + e)</annotation></semantics></math></span></span> time. The completed index contains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span>
+logical entries. Its additional logical storage is <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span>.</p>
 <blockquote class="book-hint note">
   <p><strong>A formula is not a timing result</strong></p>
-  <div class="markdown-inner">The formula predicts how work changes when <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>, <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>, or <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> changes.
-A benchmark finds the input sizes at which one implementation becomes faster
-than another on a particular machine. A profile identifies the code consuming
-the measured CPU time or memory. These are different questions.</div>
+  <div class="markdown-inner">The formula predicts how work changes when <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span>, <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>, or <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> changes. A
+benchmark compares running time for selected input sizes on a particular
+machine. A profile shows which code uses the measured CPU time or memory. Each
+tool answers a different question.</div>
 </blockquote>
 
-<h2 id="how-a-hash-table-changes-the-work">How a hash table changes the work</h2>
-<p>Each event makes a slice scan revisit metadata records examined for earlier
-events. A hash table examines the metadata once while building an index. For
-each key, it computes a hash and uses that hash to select a small group of
-candidate entries. Different keys can select the same group; this is a
-<strong>collision</strong>, and the table must compare candidate keys to find the right one.</p>
+<h2 id="why-an-index-reduces-repeated-work">Why an index reduces repeated work</h2>
+<p>The slice scan revisits metadata records for every event. A hash table examines
+the metadata once when it builds an index.</p>
+<p>For each key, the table computes a hash. It uses the hash to select a small
+group of possible entries. Two different keys can select the same group. This
+is a <strong>collision</strong>. When a collision occurs, the table compares keys to find the
+correct entry.</p>
 <p>Three cost descriptions matter:</p>
 <ul>
-<li><strong>Expected cost:</strong> if the hash function spreads keys across the table and the
-table is resized before it becomes too full, a lookup examines only a small
-number of candidate entries on average. For bounded-size keys, this is
-expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(1)</annotation></semantics></math></span></span>.</li>
-<li><strong>Amortized cost:</strong> one insertion may trigger a resize and move many entries.
-Across a long sequence of insertions, those occasional resizes can still add
-only constant average work per insertion.</li>
-<li><strong>Worst-case cost:</strong> if many keys collide, one lookup may compare against as
-many as <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> entries in the index.</li>
+<li><strong>Expected cost:</strong> The hash function must spread keys across the table, and
+the table must grow before it becomes too full. Under these conditions, a
+lookup examines few entries on average. For bounded-size keys, the expected
+cost is <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(1)</annotation></semantics></math></span></span>.</li>
+<li><strong>Amortized cost:</strong> One insertion can cause the table to grow and move many
+entries. Such costly insertions happen only sometimes. Across a long series
+of insertions, table growth can add constant average work to each insertion.</li>
+<li><strong>Worst-case cost:</strong> Many keys can collide. One lookup can then compare as
+many as <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> entries.</li>
 </ul>
-<p>Key size is part of the assumption. Hashing and comparing an arbitrary string
-takes time proportional to the string&rsquo;s length. This unit uses textual IP
-addresses, whose length is bounded, so it treats hashing and comparison as
-constant-size work.</p>
-<p>This is why “hash lookup is <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span>” is incomplete. The useful claim is
-expected constant time for bounded-size keys under assumptions about hashing,
-collisions, and table growth.</p>
-<h3 id="required-cs-sources">Required CS sources</h3>
-<p>Read the language-neutral model before treating a particular language
-implementation as a general guarantee:</p>
+<p>Key size also matters. The time to hash and compare a string grows with the
+string&rsquo;s length. This unit uses textual IP addresses with a bounded length. It
+therefore treats each hash and comparison as constant-size work.</p>
+<p>Thus, “hash lookup is <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span>” is not a complete claim. State that the lookup
+has expected constant cost for bounded-size keys. Also state the conditions
+about hashing, collisions, and table growth.</p>
+<h3 id="read-the-cs-model">Read the CS model</h3>
+<p>Read the language-neutral model before you treat one language implementation as
+a general guarantee:</p>
 <ul>
 <li><a href="https://live.ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/c6d8f06c6f11e3342633dec85498f551_MIT6_006S20_r01.pdf">MIT 6.006: asymptotic complexity notes</a> — formal definitions and comparison rules.</li>
 <li><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/ce9e94705b914598ce78a00a70a1f734_MIT6_006S20_lec4.pdf">MIT 6.006: hashing lecture</a> — collisions, table occupancy, chaining, open addressing, and expected cost.</li>
 <li><a href="https://opendatastructures.org/ods-python/5_Hash_Tables.html">Open Data Structures: Hash Tables</a> — a second free treatment of collision handling and resizing.</li>
 </ul>
-<h2 id="what-go-promises-about-maps">What Go promises about maps</h2>
+<h2 id="what-go-guarantees-about-maps">What Go guarantees about maps</h2>
 <p>The CS model describes hash tables in general. The
-<a href="https://go.dev/ref/spec#Map_types">Go specification</a> separately defines what
-Go programs may rely on. It specifies map behavior but promises no time bound
-for lookup, insertion, or deletion.</p>
+<a href="https://go.dev/ref/spec#Map_types">Go specification</a> defines what a Go program
+can rely on. It defines map behavior, but it gives no time bound for lookup,
+insertion, or deletion.</p>
 <blockquote class="book-hint tip">
   <p><strong>Language and API contract</strong></p>
   <div class="markdown-inner"><ul>
 <li>Each key identifies at most one map entry.</li>
-<li>The key type must be <em>comparable</em>: its values must support <code>==</code> and <code>!=</code>.</li>
-<li>Slices, maps, and functions are not comparable and therefore cannot be map
-keys.</li>
+<li>The key type must be <em>comparable</em>. Its values must support <code>==</code> and <code>!=</code>.</li>
+<li>Slices, maps, and functions are not comparable. They cannot be map keys.</li>
 <li>A nil map can be read; assigning an entry to it panics.</li>
 <li>Iteration order is unspecified and may differ from one iteration to the next.</li>
 <li>The comma-ok lookup form distinguishes a missing key from a stored zero value.</li>
@@ -860,84 +859,83 @@ keys.</li>
 </div>
 </blockquote>
 
-<p>The official <a href="https://go.dev/blog/maps">Go maps in action</a> article covers zero
-values, struct keys, and concurrent access. The same map may be read by
-multiple goroutines if none of them writes to it. Access involving a write
-requires synchronization or a design in which one goroutine owns mutation.</p>
+<p>The official <a href="https://go.dev/blog/maps">Go maps in action</a> article explains zero
+values, struct keys, and concurrent access. Multiple goroutines can read the
+same map when no goroutine writes to it. If a goroutine writes to the map, the
+program must synchronize access or give one goroutine sole ownership of writes.</p>
 <blockquote class="book-hint warning">
   <p><strong>Not guaranteed by Go</strong></p>
   <div class="markdown-inner">The Go specification does not guarantee that every map lookup takes constant
 time.</div>
 </blockquote>
 
-<h2 id="go-124-and-swiss-tables">Go 1.24 and Swiss Tables</h2>
-<p>Go 1.24 replaced the earlier built-in map implementation with Swiss Tables.
-The Go team&rsquo;s
+<h2 id="optional-how-go-currently-implements-maps">Optional: how Go currently implements maps</h2>
+<p>Go 1.24 replaced the earlier built-in map implementation with Swiss Tables. The
+Go team&rsquo;s
 <a href="https://go.dev/blog/swisstable">Swiss Table implementation article</a> explains
 control bytes, groups of candidate slots, probing, table growth, and the
 constraints created by Go&rsquo;s iteration rules.</p>
-<p>The examples in this repository target Go 1.26. Check <code>go version</code> when
-interpreting a profile because runtime implementation details can change
-between releases. Swiss Tables remain an <strong>implementation detail</strong>, not part
-of the language contract.</p>
+<p>The examples in this repository target Go 1.26. Before you interpret a profile,
+run <code>go version</code>. Runtime details can change between releases. Swiss Tables are
+an <strong>implementation detail</strong>, not part of the language contract.</p>
 <p>The current
 <a href="https://go.dev/src/internal/runtime/maps/map.go"><code>internal/runtime/maps</code> source</a>
 is an optional deep read after the higher-level article.</p>
-<h2 id="where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</h2>
+<h2 id="use-maps-for-the-operations-they-support">Use maps for the operations they support</h2>
 <p>A map is useful here because the service repeatedly looks up one exact key in
-the same collection:</p>
+the same collection. Examples include:</p>
 <ul>
 <li>Which owner and region correspond to this IP address?</li>
 <li>Have we already seen this event ID?</li>
 <li>What counter belongs to this bounded label set?</li>
 <li>Which cached object has this UID?</li>
 </ul>
-<p>Order, range, prefix, and minimum-value queries need different operations and
-may need different structures. Choose the structure from the queries the
-service performs, not from familiarity.</p>
-<h3 id="failure-modes-to-check">Failure modes to check</h3>
-<p>Even when exact-key lookup is appropriate, the surrounding design can erase
-the CPU benefit or move the failure to memory:</p>
+<p>Maps do not directly answer order, range, prefix, or minimum-value queries.
+Those queries can require different data structures. Choose a structure that
+supports the operations your service performs.</p>
+<h3 id="common-design-mistakes">Common design mistakes</h3>
+<p>Exact-key lookup can be the correct operation while the surrounding design is
+still wrong. Check for these mistakes:</p>
 <ul>
 <li>A batch scans the same collection once for every input item.</li>
 <li>Code rebuilds the index for every lookup instead of once per snapshot.</li>
-<li>A cache key includes a request ID or timestamp, creating a new retained entry
-for almost every request.</li>
-<li>Entries have no owner, expiry rule, or other removal policy.</li>
+<li>A cache key includes a request ID or timestamp. Almost every request then
+creates an entry that stays in memory.</li>
+<li>Entries have no owner, expiration rule, or other removal policy.</li>
 <li>The scan and index implement different duplicate-key behavior.</li>
 <li>A benchmark uses key sizes or distributions unlike production traffic.</li>
-<li>Lower CPU use is offset by retained memory and garbage-collection work.</li>
+<li>The map reduces CPU work but increases memory and garbage-collection work.</li>
 <li>Multiple goroutines access the same ordinary map while one of them writes.</li>
 </ul>
-<p>For a live map or cache, <strong>cardinality</strong> means the number of distinct keys
-currently retained, or retained within a stated time window. That count is
-often more useful than request count because it determines how many entries
-remain reachable.</p>
-<h2 id="work-the-unit">Work the unit</h2>
-<p>The reading supplies the vocabulary; the exercises make the predicted growth
-observable. Preserve the opportunity to predict before measuring:</p>
+<p>For a live map or cache, <strong>cardinality</strong> means the number of distinct keys kept
+in memory, either now or during a specified time. Request count does not tell
+you how many entries remain reachable. Key cardinality does.</p>
+<h2 id="do-the-exercises">Do the exercises</h2>
+<p>The reading explains the model. The exercises let you observe the predicted
+growth. Make each prediction before you run the measurement:</p>
 <ol>
 <li>Run the <a href="lab/">enrichment lab</a>. Compare a
 scan, an index built for one batch, and an index reused across batches.</li>
-<li>Read the <a href="case-study/">network-enrichment case study</a> and challenge its
-workload and correctness assumptions.</li>
-<li>Attempt the <a href="wheel/">Wheel scenarios</a>
-from their incoming reports before opening source.</li>
+<li>Read the <a href="case-study/">network-enrichment case study</a>. Check its assumptions
+about workload and correctness.</li>
+<li>Start each <a href="wheel/">Wheel scenario</a> from its incoming report. Do not open the
+source code first.</li>
 </ol>
-<h2 id="translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</h2>
-<p>Avoid stopping at “use a hash map for <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span> lookup.” Name the workload,
-the cost claim, its assumptions, and the added storage:</p>
+<h2 id="explain-the-decision-to-a-colleague">Explain the decision to a colleague</h2>
+<p>Do not stop at “use a hash map for <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(1)</annotation></semantics></math></span></span> lookup.” Name the inputs, the cost,
+the conditions behind that cost, and the added storage:</p>
 <blockquote class='book-hint '>
-<p>With <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> events and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records, repeated scanning performs
-worst-case <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> comparisons. Building an index examines
-the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> records once and stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> distinct keys. For bounded-size
-keys and normal hashing behavior, construction takes expected
-<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m)</annotation></semantics></math></span></span>, the event pass takes expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e)</annotation></semantics></math></span></span>, and the
-index uses <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> logical storage. I would clarify reuse, update
-rate, duplicate handling, cardinality bounds, and then benchmark the relevant
+<p>The batch contains <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi></mrow><annotation encoding="application/x-tex">e</annotation></semantics></math></span></span> events and <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span> metadata records. Repeated scanning
+does up to <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo>×</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e \times m)</annotation></semantics></math></span></span> comparisons. An index examines the <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span></span>
+records once and stores <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span></span> distinct keys. With bounded-size keys and normal
+hashing behavior, building the index takes expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(m)</annotation></semantics></math></span></span> time. The
+event pass takes expected <span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(e)</annotation></semantics></math></span></span> time, and the index uses
+<span class="math-inline"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Θ</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Theta(u)</annotation></semantics></math></span></span> logical storage. Before choosing it, I would check how often the
+service reuses the index, how often metadata changes, how it handles duplicate
+keys, and how many keys it can retain. I would then benchmark the real
 workload.</p>
-</blockquote><p>Finish by saying which measurement could disprove the choice. That turns the
-notation into an engineering argument rather than a memorized answer.</p>
+</blockquote><p>Finish with the measurement that could show the decision is wrong. This turns
+the notation into an engineering argument, not a memorized answer.</p>
 </article>
  
       
@@ -1002,21 +1000,21 @@ notation into an engineering argument rather than a memorized answer.</p>
 <nav id="TableOfContents">
   <ul>
     <li><a href="#start-with-a-prediction">Start with a prediction</a></li>
-    <li><a href="#what-the-notation-means">What the notation means</a></li>
-    <li><a href="#how-a-hash-table-changes-the-work">How a hash table changes the work</a>
+    <li><a href="#how-big-o-describes-growth">How Big-O describes growth</a></li>
+    <li><a href="#why-an-index-reduces-repeated-work">Why an index reduces repeated work</a>
       <ul>
-        <li><a href="#required-cs-sources">Required CS sources</a></li>
+        <li><a href="#read-the-cs-model">Read the CS model</a></li>
       </ul>
     </li>
-    <li><a href="#what-go-promises-about-maps">What Go promises about maps</a></li>
-    <li><a href="#go-124-and-swiss-tables">Go 1.24 and Swiss Tables</a></li>
-    <li><a href="#where-maps-fitand-where-they-do-not">Where maps fit—and where they do not</a>
+    <li><a href="#what-go-guarantees-about-maps">What Go guarantees about maps</a></li>
+    <li><a href="#optional-how-go-currently-implements-maps">Optional: how Go currently implements maps</a></li>
+    <li><a href="#use-maps-for-the-operations-they-support">Use maps for the operations they support</a>
       <ul>
-        <li><a href="#failure-modes-to-check">Failure modes to check</a></li>
+        <li><a href="#common-design-mistakes">Common design mistakes</a></li>
       </ul>
     </li>
-    <li><a href="#work-the-unit">Work the unit</a></li>
-    <li><a href="#translate-the-reasoning-into-an-interview-answer">Translate the reasoning into an interview answer</a></li>
+    <li><a href="#do-the-exercises">Do the exercises</a></li>
+    <li><a href="#explain-the-decision-to-a-colleague">Explain the decision to a colleague</a></li>
   </ul>
 </nav>
 

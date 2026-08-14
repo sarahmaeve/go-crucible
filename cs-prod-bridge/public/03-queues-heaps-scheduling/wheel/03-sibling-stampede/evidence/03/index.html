@@ -9,8 +9,8 @@ https://github.com/alex-shpak/hugo-book
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Evidence Packet 3: Four members, twelve calls For group [a, b, c, d]:
-observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a diagnostic log.
-One group-wide action would require only three calls from the first member examined after the group becomes ready: b, c, and d. Member a is already being examined.
+observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a log message.
+How many calls are necessary to make every member eligible when one member is already being examined? Which observation could make those calls?
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
@@ -18,8 +18,8 @@ One group-wide action would require only three calls from the first member exami
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W03 evidence packet 3: Four-member activation trace">
 	<meta property="og:description" content="Evidence Packet 3: Four members, twelve calls For group [a, b, c, d]:
-observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a diagnostic log.
-One group-wide action would require only three calls from the first member examined after the group becomes ready: b, c, and d. Member a is already being examined.">
+observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a log message.
+How many calls are necessary to make every member eligible when one member is already being examined? Which observation could make those calls?">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
@@ -27,9 +27,9 @@ One group-wide action would require only three calls from the first member exami
 
 	<meta itemprop="name" content="W03 evidence packet 3: Four-member activation trace">
 	<meta itemprop="description" content="Evidence Packet 3: Four members, twelve calls For group [a, b, c, d]:
-observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a diagnostic log.
-One group-wide action would require only three calls from the first member examined after the group becomes ready: b, c, and d. Member a is already being examined.">
-	<meta itemprop="wordCount" content="95">
+observe a: request b, c, d observe b: request a, c, d observe c: request a, b, d observe d: request a, b, cThe queue ends with four distinct IDs. It still receives twelve calls. After the first few calls, most calls find an ID that is already present and emit a log message.
+How many calls are necessary to make every member eligible when one member is already being examined? Which observation could make those calls?">
+	<meta itemprop="wordCount" content="90">
 
 <title>W03 evidence packet 3: Four-member activation trace • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
@@ -38,7 +38,7 @@ One group-wide action would require only three calls from the first member exami
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -115,7 +115,7 @@ One group-wide action would require only three calls from the first member exami
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -292,7 +292,7 @@ One group-wide action would require only three calls from the first member exami
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -441,7 +441,7 @@ One group-wide action would require only three calls from the first member exami
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -680,10 +680,9 @@ One group-wide action would require only three calls from the first member exami
 </span></span><span style="display:flex;"><span>observe c: request a, b, d
 </span></span><span style="display:flex;"><span>observe d: request a, b, c</span></span></code></pre></div><p>The queue ends with four distinct IDs. It still receives twelve calls. After
 the first few calls, most calls find an ID that is already present and emit a
-diagnostic log.</p>
-<p>One group-wide action would require only three calls from the first member
-examined after the group becomes ready: <code>b</code>, <code>c</code>, and <code>d</code>. Member <code>a</code> is already
-being examined.</p>
+log message.</p>
+<p>How many calls are necessary to make every member eligible when one member is
+already being examined? Which observation could make those calls?</p>
 
 </article>
  

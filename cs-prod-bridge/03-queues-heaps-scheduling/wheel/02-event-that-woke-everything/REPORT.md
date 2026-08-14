@@ -6,22 +6,22 @@
 
 ## Incoming report
 
-> Routine repairs wait even though workers are available. CPU and scheduling
-> attempts rise whenever the inventory watcher publishes hardware metadata
-> changes. The highest-priority repair requires hardware class `gpu-v9`, which
-> the fleet does not currently contain.
+> Routine repairs wait even though workers are available. CPU use and
+> scheduling attempts rise whenever the inventory watcher reports hardware
+> metadata changes. The highest-priority repair needs hardware class `gpu-v9`,
+> which the fleet does not have.
 >
-> After its first failed attempt, that repair is recorded as blocked on
-> `hardware/gpu-v9`. An update to CPU metadata causes it to appear in
-> the active priority heap again. The priority order then selects it before the
-> routine repairs; it fails for the same reason and returns to blocked state.
+> After its first failure, the repair is blocked on `hardware/gpu-v9`. A CPU
+> metadata update returns it to the active priority heap. The heap selects it
+> before routine repairs. It fails for the same reason and becomes blocked
+> again.
 >
-> Your task is limited to the rule that decides whether an inventory event
-> moves a blocked repair back to the active heap. Do not lower the repair's
-> priority, change the active ordering rule, invent the missing hardware, or
-> suppress an event that actually creates `gpu-v9` capacity.
+> Change only the rule that decides whether an inventory event returns a
+> blocked repair to the active heap. Do not lower its priority, change the heap
+> order, invent missing hardware, or ignore an event that creates `gpu-v9`
+> capacity.
 
-Before opening source, tests, or evidence, write down:
+Before you open the source, tests, or evidence, write:
 
 - what the priority rule is doing correctly;
 - the condition that must change before the blocked repair can succeed;
@@ -29,8 +29,8 @@ Before opening source, tests, or evidence, write down:
   not;
 - what evidence would distinguish duplicate queue entries, an incorrect
   readiness check, and a blocked repair returning to active work too often; and
-- one rule that would reduce retries but could incorrectly leave a repair
-  blocked after it becomes runnable.
+- one rule that would reduce retries but might leave a repair blocked after it
+  can run.
 
-Continue with [CANDIDATE.md](./CANDIDATE.md) after recording your first
-explanation.
+After you record your first explanation, continue with
+[CANDIDATE.md](./CANDIDATE.md).

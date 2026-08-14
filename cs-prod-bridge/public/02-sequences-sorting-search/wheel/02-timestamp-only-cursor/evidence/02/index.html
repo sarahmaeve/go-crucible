@@ -8,37 +8,37 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence 02: Timestamp Distribution A ten-minute incident burst contained 18,420 alerts:
-distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps originate from batched upstream observations and are stored at millisecond precision. Increasing precision would not make events from one batch unique, and increasing the page size would only move the boundary.
-How large must one equal-timestamp group be relative to the page size to guarantee that a page boundary falls inside the group?
+<meta name="description" content="Evidence 02: Number of timestamp ties A ten-minute incident burst contained 18,420 alerts:
+distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps come from batched upstream observations and use millisecond precision. More precision would not make events from one batch unique. A larger page would only move the boundary.
+How large must a tied group be, compared with the page size, to guarantee that a page boundary falls inside it?
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/evidence/02/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="W02 evidence packet 2: Timestamp distribution">
-	<meta property="og:description" content="Evidence 02: Timestamp Distribution A ten-minute incident burst contained 18,420 alerts:
-distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps originate from batched upstream observations and are stored at millisecond precision. Increasing precision would not make events from one batch unique, and increasing the page size would only move the boundary.
-How large must one equal-timestamp group be relative to the page size to guarantee that a page boundary falls inside the group?">
+	<meta property="og:title" content="W02 evidence packet 2: Number of timestamp ties">
+	<meta property="og:description" content="Evidence 02: Number of timestamp ties A ten-minute incident burst contained 18,420 alerts:
+distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps come from batched upstream observations and use millisecond precision. More precision would not make events from one batch unique. A larger page would only move the boundary.
+How large must a tied group be, compared with the page size, to guarantee that a page boundary falls inside it?">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
-	<meta itemprop="name" content="W02 evidence packet 2: Timestamp distribution">
-	<meta itemprop="description" content="Evidence 02: Timestamp Distribution A ten-minute incident burst contained 18,420 alerts:
-distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps originate from batched upstream observations and are stored at millisecond precision. Increasing precision would not make events from one batch unique, and increasing the page size would only move the boundary.
-How large must one equal-timestamp group be relative to the page size to guarantee that a page boundary falls inside the group?">
-	<meta itemprop="wordCount" content="85">
+	<meta itemprop="name" content="W02 evidence packet 2: Number of timestamp ties">
+	<meta itemprop="description" content="Evidence 02: Number of timestamp ties A ten-minute incident burst contained 18,420 alerts:
+distinct stored timestamps 6,107 alerts sharing a timestamp with a peer 14,996 largest equal-timestamp group 83 configured page size 50The timestamps come from batched upstream observations and use millisecond precision. More precision would not make events from one batch unique. A larger page would only move the boundary.
+How large must a tied group be, compared with the page size, to guarantee that a page boundary falls inside it?">
+	<meta itemprop="wordCount" content="82">
 
-<title>W02 evidence packet 2: Timestamp distribution • Computer Science Through Production Systems</title>
+<title>W02 evidence packet 2: Number of timestamp ties • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
 <link rel="manifest" href="../../../../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/evidence/02/">
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -115,7 +115,7 @@ How large must one equal-timestamp group be relative to the page size to guarant
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -292,7 +292,7 @@ How large must one equal-timestamp group be relative to the page size to guarant
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -441,7 +441,7 @@ How large must one equal-timestamp group be relative to the page size to guarant
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -659,7 +659,7 @@ How large must one equal-timestamp group be relative to the page size to guarant
     <img src="../../../../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>W02 evidence packet 2: Timestamp distribution</h3>
+  <h3>W02 evidence packet 2: Number of timestamp ties</h3>
 
   <label for="toc-control">
     
@@ -673,16 +673,16 @@ How large must one equal-timestamp group be relative to the page size to guarant
 
       
       
-  <article class="markdown book-article"><h1 id="evidence-02-timestamp-distribution">Evidence 02: Timestamp Distribution</h1>
+  <article class="markdown book-article"><h1 id="evidence-02-number-of-timestamp-ties">Evidence 02: Number of timestamp ties</h1>
 <p>A ten-minute incident burst contained 18,420 alerts:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>distinct stored timestamps                 6,107
 </span></span><span style="display:flex;"><span>alerts sharing a timestamp with a peer    14,996
 </span></span><span style="display:flex;"><span>largest equal-timestamp group                 83
-</span></span><span style="display:flex;"><span>configured page size                          50</span></span></code></pre></div><p>The timestamps originate from batched upstream observations and are stored at
-millisecond precision. Increasing precision would not make events from one
-batch unique, and increasing the page size would only move the boundary.</p>
-<p>How large must one equal-timestamp group be relative to the page size to
-guarantee that a page boundary falls inside the group?</p>
+</span></span><span style="display:flex;"><span>configured page size                          50</span></span></code></pre></div><p>The timestamps come from batched upstream observations and use millisecond
+precision. More precision would not make events from one batch unique. A larger
+page would only move the boundary.</p>
+<p>How large must a tied group be, compared with the page size, to guarantee that a
+page boundary falls inside it?</p>
 
 </article>
  

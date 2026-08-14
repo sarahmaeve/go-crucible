@@ -1,6 +1,6 @@
 +++
 title = 'Wheels of Misfortune'
-description = 'Incident-style exercises about slow sorted-slice updates and pagination that skips tied records.'
+description = 'Debug reports about slow sorted-slice updates and missing paginated records.'
 weight = 5
 bookCollapseSection = true
 bookToC = false

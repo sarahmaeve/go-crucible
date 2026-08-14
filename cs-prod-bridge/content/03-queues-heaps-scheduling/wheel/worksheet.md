@@ -1,6 +1,6 @@
 +++
 title = 'Investigation worksheet'
-description = 'Questions for separating queue activity from useful progress before changing code.'
+description = 'Questions for separating queue activity from completed work before changing code.'
 weight = 1
 +++
 
@@ -16,16 +16,16 @@ Copy these questions into your notes before starting a Wheel.
 
 **Which later condition prevented recovery?**
 
-**Which code are you responsible for, and which parts must remain unchanged?**
+**What can you change? What must stay unchanged?**
 
-## Describe the work lifecycle
+## Trace one work item
 
 **What is the logical work item?**
 
 **Which state owns it now: queued, assigned, delayed, running, completed, or
-terminal?**
+ended?**
 
-**What event or time boundary permits the next transition?**
+**Which event or time permits the next state change?**
 
 **Does another attempt repeat the same request, or can it select different
 work?**
@@ -61,13 +61,12 @@ trace.
 
 **What useful capacity does each repeated attempt consume?**
 
-**Which transition should replace the repetition, and who owns that
-transition?**
+**Which state change should replace the repetition, and who owns that change?**
 
 **Which tests preserve genuinely recoverable retries?**
 
 ## Three-minute handoff
 
-Summarize the trigger, the condition that prevented recovery, the evidence
-that separated them, the state transition you changed, the verification you
-ran, and one remaining risk.
+Summarize the trigger, the condition that stopped recovery, the evidence that
+separated them, the state change you made, the checks you ran, and one
+remaining risk.

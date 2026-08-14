@@ -8,29 +8,29 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
+<meta name="description" content="Compare a full scan with a reusable tag index, then order and paginate the matching runbooks.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/lab/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="Exploration lab: scan, intersect, and order">
-	<meta property="og:description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
+	<meta property="og:title" content="Lab: scan, intersect, and order">
+	<meta property="og:description" content="Compare a full scan with a reusable tag index, then order and paginate the matching runbooks.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
-	<meta itemprop="name" content="Exploration lab: scan, intersect, and order">
-	<meta itemprop="description" content="Compare a full scan with a reusable tag index, then sort and paginate the matching runbooks.">
-	<meta itemprop="wordCount" content="904">
+	<meta itemprop="name" content="Lab: scan, intersect, and order">
+	<meta itemprop="description" content="Compare a full scan with a reusable tag index, then order and paginate the matching runbooks.">
+	<meta itemprop="wordCount" content="873">
 
-<title>Exploration lab: scan, intersect, and order • Computer Science Through Production Systems</title>
+<title>Lab: scan, intersect, and order • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../favicon.png" >
 <link rel="manifest" href="../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/02-sequences-sorting-search/lab/">
 <link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../02-sequences-sorting-search/lab/" class="active">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -651,7 +651,7 @@ https://github.com/alex-shpak/hugo-book
     <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>Exploration lab: scan, intersect, and order</h3>
+  <h3>Lab: scan, intersect, and order</h3>
 
   <label for="toc-control">
     
@@ -665,26 +665,25 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="exploration-lab-scan-intersect-and-order">Exploration Lab: Scan, Intersect, and Order</h1>
-<p>This lab searches a small catalog of SRE runbooks. Each runbook already has a
-set of tags, so the exercises can concentrate on indexing, sorted lists, and
-pagination rather than parsing text.</p>
-<p>Every document must have a unique ID. <code>BuildIndex</code> returns an error when it
-finds a duplicate; <code>ScanAND</code> expects the caller to provide the same valid
-input. The lab offers two ways to answer an AND query:</p>
+  <article class="markdown book-article"><h1 id="lab-scan-intersect-and-order">Lab: Scan, Intersect, and Order</h1>
+<p>This lab searches a small catalog of SRE runbooks. Each runbook already has
+tags. The exercises therefore focus on indexes, sorted lists, and pagination,
+not text parsing.</p>
+<p>Every document must have a unique ID. <code>BuildIndex</code> returns an error for a
+duplicate ID. <code>ScanAND</code> requires the same valid input. The lab has two ways to
+answer an AND query:</p>
 <ul>
-<li><code>ScanAND</code> examines every document and checks whether it contains every
-requested tag.</li>
-<li><code>Index.SearchAND</code> retrieves the sorted list of IDs for each tag, starts with
-the shortest list, and intersects the lists.</li>
+<li><code>ScanAND</code> examines every document and checks all requested tags.</li>
+<li><code>Index.SearchAND</code> gets the sorted IDs for each tag, starts with the shortest
+list, and finds IDs shared by all lists.</li>
 </ul>
-<p>Both methods return matching IDs in increasing numerical order.
-<code>OrderResults</code> then loads the documents and sorts them for display, newest
-first. When two documents have the same update time, the smaller ID comes
-first. The lab does not calculate relevance scores.</p>
-<h2 id="1-confirm-behavior-and-ordering-rules">1. Confirm behavior and ordering rules</h2>
+<p>Both methods return matching IDs in increasing numeric order. <code>OrderResults</code>
+then loads the documents and sorts them for display. Newer documents come first.
+For equal update times, the smaller ID comes first. The lab does not calculate
+relevance scores.</p>
+<h2 id="1-check-results-and-ordering-rules">1. Check results and ordering rules</h2>
 <p>Run commands in this lab from the <code>cs-prod-bridge</code> module directory.</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab -v</span></span></code></pre></div><p>Before reading the implementation, write down the behavior you expect for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab -v</span></span></code></pre></div><p>Before you read the implementation, write the result you expect for:</p>
 <ul>
 <li>an empty query;</li>
 <li>a missing tag;</li>
@@ -693,9 +692,9 @@ first. The lab does not calculate relevance scores.</p>
 <li>duplicate document IDs; and</li>
 <li>several documents with the same update timestamp.</li>
 </ul>
-<p>Find the tests that check that every postings list is sorted and that the scan
+<p>Find the tests that check two rules: every postings list is sorted, and the scan
 and index return the same IDs.</p>
-<h2 id="2-predict-retrieval-growth">2. Predict retrieval growth</h2>
+<h2 id="2-predict-how-search-work-will-grow">2. Predict how search work will grow</h2>
 <p>Use the following names when describing the workload:</p>
 <ul>
 <li><code>d</code>: number of documents</li>
@@ -703,25 +702,24 @@ and index return the same IDs.</p>
 <li><code>r</code>: number of matching documents that must be sorted for display</li>
 <li><code>Q</code>: number of queries answered using the same index</li>
 </ul>
-<p>Before running the benchmarks, write down how you expect <code>d</code>, <code>p</code>, <code>q</code>, <code>r</code>,
-and <code>Q</code> to affect each stage: scanning the documents, building the index,
-intersecting two postings lists, and sorting the matches.</p>
+<p>Before you run the benchmarks, predict how <code>d</code>, <code>p</code>, <code>q</code>, <code>r</code>, and <code>Q</code> affect
+each stage. Consider the document scan, index build, postings intersection, and
+display sort separately.</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench <span style="color:#5af78e">&#39;BenchmarkSearch|BenchmarkIndexReuse|BenchmarkSelectivity&#39;</span> <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p><code>index-reused</code> measures search after the index has already been built, so it is
-not an end-to-end measurement. <code>BenchmarkIndexReuse</code> includes the build and
-then runs 1, 10, or 100 queries against that index. Compare it with
-<code>index-end-to-end</code>, especially in the one-query case, where the build has no
-opportunity to pay for itself.</p>
-<p>The selectivity benchmarks keep the number of documents fixed while changing
-the sizes and overlap of the postings lists. Before comparing their timings,
-identify the shorter list and the number of matching IDs in each case. Use
-those differences to explain why document count alone does not predict the
-cost of an indexed query.</p>
-<h2 id="3-count-comparisons-and-pointer-advances">3. Count comparisons and pointer advances</h2>
-<p><code>IntersectSorted</code> records comparisons and pointer advances. Each loop advances
-at least one input, so the operation is bounded by the combined postings
-length rather than their product.</p>
+</span></span></span><span style="display:flex;"><span>  -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p><code>index-reused</code> measures only search after the index build. It is not a complete
+measurement. <code>BenchmarkIndexReuse</code> includes the build and then runs 1, 10, or
+100 queries on that index. Compare it with <code>index-end-to-end</code>. Pay special
+attention to the one-query case, where there is no reuse to repay the build.</p>
+<p><strong>Selectivity</strong> describes how much a filter reduces the possible matches. These
+benchmarks keep document count fixed while changing postings-list size and
+overlap. Before you compare times, identify the shorter list and count the
+matching IDs in each case. Explain why document count alone does not predict
+the cost of an indexed query.</p>
+<h2 id="3-count-comparisons-and-position-advances">3. Count comparisons and position advances</h2>
+<p><code>IntersectSorted</code> records comparisons and position advances. Each pass advances
+at least one input. The upper bound therefore depends on the combined postings
+length, not the product of their lengths.</p>
 <p>Change the two lists in <code>TestIntersectSortedCountsBoundedWork</code> to be:</p>
 <ul>
 <li>disjoint and interleaved;</li>
@@ -729,23 +727,22 @@ length rather than their product.</p>
 <li>one very short and one very long; and</li>
 <li>equal in length but with one match at the end.</li>
 </ul>
-<p>Elapsed time varies across machines. The comparison and pointer-advance counts
-let you compare the algorithm&rsquo;s work without depending on a particular CPU.</p>
-<h2 id="4-separate-matching-from-presentation">4. Separate matching from presentation</h2>
+<p>Running time varies across machines. Comparison and position-advance counts let
+you compare the work without depending on a particular CPU.</p>
+<h2 id="4-separate-matching-from-display-order">4. Separate matching from display order</h2>
 <p><code>OrderResults</code> sorts by update time, newest first. If two documents have the
 same update time, it sorts them by ID:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>UpdatedAt descending, then document ID ascending</span></span></code></pre></div><p><code>PageAfter</code> expects documents in this order and records both fields in the
 cursor. Add enough documents with the same timestamp to span two pages, then
 confirm that following every cursor returns every ID once.</p>
-<p><code>PageAfter</code> models the ordered boundary after a production page token has been
-decoded and validated. It does not model an HTTP response, token encoding,
-authorization, expiry, or query binding. The API chapter treats those as a
-separate contract so success in this slice-based lab is not mistaken for a
-complete endpoint design.</p>
-<p>Next, temporarily remove the ID tie-breaker. <code>PageAfter</code> should reject the
-input because two documents now occupy the same position in the ordering. W02
-contains a paginator that accepts timestamp-only ordering and demonstrates how
-that design skips records: <a href="../wheel/02-timestamp-only-cursor/">The Timestamp-Only Cursor</a>.</p>
+<p><code>PageAfter</code> models the ordered boundary after the server decodes and validates
+a production page token. It does not model an HTTP response, token encoding,
+authorization, expiration, or the original query. The API chapter covers those
+separate rules. Passing this slice-based lab does not prove that a complete
+endpoint is correct.</p>
+<p>Next, temporarily remove the ID tie-breaker. <code>PageAfter</code> should reject the input
+because two documents now occupy the same position. W02 provides the related
+debugging exercise: <a href="../wheel/02-timestamp-only-cursor/">The Timestamp-Only Cursor</a>.</p>
 <h2 id="5-find-the-cost-hidden-behind-binary-search">5. Find the cost hidden behind binary search</h2>
 <p>Both update variants maintain the same sorted set:</p>
 <ul>
@@ -755,32 +752,32 @@ union.</li>
 </ul>
 <p>Run:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkSortedUpdates -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>The front-heavy fixture makes every individual insert shift a large suffix.
-The append-heavy fixture does not. Binary search performs logarithmic
-comparisons in both cases; it does not move the suffix.</p>
-<h2 id="6-check-where-insertion-time-goes">6. Check where insertion time goes</h2>
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkSortedUpdates -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>In the front-heavy test data, each insert moves many existing records. In the
+append-heavy data, it does not. Binary search uses logarithmic comparisons in
+both cases. The insertion performs the movement.</p>
+<h2 id="6-find-where-insertion-uses-cpu-time">6. Find where insertion uses CPU time</h2>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/lab <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench <span style="color:#5af78e">&#39;BenchmarkSortedUpdates/front/individual$&#39;</span> <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -benchtime<span style="color:#ff6ac1">=</span>2s -cpuprofile /tmp/cs-bridge-ordered-insert.pprof
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-ordered-insert.pprof</span></span></code></pre></div><p>Before opening the profile, predict whether comparisons, allocation, or copying
-will use the most CPU. Then compare the profile with <code>UpdateStats.Shifted</code>.
-The profile identifies where the program spent its time; the counter shows how
-the amount of copying changes as the input grows.</p>
-<h2 id="7-challenge-the-design">7. Challenge the design</h2>
+</span></span><span style="display:flex;"><span>go tool pprof -top /tmp/cs-bridge-ordered-insert.pprof</span></span></code></pre></div><p>Before you open the profile, predict whether comparisons, allocation, or
+copying will use the most CPU time. Then compare the profile with
+<code>UpdateStats.Shifted</code>. The profile shows where the program spent its time. The
+counter shows how movement changes as the input grows.</p>
+<h2 id="7-test-the-limits-of-the-design">7. Test the limits of the design</h2>
 <ul>
 <li>When is scanning preferable to building an index?</li>
-<li>How many queries must use an index before the saved search work repays the
-build?</li>
+<li>How many queries must reuse an index before the saved search work repays its
+build cost?</li>
 <li>How many index entries does each document add, and how much additional memory
 does that require?</li>
-<li>If documents can be added while a client is following page cursors, what
-behavior should the API promise?</li>
+<li>If documents can be added while a client reads several pages, what should the
+API promise?</li>
 <li>When would the service need to rank matches or retain only the best <code>k</code>,
 rather than sorting every match?</li>
 </ul>
-<p>The benchmark results describe this small runbook catalog. Use the Datadog and
-Prometheus sections of the guide for the behavior of those production systems.</p>
+<p>The benchmark results describe only this small runbook catalog. Use the Datadog
+and Prometheus sections of the guide for claims about those production systems.</p>
 
 </article>
  

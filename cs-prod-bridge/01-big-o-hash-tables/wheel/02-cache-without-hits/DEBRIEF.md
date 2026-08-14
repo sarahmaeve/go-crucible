@@ -2,22 +2,25 @@
 
 Read this only after completing the handoff.
 
-## Diagnosis
+## Cause
 
-Expected constant-time map operations say nothing about hit ratio or the number
-of keys retained. The semantic object being cached is endpoint metadata, whose
-identity is the endpoint IP during one resolver lifetime. `cacheKey` also
-contains observation time, which changes on almost every event.
+`cacheKey` contains the observation time. That time changes on almost every
+event, so repeated observations of one endpoint usually create different keys.
 
-As a result, distinct key count is `Theta(o)` for observations rather than
-`Theta(p)` for active endpoint IPs. Each operation can remain expected `O(1)`
-while total loader work and retained space grow linearly with observations.
-Retries of exactly the same observation explain the few cache hits.
+The cache stores endpoint metadata. During one resolver lifetime, the endpoint
+IP identifies that metadata. Expected constant-time map operations say nothing
+about the cache hit ratio or the total number of keys in memory.
 
-The Go 1.24 implementation theory does not fit the evidence: no deletion occurs,
-and the map retains live entries reachable from the resolver.
+Let `o` be the number of observations and `p` be the number of active endpoint
+IPs. The number of distinct keys is `Theta(o)`, not `Theta(p)`. Each lookup can
+still have expected `O(1)` cost while loader work and memory grow with `o`.
+Retries of the same observation cause the few cache hits.
 
-## Bounded repair
+The evidence does not support the theory about deleted Go map buckets. This
+code does not delete entries. The map contains live entries that the resolver
+can still reach.
+
+## Smallest repair
 
 Key the cache only by IP:
 
@@ -25,14 +28,15 @@ Key the cache only by IP:
 cache map[string]Metadata
 ```
 
-Look up and assign with `observation.IP`. Do not add timestamp expiry inside
-this boundary; the loader contract says metadata is stable for the resolver's
-lifetime and publication replaces the resolver.
+Use `observation.IP` for lookup and assignment. Do not add time-based expiration
+inside this component. The loader promises that metadata stays unchanged during
+the resolver's lifetime. Publication replaces the complete resolver.
 
-The corrected workload has expected `Theta(o)` lookup time, at most `p` loader
-calls, and `Theta(p)` retained cache space.
+After the repair, all `o` observations take expected `Theta(o)` lookup time in
+total. The resolver makes at most `p` loader calls and keeps `Theta(p)` cache
+entries.
 
-## Verification
+## Check the repair
 
 Run:
 
@@ -43,12 +47,12 @@ go test -tags=csbridgewheel2 \
   -count=1 -v
 ```
 
-The ordinary tests retain error and enrichment semantics. The tagged check
-uses repeated observations of stable endpoints and asserts both loader calls
-and retained entries, avoiding a machine-specific heap or latency threshold.
+The ordinary tests check error handling and enriched results. The tagged test
+uses repeated observations of stable endpoints. It checks loader calls and map
+entries without using a machine-specific memory or latency limit.
 
-## Production follow-up
+## What to measure in production
 
-Measure cache entries, requests, hits, misses, and meaningful domain
-cardinality together. A map-length metric without endpoint cardinality would
-show growth but not explain whether that growth was legitimate.
+Measure cache entries, requests, hits, misses, and active endpoints together.
+Map length alone shows growth, but it does not show whether that growth is
+correct.

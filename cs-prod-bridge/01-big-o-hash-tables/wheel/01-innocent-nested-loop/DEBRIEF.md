@@ -2,28 +2,35 @@
 
 Read this only after completing the handoff.
 
-## Diagnosis
+## Cause
 
-The report established CPU saturation correlated with endpoint count; it did
-not establish a Go runtime or GC regression. Allocation evidence weakens the GC
-theory. The controlled experiment shows candidate checks growing linearly with
-metadata while event count stays fixed.
+`HandleBatch` scans the metadata for every event. This repeated scan causes the
+growth problem.
 
-`HandleBatch` scans metadata for every event. With `e` events and `m` metadata
-records, worst-case work is `Theta(e*m)`. Uniform successful lookups average
-roughly `m/2` comparisons, which changes the constant but not the growth.
+The report shows that CPU use changes with endpoint count. It does not show a
+Go runtime or garbage-collection regression. The allocation evidence makes the
+garbage-collection explanation less likely. In the controlled experiment,
+candidate checks grow with metadata count while event count stays fixed.
 
-## Bounded repair
+With `e` events and `m` metadata records, the worst-case work is `Theta(e*m)`.
+If successful lookups are spread evenly across the metadata, each scan checks
+approximately `m/2` records on average. This changes the fixed factor, but it
+does not change how the work grows.
 
-Build `map[string]Metadata` once at the beginning of `HandleBatch`, assigning
-records from first to last so duplicates remain last-record-wins. Perform one
-lookup per event and increment `CandidateChecks` once per lookup. The expected
-time becomes `Theta(m+e)` with `Theta(m)` additional space.
+## Smallest repair
 
-Do not move index construction inside the event loop. That preserves the same
-bad growth behind map syntax.
+Build one `map[string]Metadata` at the start of `HandleBatch`. Add records from
+first to last so duplicate keys still use the last record. Do one map lookup
+for each event, and increment `CandidateChecks` once for each lookup.
 
-## Verification
+The expected time becomes `Theta(m+e)`. The map stores one logical entry for
+each distinct metadata key. Its capacity hint is `m`, the number of metadata
+records.
+
+Do not build the index inside the event loop. That would repeat the index work
+for every event and keep the same growth problem.
+
+## Check the repair
 
 Run:
 
@@ -34,12 +41,11 @@ go test -tags=csbridgewheel1 \
   -count=1 -v
 ```
 
-The ordinary test protects duplicate and missing-key semantics. The tagged
-test protects the growth mechanism without relying on a machine-specific
-latency threshold. The benchmark and profile confirm the measured consequence.
+The ordinary test checks the rules for duplicate and missing keys. The tagged
+test checks how the work grows without using a machine-specific latency limit.
+The benchmark and profile show the effect on running time and CPU work.
 
-## Production follow-up
+## What to measure in production
 
-Record endpoint and event cardinality independently in load tests. A single
-“batch size” dimension would have missed the scale threshold that activated the
-defect.
+Record endpoint count and event count separately in load tests. One “batch
+size” measurement would hide which input caused the change at scale.

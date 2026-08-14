@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="A reusable worksheet for report-first debugging investigations.">
+<meta name="description" content="Questions to guide a report-first debugging exercise.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/worksheet/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="Investigation worksheet">
-	<meta property="og:description" content="A reusable worksheet for report-first debugging investigations.">
+	<meta property="og:description" content="Questions to guide a report-first debugging exercise.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="01-big-o-hash-tables">
 
 
 	<meta itemprop="name" content="Investigation worksheet">
-	<meta itemprop="description" content="A reusable worksheet for report-first debugging investigations.">
-	<meta itemprop="wordCount" content="100">
+	<meta itemprop="description" content="Questions to guide a report-first debugging exercise.">
+	<meta itemprop="wordCount" content="168">
 
 <title>Investigation worksheet • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -669,8 +669,8 @@ https://github.com/alex-shpak/hugo-book
 <nav id="TableOfContents">
   <ul>
     <li><a href="#incoming-report">Incoming report</a></li>
-    <li><a href="#working-model">Working model</a></li>
-    <li><a href="#evidence-loop">Evidence loop</a></li>
+    <li><a href="#possible-causes">Possible causes</a></li>
+    <li><a href="#choose-evidence">Choose evidence</a></li>
     <li><a href="#resolution">Resolution</a></li>
     <li><a href="#three-minute-handoff">Three-minute handoff</a></li>
   </ul>
@@ -686,33 +686,33 @@ https://github.com/alex-shpak/hugo-book
       
       
   <article class="markdown book-article"><h1 id="investigation-worksheet">Investigation worksheet</h1>
-<p>Copy these prompts into your notes before beginning a Wheel scenario.</p>
+<p>Copy these questions into your notes before you start a Wheel scenario.</p>
 <h2 id="incoming-report">Incoming report</h2>
-<p><strong>Observed or reported:</strong></p>
-<p><strong>Claimed but unproven:</strong></p>
-<p><strong>Important unknowns:</strong></p>
-<p><strong>My component boundary:</strong></p>
-<h2 id="working-model">Working model</h2>
-<p><strong>Hypothesis A:</strong></p>
-<p><strong>Hypothesis B:</strong></p>
-<p><strong>Hypothesis C, if useful:</strong></p>
-<h2 id="evidence-loop">Evidence loop</h2>
-<p>Repeat this section for each meaningful investigation step.</p>
-<p><strong>Evidence or question selected:</strong></p>
-<p><strong>Why it discriminates between hypotheses:</strong></p>
-<p><strong>Possible outcomes and what they would imply:</strong></p>
-<p><strong>Result:</strong></p>
-<p><strong>Updated belief:</strong></p>
+<p><strong>What facts does the report give?</strong></p>
+<p><strong>What claims do not yet have evidence?</strong></p>
+<p><strong>What do I still need to know?</strong></p>
+<p><strong>What can I change?</strong></p>
+<h2 id="possible-causes">Possible causes</h2>
+<p><strong>Possible cause A:</strong></p>
+<p><strong>Possible cause B:</strong></p>
+<p><strong>Possible cause C, if useful:</strong></p>
+<h2 id="choose-evidence">Choose evidence</h2>
+<p>Repeat these questions for each useful investigation step.</p>
+<p><strong>What evidence or question did I select?</strong></p>
+<p><strong>Which possible causes can it help me compare?</strong></p>
+<p><strong>What results could I get, and what would each result mean?</strong></p>
+<p><strong>What did I find?</strong></p>
+<p><strong>What do I now think is most likely?</strong></p>
 <h2 id="resolution">Resolution</h2>
-<p><strong>Smallest trustworthy reproduction:</strong></p>
-<p><strong>First local contract violation:</strong></p>
-<p><strong>Root cause:</strong></p>
-<p><strong>Repair:</strong></p>
-<p><strong>Verification:</strong></p>
-<p><strong>Remaining uncertainty or neighboring concern:</strong></p>
+<p><strong>What is the smallest reliable way to reproduce the problem?</strong></p>
+<p><strong>What is the first place where the component breaks its expected behavior?</strong></p>
+<p><strong>What caused the problem?</strong></p>
+<p><strong>What did I change?</strong></p>
+<p><strong>How did I check the change?</strong></p>
+<p><strong>What remains uncertain or outside my assigned area?</strong></p>
 <h2 id="three-minute-handoff">Three-minute handoff</h2>
-<p>What happened, what proved it, what changed, how it was verified, and what
-should happen next:</p>
+<p>Explain what happened, what proved the cause, what you changed, how you checked
+the change, and what should happen next:</p>
 </article>
  
       
@@ -777,8 +777,8 @@ should happen next:</p>
 <nav id="TableOfContents">
   <ul>
     <li><a href="#incoming-report">Incoming report</a></li>
-    <li><a href="#working-model">Working model</a></li>
-    <li><a href="#evidence-loop">Evidence loop</a></li>
+    <li><a href="#possible-causes">Possible causes</a></li>
+    <li><a href="#choose-evidence">Choose evidence</a></li>
     <li><a href="#resolution">Resolution</a></li>
     <li><a href="#three-minute-handoff">Three-minute handoff</a></li>
   </ul>

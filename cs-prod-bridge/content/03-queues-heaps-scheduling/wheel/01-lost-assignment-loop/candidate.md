@@ -1,6 +1,6 @@
 +++
 title = 'W01 candidate guide'
-description = 'Classify acquire results by whether another attempt from the same worker can still be useful.'
+description = 'Choose evidence, classify acquire results, and verify your repair.'
 weight = 1
 bookToC = false
 +++

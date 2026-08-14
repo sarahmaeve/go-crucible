@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Classify acquire results by whether another attempt from the same worker can still be useful.">
+<meta name="description" content="Choose evidence, classify acquire results, and verify your repair.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/candidate/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01 candidate guide">
-	<meta property="og:description" content="Classify acquire results by whether another attempt from the same worker can still be useful.">
+	<meta property="og:description" content="Choose evidence, classify acquire results, and verify your repair.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W01 candidate guide">
-	<meta itemprop="description" content="Classify acquire results by whether another attempt from the same worker can still be useful.">
-	<meta itemprop="wordCount" content="361">
+	<meta itemprop="description" content="Choose evidence, classify acquire results, and verify your repair.">
+	<meta itemprop="wordCount" content="353">
 
 <title>W01 candidate guide • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -669,56 +669,51 @@ https://github.com/alex-shpak/hugo-book
   <article class="markdown book-article"><h1 id="w01-candidate-guide">W01 Candidate Guide</h1>
 <h2 id="what-you-may-change">What you may change</h2>
 <p>Change only <code>HandleAcquireResult</code> in <code>runner.go</code>.</p>
-<p>The function receives an ephemeral worker session and the result of trying to
-acquire its one assigned job. It must return one of three actions:</p>
+<p>The function receives a one-job worker session and the result of its acquire
+request. It returns one of three actions:</p>
 <ul>
 <li><code>RunJob</code>: the worker acquired the job and should run it;</li>
 <li><code>RetryAssignment</code>: the same worker should try the same assignment later; or</li>
-<li><code>RetireWorker</code>: this ephemeral session cannot do useful work and its
+<li><code>RetireWorker</code>: this session cannot do useful work and its
 supervisor should replace it.</li>
 </ul>
-<p>A successful change must preserve these distinctions:</p>
-<ul>
-<li>an accepted assignment runs;</li>
-<li>an unavailable assignment service is retried because the same assignment may
-become obtainable;</li>
-<li>a rejected request is retried because the assignment still exists and the
-worker may correct or refresh its request; and</li>
-<li>a missing or superseded assignment retires an ephemeral worker because the
-named job cannot become obtainable by repeating that request.</li>
-</ul>
+<p>The result contract tells you what is known about each acquire result. Classify
+each result by asking whether another request from this same worker can still
+acquire this same assignment. Preserve successful work, retry results that can
+change, and release a worker slot when repeating the request cannot help.</p>
 <p>Do not add a second queue, change the backlog order, or make the worker select
-a different assignment. This exercise is about deciding whether another
-attempt can be useful, not about making queue operations faster.</p>
-<h2 id="choose-the-next-evidence-packet">Choose the next evidence packet</h2>
-<p>The <a href="../evidence/">evidence index</a> names available packets without
-revealing their contents. Before opening one, write down:</p>
+a different assignment. Decide whether another attempt can be useful. Do not
+try to make queue operations faster.</p>
+<h2 id="choose-evidence">Choose evidence</h2>
+<p>The <a href="../evidence/">evidence index</a> names the packets without showing
+their contents. Before you open one, write:</p>
 <ol>
 <li>the question it should answer;</li>
 <li>what each likely result would imply; and</li>
 <li>why it is more useful than the other available packets right now.</li>
 </ol>
 <p>You do not need every packet.</p>
-<h2 id="before-opening-the-source">Before opening the source</h2>
-<p>Open <code>runner.go</code> only after you can explain:</p>
+<h2 id="decide-when-to-open-the-code">Decide when to open the code</h2>
+<p>Open <code>runner.go</code> only after you can answer these questions:</p>
 <ul>
 <li>why adding assignment capacity fixed the first stage but not the second;</li>
 <li>why retry count, completions, and connected-worker count must be read
 together;</li>
 <li>why backoff would reduce retry traffic but would not make a deleted
 assignment valid; and</li>
-<li>why retiring this ephemeral session can restore capacity even though the
-worker process itself is healthy.</li>
+<li>how ending a one-job session might release useful capacity even if its
+process is healthy.</li>
 </ul>
-<p>From the <code>cs-prod-bridge</code> directory, run the ordinary behavior tests:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop -v</span></span></code></pre></div><p>Run the incident-shaped test:</p>
+<p>From the <code>cs-prod-bridge</code> directory, run the ordinary tests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop -v</span></span></code></pre></div><p>Run the test that reproduces the incident:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel5 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/01-lost-assignment-loop <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run TestLostAssignmentsDoNotConsumeEveryWorker -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>Change <code>HandleAcquireResult</code>, then run both commands again. The tagged test
-uses attempt and completion counts, not a wall-clock timeout.</p>
-<p>Write a three-minute handoff that explains the trigger, the condition that
-prevented recovery, the response classification you changed, and why the
-remaining retry cases still deserve retries. Then read
+</span></span></span><span style="display:flex;"><span>  -run TestLostAssignmentsDoNotConsumeEveryWorker -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>After you diagnose the failure, make the smallest change that passes the tagged
+test while preserving required retries. Run both commands again. The tagged
+test counts attempts and completions instead of using a time limit.</p>
+<p>Write a three-minute handoff. Explain the trigger, the condition that stopped
+recovery, the classification you changed, and why the remaining cases still
+deserve retries. Then read
 <a href="../debrief/">the debrief</a>.</p>
 
 </article>

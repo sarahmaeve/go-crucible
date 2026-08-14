@@ -5,22 +5,23 @@
 
 ## Incoming report
 
-> The endpoint resolver's heap grows throughout the day and the metadata store
-> is receiving nearly one read per observation. The resolver has a map-backed
-> cache, lookups are expected `O(1)`, and there are only about 600 active
-> endpoints per replica. The incident lead suspects the Go 1.24 map
-> implementation retains deleted buckets and recommends periodically copying
-> the map. No stale metadata has been reported.
+> The endpoint resolver's heap grows throughout the day. The metadata store
+> receives almost one read for every observation. The resolver has a map-backed
+> cache, and its lookups have expected `O(1)` cost. Each replica has only about
+> 600 active endpoints. The incident lead thinks the Go 1.24 map implementation
+> keeps deleted buckets. They recommend copying the map at regular intervals.
+> No one has reported stale metadata.
 >
-> You own cache keying and lookup. Expiry policy and metadata publication are
-> owned by another team. Determine why this cache is not reducing store load.
+> You are responsible for cache keys and lookups. Another team is responsible
+> for expiration and metadata publication. Find out why this cache does not reduce
+> reads from the metadata store.
 
 Do not inspect source or tests yet. Record:
 
-- which facts concern time complexity and which concern space
+- facts about work and facts about memory
 - what `O(1)` does not tell you about a cache
-- at least two explanations for simultaneous heap and store-read growth
-- which measurements would reveal whether keys are being reused
+- at least two possible causes of both heap growth and store-read growth
+- measurements that would show whether requests reuse keys
 
-Continue with [CANDIDATE.md](./CANDIDATE.md) after writing an initial model.
-
+After you write your initial explanation, continue with
+[CANDIDATE.md](./CANDIDATE.md).

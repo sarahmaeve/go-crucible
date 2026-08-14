@@ -1,6 +1,6 @@
 +++
 title = 'W03 candidate guide'
-description = 'Find where repeated group-wide requests begin while preserving the one necessary wake-up.'
+description = 'Inspect group evidence, test the coordinator, and verify your repair.'
 weight = 1
 bookToC = false
 +++

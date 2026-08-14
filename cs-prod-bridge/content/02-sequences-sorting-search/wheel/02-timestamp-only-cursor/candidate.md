@@ -1,6 +1,6 @@
 +++
 title = 'W02 candidate guide'
-description = 'Find how timestamp ties cause skipped incidents, then repair and test pagination across every page.'
+description = 'Inspect tied-timestamp evidence, test the endpoint, and verify your repair.'
 weight = 1
 bookToC = false
 +++

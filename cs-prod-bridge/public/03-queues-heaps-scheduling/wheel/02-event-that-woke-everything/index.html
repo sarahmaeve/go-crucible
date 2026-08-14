@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Investigate why inventory events repeatedly return a repair that still cannot run to the front of a priority queue.">
+<meta name="description" content="Find why routine repairs wait during a burst of inventory changes.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02: The Event That Woke Everything">
-	<meta property="og:description" content="Investigate why inventory events repeatedly return a repair that still cannot run to the front of a priority queue.">
+	<meta property="og:description" content="Find why routine repairs wait during a burst of inventory changes.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W02: The Event That Woke Everything">
-	<meta itemprop="description" content="Investigate why inventory events repeatedly return a repair that still cannot run to the front of a priority queue.">
-	<meta itemprop="wordCount" content="240">
+	<meta itemprop="description" content="Find why routine repairs wait during a burst of inventory changes.">
+	<meta itemprop="wordCount" content="222">
 
 <title>W02: The Event That Woke Everything • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -670,19 +670,19 @@ https://github.com/alex-shpak/hugo-book
 <p><strong>Application:</strong> fleet-repair | <strong>Time box:</strong> 45–60 minutes</p>
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
-<p>Routine repairs wait even though workers are available. CPU and scheduling
-attempts rise whenever the inventory watcher publishes hardware metadata
-changes. The highest-priority repair requires hardware class <code>gpu-v9</code>, which
-the fleet does not currently contain.</p>
-<p>After its first failed attempt, that repair is recorded as blocked on
-<code>hardware/gpu-v9</code>. An update to CPU metadata causes it to appear in
-the active priority heap again. The priority order then selects it before the
-routine repairs; it fails for the same reason and returns to blocked state.</p>
-<p>Your task is limited to the rule that decides whether an inventory event
-moves a blocked repair back to the active heap. Do not lower the repair&rsquo;s
-priority, change the active ordering rule, invent the missing hardware, or
-suppress an event that actually creates <code>gpu-v9</code> capacity.</p>
-</blockquote><p>Before opening source, tests, or evidence, write down:</p>
+<p>Routine repairs wait even though workers are available. CPU use and
+scheduling attempts rise whenever the inventory watcher reports hardware
+metadata changes. The highest-priority repair needs hardware class <code>gpu-v9</code>,
+which the fleet does not have.</p>
+<p>After its first failure, the repair is blocked on <code>hardware/gpu-v9</code>. A CPU
+metadata update returns it to the active priority heap. The heap selects it
+before routine repairs. It fails for the same reason and becomes blocked
+again.</p>
+<p>Change only the rule that decides whether an inventory event returns a
+blocked repair to the active heap. Do not lower its priority, change the heap
+order, invent missing hardware, or ignore an event that creates <code>gpu-v9</code>
+capacity.</p>
+</blockquote><p>Before you open the source, tests, or evidence, write:</p>
 <ul>
 <li>what the priority rule is doing correctly;</li>
 <li>the condition that must change before the blocked repair can succeed;</li>
@@ -690,11 +690,11 @@ suppress an event that actually creates <code>gpu-v9</code> capacity.</p>
 not;</li>
 <li>what evidence would distinguish duplicate queue entries, an incorrect
 readiness check, and a blocked repair returning to active work too often; and</li>
-<li>one rule that would reduce retries but could incorrectly leave a repair
-blocked after it becomes runnable.</li>
+<li>one rule that would reduce retries but might leave a repair blocked after it
+can run.</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after recording your first
-explanation.</p>
+<p>After you record your first explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

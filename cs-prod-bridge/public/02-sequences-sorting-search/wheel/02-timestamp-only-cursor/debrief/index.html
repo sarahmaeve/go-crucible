@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="A stable timestamp sort cannot resume inside a tied group; the cursor also needs a unique tie-breaker.">
+<meta name="description" content="Cause, repair, and production checks for W02.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/02-timestamp-only-cursor/debrief/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02 debrief">
-	<meta property="og:description" content="A stable timestamp sort cannot resume inside a tied group; the cursor also needs a unique tie-breaker.">
+	<meta property="og:description" content="Cause, repair, and production checks for W02.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
 	<meta itemprop="name" content="W02 debrief">
-	<meta itemprop="description" content="A stable timestamp sort cannot resume inside a tied group; the cursor also needs a unique tie-breaker.">
-	<meta itemprop="wordCount" content="351">
+	<meta itemprop="description" content="Cause, repair, and production checks for W02.">
+	<meta itemprop="wordCount" content="347">
 
 <title>W02 debrief • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -666,38 +666,42 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="w02-debrief-why-timestamp-only-pagination-loses-records">W02 Debrief: Why Timestamp-Only Pagination Loses Records</h1>
-<p>The endpoint sorted incidents by descending timestamp and began the next page
-at the first record with an older timestamp. If a page stopped partway through
-a group that shared one timestamp, the cursor could not identify which members
-of that group had already been returned. The next request skipped all of them
-and moved directly to the older records.</p>
-<p>A stable sort does not provide the missing information. It preserves the input
-order of equal items during one call to the sorter, but that order is absent
-from the cursor. Two replicas that receive the same records in different slice
-orders can therefore return the tied incidents in different orders.</p>
-<p>The repair gives every incident a unique position:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>OccurredAt descending, then Incident ID ascending</span></span></code></pre></div><p>The cursor carries both fields. An incident comes after the cursor if its
-timestamp is older, or if the timestamp is equal and its ID is greater.
-Sorting, cursor comparison, and cursor creation must all use this two-field
-rule.</p>
-<p>This is sufficient when every request in a traversal reads the same fixed
-snapshot. A live service must also decide what happens when incidents arrive
-between requests. It might keep the client on one snapshot version, promise
-consistency only for a limited period, or document that results can change
-during traversal. Adding an ID to the cursor does not, by itself, keep the
-underlying data fixed.</p>
-<p>Existing APIs make these choices explicit. Google AIP-158 requires opaque page
-tokens; clients may change the page size, but other request arguments must
-remain the same. Kubernetes associates continued collection requests with a
-consistent resource version. Loki accepts direction and time bounds, and its
-CLI has explicit code for multiple log entries with the same timestamp.</p>
-<p>These designs differ, but each treats sorting and continuation as parts of the
-same pagination design.</p>
-<p>A useful automated check would repeatedly page through a fixed canary snapshot
-containing timestamp groups larger than one page. It should report missing IDs,
-duplicate IDs, and adjacent incidents in the wrong order. HTTP status and
-latency cannot detect any of those failures.</p>
+  <article class="markdown book-article"><h1 id="w02-debrief">W02 Debrief</h1>
+<h2 id="cause">Cause</h2>
+<p>The endpoint sorted incidents by descending timestamp. The next page started at
+the first record with an older timestamp. If a page stopped within a group that
+shared one timestamp, the cursor did not identify which incidents in that group
+had already been returned. The next request skipped the rest of the group and
+moved to older records.</p>
+<p>A stable sort does not add the missing information. It preserves the input
+order of equal items during one sort. The cursor does not contain that input
+order. Two replicas can receive the same records in different slice orders and
+return tied incidents in different orders.</p>
+<h2 id="smallest-repair">Smallest repair</h2>
+<p>Give every incident one position in the order:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>OccurredAt descending, then Incident ID ascending</span></span></code></pre></div><p>Store both fields in the cursor. An incident comes after the cursor if its
+timestamp is older. It also comes after the cursor if the timestamp is equal
+and its ID is greater. Sorting, cursor comparison, and cursor creation must use
+this same two-field rule.</p>
+<p>This repair is sufficient when every request reads the same fixed snapshot. A
+live service must also decide what happens when incidents arrive between
+requests. It can keep the client on one snapshot version, provide consistency
+for a limited time, or document that results can change between pages. Adding
+an ID to the cursor does not keep the underlying data fixed.</p>
+<h2 id="related-production-choices">Related production choices</h2>
+<p>Existing APIs document these choices. Google AIP-158 requires clients to return
+page tokens unchanged without depending on their contents. Clients can change
+the page size, but other request arguments must stay the same. Kubernetes
+associates continued collection requests with one resource version. Loki
+accepts direction and time bounds, and its CLI handles several log entries with
+the same timestamp.</p>
+<p>These designs differ, but each makes sorting and the next-page rule part of one
+pagination design.</p>
+<h2 id="what-to-test-in-production">What to test in production</h2>
+<p>Repeatedly read every page of a fixed test snapshot. Include timestamp groups
+larger than one page. Report missing IDs, duplicate IDs, and neighboring
+incidents in the wrong order. HTTP status and latency cannot find these
+failures.</p>
 
 </article>
  

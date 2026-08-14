@@ -2,7 +2,7 @@
 
 Read this only after completing the handoff.
 
-## Diagnosis
+## Cause
 
 For a group of `g` members, each member requests activation of its other
 `g-1` siblings:
@@ -11,18 +11,17 @@ For a group of `g` members, each member requests activation of its other
 g members * (g - 1) requests per member = g(g - 1)
 ```
 
-The activation queue stores at most `g` distinct IDs, but deduplication occurs
-inside each request. The caller has already entered the queue code, looked up
-the ID, and possibly acquired a lock or formatted a log message. A bound on
-retained entries therefore does not bound request-processing work.
+The activation queue stores at most `g` IDs, but it rejects repeats only after a
+request enters the queue code. By then, the request may have looked up the ID,
+taken a lock, and formatted a log. A limit on stored entries does not limit the
+work spent processing requests.
 
-The sibling loop is necessary once: one member examined after the group becomes
-ready must make the other members eligible. The defect is allowing every such
-member in the same pass to initiate the whole loop again.
+The sibling loop is needed once after the group becomes ready. The defect is
+letting every later member in the same pass start the whole loop again.
 
-## Repair
+## Smallest repair
 
-Record whether the action has already been issued during this pass:
+Record whether this pass has already issued the action:
 
 ```go
 func beginSiblingActivation(state *RoundState) bool {
@@ -34,19 +33,18 @@ func beginSiblingActivation(state *RoundState) bool {
 }
 ```
 
-The first member examined after the group becomes ready makes `g-1` requests.
-Later members see the state and make none. `SimulateRound` creates a fresh
-`RoundState`, so a later pass can issue a new activation if the group still
-requires it. Remembering the bit forever would suppress legitimate future
-work.
+The first member examined after readiness makes `g-1` requests. Later members
+make none. `SimulateRound` creates a new `RoundState`, so a later pass can act
+again if needed. Keeping the Boolean for the group's lifetime would incorrectly
+block future work.
 
-The fixed operation allowance in the tagged test makes the consequence
-explicit. With one group-wide activation, `g-1` requests leave room for an
-unrelated dispatch within `2g` modeled operations. When every member starts the
-loop, activation requests consume that allowance first. This counts operations;
-it does not claim that every production request has the same CPU cost.
+The tagged test gives each pass a fixed operation allowance. One group-wide
+action uses `g-1` requests and leaves room for unrelated work within `2g`
+operations. If every member starts the loop, activation requests use the whole
+allowance first. This is an operation count, not a claim that every production
+request has equal CPU cost.
 
-## Verification
+## Check the repair
 
 Run:
 
@@ -57,46 +55,38 @@ go test -tags=csbridgewheel7 \
   -count=1 -v
 ```
 
-The ordinary tests preserve the behavior when only one member is observed,
-confirm that no activation occurs before the group is ready, and confirm that a
-later pass may activate the group again. The tagged test checks the number of
-requests, the set of activated siblings, the absence of repeated requests, and
-progress for unrelated work.
+The ordinary tests cover one observed member, no activation before readiness,
+and a later pass acting again. The tagged test checks request count, activated
+siblings, repeated requests, and progress for unrelated work.
 
-## Production inspiration and its limits
+## What the production sources establish
 
 [Scheduler-plugins issue #682](https://github.com/kubernetes-sigs/scheduler-plugins/issues/682)
 reports a production machine-learning workload using the Kubernetes
-coscheduling plugin. Under quota and resource restrictions, Pod groups could
-remain pending; the reporter observed millions of activation-related log lines,
-much higher CPU, and no useful scheduling progress for some unrelated Pods
-whose resources were available.
+coscheduling plugin. Quota and resource limits left Pod groups waiting. The
+reporter observed millions of activation logs, much higher CPU use, and no
+progress for some unrelated Pods that could run.
 
 The merged
 [scheduler-plugins PR #700](https://github.com/kubernetes-sigs/scheduler-plugins/pull/700)
-stores an `Activate` flag in the state for one Pod's scheduling attempt. In the
-plugin's `Permit` step, it sets that flag only for an attempt that sees zero
-already assigned group members. `ActivateSiblings` later reads the same
-attempt's state and returns without waking the group unless the flag is present.
-In plain terms, the patch identifies the one scheduling attempt that may wake
-the group instead of letting every attempt do so.
+stores an `Activate` flag for one Pod's scheduling attempt. In `Permit`, it sets
+the flag only when no group member is already assigned. `ActivateSiblings`
+later reads the same state and returns unless the flag is present. The patch
+therefore selects one attempt that may wake the group.
 
-The exercise uses a different mechanism. Its `RoundState` is shared by all
-member observations in one synthetic pass; Kubernetes's scheduling-attempt
-state is not. The local Boolean directly records “already issued during this
-pass,” while the production patch selects one attempt using the assigned-member
-count and carries permission only through that attempt. Both limit repeated
-group-wide work, but their state ownership and lifetimes are different.
+The exercise uses a different mechanism. All member observations share one
+`RoundState` during an invented pass; Kubernetes's attempt state is not shared
+that way. The local Boolean records “already issued this pass.” The production
+patch selects one attempt using the assigned-member count. Both reduce repeated
+group-wide work, but the state has a different owner and lifetime.
 
-The exact `g(g-1)` counts, fixed operation allowance, maintenance domain, and
-logs are synthetic. The public issue supplies the reported production symptoms;
-the merged patch supplies an inspectable code change intended to eliminate the
-repeated wake-ups.
+The exact `g(g-1)` counts, operation allowance, maintenance domain, and logs are
+invented. The public issue supplies the production symptoms. The merged patch
+supplies a code change intended to remove repeated wakeups.
 
-## Production follow-up
+## What to measure in production
 
-Measure activation requests, distinct activated IDs, duplicate requests, log
-volume, and how long unrelated work waits separately. Include the group size
-and the number of passes. Even `g-1` requests per pass can become excessive if
-the system starts passes without limit, so also count how often a member is
-allowed to initiate the group-wide action.
+Measure activation requests, distinct IDs, repeated requests, log volume, and
+unrelated wait time separately. Include group size and number of passes. Even
+`g-1` requests per pass become excessive if passes repeat without limit. Count
+how often the system permits a group-wide action.

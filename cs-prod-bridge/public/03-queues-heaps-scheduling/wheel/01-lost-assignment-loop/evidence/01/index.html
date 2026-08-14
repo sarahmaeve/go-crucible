@@ -8,25 +8,25 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence Packet 1: Recovery stages The service team divided the incident into two observation windows:
-Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, capacity expansion completed and new arrivals were throttled. At 10:20, the worker acquire-response policy changed. No queue-ordering or assignment-service-capacity change was made at 10:20.
+<meta name="description" content="Evidence Packet 1: Recovery stages The service team divided the incident into three time windows:
+Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, the service gained capacity and reduced new arrivals. At 10:20, the worker’s acquire-response rule changed. Queue order and assignment capacity did not change at 10:20.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/evidence/01/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01 evidence packet 1: Recovery stages">
-	<meta property="og:description" content="Evidence Packet 1: Recovery stages The service team divided the incident into two observation windows:
-Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, capacity expansion completed and new arrivals were throttled. At 10:20, the worker acquire-response policy changed. No queue-ordering or assignment-service-capacity change was made at 10:20.">
+	<meta property="og:description" content="Evidence Packet 1: Recovery stages The service team divided the incident into three time windows:
+Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, the service gained capacity and reduced new arrivals. At 10:20, the worker’s acquire-response rule changed. Queue order and assignment capacity did not change at 10:20.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W01 evidence packet 1: Recovery stages">
-	<meta itemprop="description" content="Evidence Packet 1: Recovery stages The service team divided the incident into two observation windows:
-Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, capacity expansion completed and new arrivals were throttled. At 10:20, the worker acquire-response policy changed. No queue-ordering or assignment-service-capacity change was made at 10:20.">
-	<meta itemprop="wordCount" content="92">
+	<meta itemprop="description" content="Evidence Packet 1: Recovery stages The service team divided the incident into three time windows:
+Window Assignment-service capacity New arrivals Connected workers Valid backlog 10:00–10:10 35% 1,200/min 800 18,400 and rising 10:10–10:20 115% 180/min 800 19,100 and nearly flat 10:20–10:30 115% 180/min 800 2,300 and falling At 10:10, the service gained capacity and reduced new arrivals. At 10:20, the worker’s acquire-response rule changed. Queue order and assignment capacity did not change at 10:20.">
+	<meta itemprop="wordCount" content="90">
 
 <title>W01 evidence packet 1: Recovery stages • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
@@ -35,7 +35,7 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -112,7 +112,7 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -289,7 +289,7 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -438,7 +438,7 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -671,7 +671,7 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
       
       
   <article class="markdown book-article"><h1 id="evidence-packet-1-recovery-stages">Evidence Packet 1: Recovery stages</h1>
-<p>The service team divided the incident into two observation windows:</p>
+<p>The service team divided the incident into three time windows:</p>
 <table>
 	<thead>
 			<tr>
@@ -706,11 +706,11 @@ Window Assignment-service capacity New arrivals Connected workers Valid backlog 
 			</tr>
 	</tbody>
 </table>
-<p>At 10:10, capacity expansion completed and new arrivals were throttled. At
-10:20, the worker acquire-response policy changed. No queue-ordering or
-assignment-service-capacity change was made at 10:20.</p>
-<p>The figures are from the synthetic local scenario. The two-stage shape is
-inspired by the public GitHub Actions incident report.</p>
+<p>At 10:10, the service gained capacity and reduced new arrivals. At 10:20, the
+worker&rsquo;s acquire-response rule changed. Queue order and assignment capacity did
+not change at 10:20.</p>
+<p>The figures are invented for this exercise. The public GitHub Actions incident
+report inspired the two-stage pattern.</p>
 
 </article>
  

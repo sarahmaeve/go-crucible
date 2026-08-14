@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Diagnose a map-backed cache whose keys grow with observations.">
+<meta name="description" content="Find why a map-backed cache does not reduce metadata-store reads.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/01-big-o-hash-tables/wheel/02-cache-without-hits/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02: The Cache Without Hits">
-	<meta property="og:description" content="Diagnose a map-backed cache whose keys grow with observations.">
+	<meta property="og:description" content="Find why a map-backed cache does not reduce metadata-store reads.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W02: The Cache Without Hits">
-	<meta itemprop="description" content="Diagnose a map-backed cache whose keys grow with observations.">
-	<meta itemprop="wordCount" content="165">
+	<meta itemprop="description" content="Find why a map-backed cache does not reduce metadata-store reads.">
+	<meta itemprop="wordCount" content="172">
 
 <title>W02: The Cache Without Hits • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -670,22 +670,24 @@ https://github.com/alex-shpak/hugo-book
 <strong>Application:</strong> endpoint-resolver | <strong>Time box:</strong> 35–45 minutes</p>
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
-<p>The endpoint resolver&rsquo;s heap grows throughout the day and the metadata store
-is receiving nearly one read per observation. The resolver has a map-backed
-cache, lookups are expected <code>O(1)</code>, and there are only about 600 active
-endpoints per replica. The incident lead suspects the Go 1.24 map
-implementation retains deleted buckets and recommends periodically copying
-the map. No stale metadata has been reported.</p>
-<p>You own cache keying and lookup. Expiry policy and metadata publication are
-owned by another team. Determine why this cache is not reducing store load.</p>
+<p>The endpoint resolver&rsquo;s heap grows throughout the day. The metadata store
+receives almost one read for every observation. The resolver has a map-backed
+cache, and its lookups have expected <code>O(1)</code> cost. Each replica has only about
+600 active endpoints. The incident lead thinks the Go 1.24 map implementation
+keeps deleted buckets. They recommend copying the map at regular intervals.
+No one has reported stale metadata.</p>
+<p>You are responsible for cache keys and lookups. Another team is responsible
+for expiration and metadata publication. Find out why this cache does not reduce
+reads from the metadata store.</p>
 </blockquote><p>Do not inspect source or tests yet. Record:</p>
 <ul>
-<li>which facts concern time complexity and which concern space</li>
+<li>facts about work and facts about memory</li>
 <li>what <code>O(1)</code> does not tell you about a cache</li>
-<li>at least two explanations for simultaneous heap and store-read growth</li>
-<li>which measurements would reveal whether keys are being reused</li>
+<li>at least two possible causes of both heap growth and store-read growth</li>
+<li>measurements that would show whether requests reuse keys</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after writing an initial model.</p>
+<p>After you write your initial explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

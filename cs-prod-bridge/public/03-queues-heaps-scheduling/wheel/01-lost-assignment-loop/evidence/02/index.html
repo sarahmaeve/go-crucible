@@ -8,37 +8,37 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Evidence Packet 2: Attempts and useful exits Counters from two groups of 100 connected workers during one minute:
-Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle: they are producing acquire traffic. That traffic does not release a worker slot or complete queued work.
-These measurements are synthetic. They are designed to separate activity from useful progress without depending on elapsed-time assertions in the exercise.
+<meta name="description" content="Evidence Packet 2: Attempts, completed jobs, and ended sessions Counters from two groups of 100 connected workers during one minute:
+Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle. They produce acquire traffic, but do not release a slot or complete queued work.
+These measurements are invented for the exercise. They separate activity from useful progress without relying on a timing limit.
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/evidence/02/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="W01 evidence packet 2: Attempts and useful exits">
-	<meta property="og:description" content="Evidence Packet 2: Attempts and useful exits Counters from two groups of 100 connected workers during one minute:
-Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle: they are producing acquire traffic. That traffic does not release a worker slot or complete queued work.
-These measurements are synthetic. They are designed to separate activity from useful progress without depending on elapsed-time assertions in the exercise.">
+	<meta property="og:title" content="W01 evidence packet 2: Attempts, completed jobs, and ended sessions">
+	<meta property="og:description" content="Evidence Packet 2: Attempts, completed jobs, and ended sessions Counters from two groups of 100 connected workers during one minute:
+Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle. They produce acquire traffic, but do not release a slot or complete queued work.
+These measurements are invented for the exercise. They separate activity from useful progress without relying on a timing limit.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
-	<meta itemprop="name" content="W01 evidence packet 2: Attempts and useful exits">
-	<meta itemprop="description" content="Evidence Packet 2: Attempts and useful exits Counters from two groups of 100 connected workers during one minute:
-Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle: they are producing acquire traffic. That traffic does not release a worker slot or complete queued work.
-These measurements are synthetic. They are designed to separate activity from useful progress without depending on elapsed-time assertions in the exercise.">
-	<meta itemprop="wordCount" content="89">
+	<meta itemprop="name" content="W01 evidence packet 2: Attempts, completed jobs, and ended sessions">
+	<meta itemprop="description" content="Evidence Packet 2: Attempts, completed jobs, and ended sessions Counters from two groups of 100 connected workers during one minute:
+Worker group Acquire attempts Jobs completed Worker sessions retired Assignments reported missing or superseded existing workers 48,920 0 0 48,920 newly started workers 6,104 6,081 0 0 The existing workers are not idle. They produce acquire traffic, but do not release a slot or complete queued work.
+These measurements are invented for the exercise. They separate activity from useful progress without relying on a timing limit.">
+	<meta itemprop="wordCount" content="86">
 
-<title>W01 evidence packet 2: Attempts and useful exits • Computer Science Through Production Systems</title>
+<title>W01 evidence packet 2: Attempts, completed jobs, and ended sessions • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../../favicon.png" >
 <link rel="manifest" href="../../../../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/01-lost-assignment-loop/evidence/02/">
 <link rel="stylesheet" href="../../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -115,7 +115,7 @@ These measurements are synthetic. They are designed to separate activity from us
 
   
     <a href="../../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -292,7 +292,7 @@ These measurements are synthetic. They are designed to separate activity from us
 
   
     <a href="../../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -441,7 +441,7 @@ These measurements are synthetic. They are designed to separate activity from us
 
   
     <a href="../../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -659,7 +659,7 @@ These measurements are synthetic. They are designed to separate activity from us
     <img src="../../../../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>W01 evidence packet 2: Attempts and useful exits</h3>
+  <h3>W01 evidence packet 2: Attempts, completed jobs, and ended sessions</h3>
 
   <label for="toc-control">
     
@@ -673,7 +673,7 @@ These measurements are synthetic. They are designed to separate activity from us
 
       
       
-  <article class="markdown book-article"><h1 id="evidence-packet-2-attempts-and-useful-exits">Evidence Packet 2: Attempts and useful exits</h1>
+  <article class="markdown book-article"><h1 id="evidence-packet-2-attempts-completed-jobs-and-ended-sessions">Evidence Packet 2: Attempts, completed jobs, and ended sessions</h1>
 <p>Counters from two groups of 100 connected workers during one minute:</p>
 <table>
 	<thead>
@@ -702,10 +702,10 @@ These measurements are synthetic. They are designed to separate activity from us
 			</tr>
 	</tbody>
 </table>
-<p>The existing workers are not idle: they are producing acquire traffic. That
-traffic does not release a worker slot or complete queued work.</p>
-<p>These measurements are synthetic. They are designed to separate activity from
-useful progress without depending on elapsed-time assertions in the exercise.</p>
+<p>The existing workers are not idle. They produce acquire traffic, but do not
+release a slot or complete queued work.</p>
+<p>These measurements are invented for the exercise. They separate activity from
+useful progress without relying on a timing limit.</p>
 
 </article>
  

@@ -8,20 +8,20 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Diagnose a sorted snapshot refresh that becomes unexpectedly slow on large initial batches.">
+<meta name="description" content="Find why a sorted snapshot refresh slows down for large initial batches.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/01-logarithmic-insert/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01: The Logarithmic Insert">
-	<meta property="og:description" content="Diagnose a sorted snapshot refresh that becomes unexpectedly slow on large initial batches.">
+	<meta property="og:description" content="Find why a sorted snapshot refresh slows down for large initial batches.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
 	<meta itemprop="name" content="W01: The Logarithmic Insert">
-	<meta itemprop="description" content="Diagnose a sorted snapshot refresh that becomes unexpectedly slow on large initial batches.">
-	<meta itemprop="wordCount" content="232">
+	<meta itemprop="description" content="Find why a sorted snapshot refresh slows down for large initial batches.">
+	<meta itemprop="wordCount" content="223">
 
 <title>W01: The Logarithmic Insert • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../favicon.png" >
@@ -30,7 +30,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -671,31 +671,27 @@ https://github.com/alex-shpak/hugo-book
 <h2 id="incoming-report">Incoming report</h2>
 <blockquote class='book-hint '>
 <p>Configuration publishers in the new region take 18 seconds to become ready
-after receiving their first snapshot. During refresh, one CPU core is busy;
-afterward, lookup latency is normal. The snapshot is kept sorted and every
-incoming key is located with binary search, so the owner expects refresh
-work to be logarithmic. The new region sends a larger initial delta than
-established regions. No missing or incorrectly ordered records have been
-reported, and no memory alert fired during the refresh.</p>
-<p>Your task is limited to the code that builds the new in-process snapshot. Do
-not change how updates arrive, when the publisher reports ready, or how
-queries read the completed snapshot. Use the evidence to decide whether
-snapshot construction causes the delay, and change that code only if it does.</p>
+after the first snapshot arrives. One CPU core stays busy during refresh.
+Lookup latency is normal after refresh. The snapshot stays sorted, and binary
+search finds the position for every incoming key. The owner therefore expects
+refresh work to be logarithmic. The new region sends a larger initial batch
+than established regions. No one has reported missing or incorrectly ordered
+records, and no memory alert occurred during refresh.</p>
+<p>You can change only the code that builds the new in-process snapshot. Do not
+change update delivery, readiness, or how queries read the completed snapshot.
+Use evidence to determine whether snapshot construction causes the delay.
+Change that code only if it does.</p>
 </blockquote><p>Before opening the source or tests, write down:</p>
 <ul>
-<li>which statements are observations and which are explanations offered by the
-report;</li>
+<li>facts in the report and explanations that do not yet have evidence;</li>
 <li>separate variables for current snapshot size and incoming batch size;</li>
-<li>the work binary search performs and the work insertion may still perform
-afterward;</li>
-<li>at least two explanations consistent with busy CPU and no reported memory
-alert;
-and</li>
-<li>the first measurement you would use to distinguish expensive comparisons
-from copying records.</li>
+<li>the work done to find a position and the work that can happen afterward;</li>
+<li>at least two possible causes of busy CPU without a memory alert; and</li>
+<li>the first measurement that could distinguish expensive comparisons from
+record movement.</li>
 </ul>
-<p>Continue with <a href="candidate/">candidate guide</a> after recording your initial
-explanation.</p>
+<p>After you write your initial explanation, continue with
+<a href="candidate/">candidate guide</a>.</p>
 
 </article>
  

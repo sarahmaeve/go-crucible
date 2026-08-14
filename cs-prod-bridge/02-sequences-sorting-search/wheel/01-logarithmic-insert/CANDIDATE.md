@@ -3,7 +3,7 @@
 ## What you may change
 
 Change only the function that applies an incoming batch to the current
-snapshot. A successful refresh must:
+snapshot. The returned snapshot must:
 
 - return records with unique keys in increasing string order;
 - keep the last incoming record when a key appears more than once;
@@ -12,34 +12,32 @@ snapshot. A successful refresh must:
 
 Do not change update delivery, readiness policy, or query serving.
 
-Until you have narrowed the cause, do not open `index.go`, either test file,
-or `DEBRIEF.md`.
+Do not open `index.go`, either test file, or `DEBRIEF.md` until the evidence
+points to this component.
 
-## Choose the next evidence packet
+## Choose evidence
 
-The [evidence index](./evidence/README.md) names available packets without
-revealing their contents. Before opening one, write down:
+The [evidence index](./evidence/README.md) names the available packets without
+showing their contents. Before you open one, write:
 
-1. the possible cause or input characteristic it examines;
-2. what each likely result would tell you; and
-3. why it is the best next packet to read.
+1. the possible cause or input property that it can test;
+2. what each likely result would mean; and
+3. why this is the most useful packet to read next.
 
 You do not need every packet.
 
-## Before opening the source
+## When to open the code
 
-Open the source after you can explain:
+Open the source after you can answer these questions:
 
-- `n`, the number of records already in the snapshot;
-- `m`, the number of incoming records;
-- whether the location of incoming keys in the sorted result affects refresh
-  time;
-- whether the measurements point to comparisons, allocation, or copying;
-- the ordering that binary search requires; and
-- the combined cost of finding an insertion point and opening space for the
-  record.
+- What are `n`, the number of current records, and `m`, the number of incoming
+  records?
+- Does the position of incoming keys in the sorted result affect refresh time?
+- Does the evidence point to comparisons, allocation, or record movement?
+- Which order does binary search require?
+- What is the total cost of finding a position and putting a record there?
 
-From the `cs-prod-bridge` directory, run ordinary correctness tests:
+From the `cs-prod-bridge` directory, run the ordinary tests for correct results:
 
 ```bash
 go test ./02-sequences-sorting-search/wheel/01-logarithmic-insert -v
@@ -53,7 +51,7 @@ go test -tags=csbridgewheel3 \
   -run TestRefreshWriteGrowthOnFrontHeavyBatch -count=1 -v
 ```
 
-If you need timing and a CPU profile:
+If you need running-time measurements and a CPU profile:
 
 ```bash
 go test -tags=csbridgewheel3 \
@@ -67,21 +65,20 @@ go test -tags=csbridgewheel3 \
 go tool pprof -top /tmp/cs-bridge-wheel3.pprof
 ```
 
-Change `Refresh` so that a large batch of keys near the front no longer causes
-repeated copying of the existing suffix. Preserve the ordering, duplicate-key
-behavior, and unchanged inputs described above.
+Make the smallest change that satisfies the tagged growth check. Preserve the
+ordering, duplicate-key behavior, and unchanged inputs described above.
 
-The tests also check these counters:
+The tests also define these counters:
 
-- `Inserted` counts an incoming record when its key has not appeared in the
-  current snapshot or earlier in the incoming batch;
+- `Inserted` counts an incoming record if its key has not appeared in the
+  current snapshot or earlier in the batch;
 - `Replaced` counts every other incoming record, including later duplicates
   within the batch;
 - `Inserted + Replaced` therefore equals the incoming batch size; and
-- `SnapshotWrites` counts the record writes used to construct the returned
-  snapshot: initial copies, replacements, inserted records, and records shifted
-  to open a gap. An implementation that constructs the final output in one
-  pass counts one write for each output record.
+- `SnapshotWrites` counts writes that construct the returned snapshot. This
+  includes initial copies, replacements, inserted records, and movement that
+  opens a gap. If code constructs the final output in one pass, it counts one
+  write for each output record.
 
-Verify both test modes, then write a three-minute handoff before reading
+Run both test modes again. Then write a three-minute handoff before you read
 [DEBRIEF.md](./DEBRIEF.md).

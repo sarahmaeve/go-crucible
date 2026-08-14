@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Binary search finds an insertion point quickly, but inserting into a slice may still copy most of the snapshot.">
+<meta name="description" content="Cause, repair, and checks for W01.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/02-sequences-sorting-search/wheel/01-logarithmic-insert/debrief/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W01 debrief">
-	<meta property="og:description" content="Binary search finds an insertion point quickly, but inserting into a slice may still copy most of the snapshot.">
+	<meta property="og:description" content="Cause, repair, and checks for W01.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="02-sequences-sorting-search">
 
 
 	<meta itemprop="name" content="W01 debrief">
-	<meta itemprop="description" content="Binary search finds an insertion point quickly, but inserting into a slice may still copy most of the snapshot.">
-	<meta itemprop="wordCount" content="395">
+	<meta itemprop="description" content="Cause, repair, and checks for W01.">
+	<meta itemprop="wordCount" content="373">
 
 <title>W01 debrief • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -668,53 +668,51 @@ https://github.com/alex-shpak/hugo-book
       
   <article class="markdown book-article"><h1 id="w01-debrief">W01 Debrief</h1>
 <p>Read this only after completing the handoff.</p>
-<h2 id="diagnosis">Diagnosis</h2>
-<p>Finding an insertion point and making room in a slice are separate operations.
-Binary search finds the position in <code>O(log n)</code> comparisons. The records live
-in one contiguous backing array, however, so <code>slices.Insert</code> must copy every
-record after that position one place to the right.</p>
-<p>In this scenario, each incoming key sorts before the existing snapshot. Each
-of the <code>m</code> insertions therefore moves roughly <code>n</code> existing records:</p>
+<h2 id="cause">Cause</h2>
+<p>Binary search finds an insertion position in <code>O(log n)</code> comparisons. Making
+room at that position is a separate operation. The records share one contiguous
+array, so <code>slices.Insert</code> must move every later record one position to the
+right.</p>
+<p>In this scenario, every incoming key belongs before the existing snapshot. Each
+of the <code>m</code> insertions moves approximately <code>n</code> existing records:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>n + n + ... + n = Theta(m*n)</span></span></code></pre></div><p>The growing batch can add another <code>Theta(m^2)</code> moves in the worst case. If <code>m</code>
-grows in proportion to <code>n</code>, the refresh performs quadratic copying; the cheap
-position searches do not change that total.</p>
-<p>The insertion-position experiment makes this visible: batches of the same size
-take very different times depending on where their keys belong. The movement
-counter explains that difference, while the CPU profile confirms that the
-program spends most of the delay copying records.</p>
-<h2 id="a-repair-with-predictable-cost">A repair with predictable cost</h2>
-<p>First collapse duplicate keys in the incoming batch, retaining the last
-occurrence of each key. Sort the remaining incoming records once, then merge
-them with the current snapshot into a new slice. When both inputs contain the
-same key, copy the incoming record.</p>
+grows with <code>n</code>, the total copying is quadratic. Fast position searches do not
+change the cost of moving records.</p>
+<p>The insertion-position experiment shows this behavior. Batches of the same size
+take different amounts of time when their keys belong in different positions.
+The movement counter explains the difference. The CPU profile confirms that
+copying uses most of the time.</p>
+<h2 id="smallest-repair">Smallest repair</h2>
+<p>First, reduce duplicate keys in the incoming batch to the last record for each
+key. Sort the remaining incoming records once. Then merge them with the current
+snapshot into a new slice. When both inputs contain the same key, use the
+incoming record.</p>
 <p>This takes:</p>
 <ul>
 <li><code>Theta(m log m)</code> to sort the incoming batch;</li>
 <li><code>Theta(n+m)</code> to merge; and</li>
 <li><code>Theta(n+m)</code> output space.</li>
 </ul>
-<p>The duplicate rule must be applied before sorting, or the original batch
-position must be retained as a tie-breaker. Otherwise, sorting can change
-which duplicate is considered last.</p>
-<p>Construct the result in a new slice because readers may still be using the
-current snapshot. A map alone is not a complete replacement: callers also
-require iteration in key order.</p>
-<h2 id="verification">Verification</h2>
+<p>Apply the duplicate rule before sorting, or keep the original batch position as
+a tie-breaker. Otherwise, sorting can change which duplicate counts as last.</p>
+<p>Build the result in a new slice because readers can still use the current
+snapshot. A map alone does not meet the contract because callers also require
+iteration in key order.</p>
+<h2 id="check-the-repair">Check the repair</h2>
 <p>Run:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./02-sequences-sorting-search/wheel/01-logarithmic-insert -v
 </span></span><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel3 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./02-sequences-sorting-search/wheel/01-logarithmic-insert <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>The ordinary tests check sorted output, duplicate handling, unchanged inputs,
-and the counter definitions. The tagged test counts writes instead of imposing
-a machine-specific time limit. The original implementation performs millions
-of writes on the front-heavy batch; the repaired implementation writes each
+and counter definitions. The tagged test counts writes instead of using a
+machine-specific time limit. The original implementation writes millions of
+records for the front-heavy batch. The repaired implementation writes each
 final record once.</p>
-<h2 id="production-follow-up">Production follow-up</h2>
-<p>In production, record the current snapshot size, incoming batch size, number
-of inserted and replaced keys, and number of records copied during refresh.
-Also record where incoming keys fall relative to the current key range. Two
-regions can have snapshots of the same size while doing very different amounts
-of copying.</p>
+<h2 id="what-to-measure-in-production">What to measure in production</h2>
+<p>Record the current snapshot size, incoming batch size, inserted and replaced
+keys, and records copied during refresh. Also record where incoming keys belong
+relative to the current key range. Two regions can have equal snapshot sizes
+but do very different amounts of copying.</p>
 
 </article>
  

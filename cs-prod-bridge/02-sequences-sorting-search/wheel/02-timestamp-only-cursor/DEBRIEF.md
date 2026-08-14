@@ -1,44 +1,52 @@
-# W02 Debrief: Why Timestamp-Only Pagination Loses Records
+# W02 Debrief
 
-The endpoint sorted incidents by descending timestamp and began the next page
-at the first record with an older timestamp. If a page stopped partway through
-a group that shared one timestamp, the cursor could not identify which members
-of that group had already been returned. The next request skipped all of them
-and moved directly to the older records.
+## Cause
 
-A stable sort does not provide the missing information. It preserves the input
-order of equal items during one call to the sorter, but that order is absent
-from the cursor. Two replicas that receive the same records in different slice
-orders can therefore return the tied incidents in different orders.
+The endpoint sorted incidents by descending timestamp. The next page started at
+the first record with an older timestamp. If a page stopped within a group that
+shared one timestamp, the cursor did not identify which incidents in that group
+had already been returned. The next request skipped the rest of the group and
+moved to older records.
 
-The repair gives every incident a unique position:
+A stable sort does not add the missing information. It preserves the input
+order of equal items during one sort. The cursor does not contain that input
+order. Two replicas can receive the same records in different slice orders and
+return tied incidents in different orders.
+
+## Smallest repair
+
+Give every incident one position in the order:
 
 ```text
 OccurredAt descending, then Incident ID ascending
 ```
 
-The cursor carries both fields. An incident comes after the cursor if its
-timestamp is older, or if the timestamp is equal and its ID is greater.
-Sorting, cursor comparison, and cursor creation must all use this two-field
-rule.
+Store both fields in the cursor. An incident comes after the cursor if its
+timestamp is older. It also comes after the cursor if the timestamp is equal
+and its ID is greater. Sorting, cursor comparison, and cursor creation must use
+this same two-field rule.
 
-This is sufficient when every request in a traversal reads the same fixed
-snapshot. A live service must also decide what happens when incidents arrive
-between requests. It might keep the client on one snapshot version, promise
-consistency only for a limited period, or document that results can change
-during traversal. Adding an ID to the cursor does not, by itself, keep the
-underlying data fixed.
+This repair is sufficient when every request reads the same fixed snapshot. A
+live service must also decide what happens when incidents arrive between
+requests. It can keep the client on one snapshot version, provide consistency
+for a limited time, or document that results can change between pages. Adding
+an ID to the cursor does not keep the underlying data fixed.
 
-Existing APIs make these choices explicit. Google AIP-158 requires opaque page
-tokens; clients may change the page size, but other request arguments must
-remain the same. Kubernetes associates continued collection requests with a
-consistent resource version. Loki accepts direction and time bounds, and its
-CLI has explicit code for multiple log entries with the same timestamp.
+## Related production choices
 
-These designs differ, but each treats sorting and continuation as parts of the
-same pagination design.
+Existing APIs document these choices. Google AIP-158 requires clients to return
+page tokens unchanged without depending on their contents. Clients can change
+the page size, but other request arguments must stay the same. Kubernetes
+associates continued collection requests with one resource version. Loki
+accepts direction and time bounds, and its CLI handles several log entries with
+the same timestamp.
 
-A useful automated check would repeatedly page through a fixed canary snapshot
-containing timestamp groups larger than one page. It should report missing IDs,
-duplicate IDs, and adjacent incidents in the wrong order. HTTP status and
-latency cannot detect any of those failures.
+These designs differ, but each makes sorting and the next-page rule part of one
+pagination design.
+
+## What to test in production
+
+Repeatedly read every page of a fixed test snapshot. Include timestamp groups
+larger than one page. Report missing IDs, duplicate IDs, and neighboring
+incidents in the wrong order. HTTP status and latency cannot find these
+failures.

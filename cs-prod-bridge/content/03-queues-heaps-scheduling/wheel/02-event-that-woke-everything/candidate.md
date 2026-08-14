@@ -1,6 +1,6 @@
 +++
 title = 'W02 candidate guide'
-description = 'Investigate the rule that returns blocked repairs to the active priority heap.'
+description = 'Inspect event evidence, test the dispatcher, and verify your repair.'
 weight = 1
 bookToC = false
 +++

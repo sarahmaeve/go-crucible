@@ -8,29 +8,29 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
+<meta name="description" content="Compare sorting every candidate with a heap that keeps only the highest-risk services.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/lab/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
-	<meta property="og:title" content="Exploration lab: keep the highest-risk k">
-	<meta property="og:description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
+	<meta property="og:title" content="Lab: keep the highest-risk k">
+	<meta property="og:description" content="Compare sorting every candidate with a heap that keeps only the highest-risk services.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="website">
 
 
-	<meta itemprop="name" content="Exploration lab: keep the highest-risk k">
-	<meta itemprop="description" content="Compare sorting every candidate with a bounded heap that retains only the highest-risk services.">
-	<meta itemprop="wordCount" content="2023">
+	<meta itemprop="name" content="Lab: keep the highest-risk k">
+	<meta itemprop="description" content="Compare sorting every candidate with a heap that keeps only the highest-risk services.">
+	<meta itemprop="wordCount" content="1763">
 
-<title>Exploration lab: keep the highest-risk k • Computer Science Through Production Systems</title>
+<title>Lab: keep the highest-risk k • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../favicon.png" >
 <link rel="manifest" href="../../manifest.json">
 <link rel="canonical" href="https://go-crucible.invalid/03-queues-heaps-scheduling/lab/">
 <link rel="stylesheet" href="../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -107,7 +107,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -284,7 +284,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -433,7 +433,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../03-queues-heaps-scheduling/lab/" class="active">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -651,7 +651,7 @@ https://github.com/alex-shpak/hugo-book
     <img src="../../icons/menu.svg" class="book-icon" alt="Menu" />
   </label>
 
-  <h3>Exploration lab: keep the highest-risk k</h3>
+  <h3>Lab: keep the highest-risk k</h3>
 
   <label for="toc-control">
     
@@ -665,171 +665,147 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><h1 id="exploration-lab-keep-the-highest-risk-k">Exploration Lab: Keep the Highest-Risk K</h1>
-<p>A fleet health service examines risk observations for many services but shows
-only the <code>k</code> highest-risk services on its response page. This Unit 03 lab
-isolates top-k selection before later exercises add readiness, retries, and
-worker ownership.</p>
-<p>The result contract is precise:</p>
+  <article class="markdown book-article"><h1 id="lab-keep-the-highest-risk-k">Lab: Keep the Highest-Risk K</h1>
+<p>A fleet-health service examines many risk scores but returns only the <code>k</code>
+highest-risk services. This lab focuses on top-k selection. Later exercises add
+readiness, retries, and worker ownership.</p>
+<p>The result must follow these rules:</p>
 <ul>
 <li>a higher score is better;</li>
-<li>equal scores are ordered by service name, alphabetically;</li>
+<li>equal scores use service name in alphabetical order;</li>
 <li>return at most <code>k</code> candidates in that complete order;</li>
 <li>do not change the input; and</li>
 <li>reject a negative <code>k</code> or a score that is <code>NaN</code>.</li>
 </ul>
-<p><code>TopKBySort</code> and <code>TopKByHeap</code> return the same answer. The difference is
-the information they retain and the operations they perform while finding it.</p>
-<h2 id="1-name-the-quantities-before-naming-the-bound">1. Name the quantities before naming the bound</h2>
-<p>For the main case, assume <code>r</code> candidates and <code>1 &lt;= k &lt;= r</code>:</p>
+<p><code>TopKBySort</code> and <code>TopKByHeap</code> return the same answer. They keep different
+amounts of information and do different work to find it.</p>
+<h2 id="1-name-the-input-sizes-before-calculating-cost">1. Name the input sizes before calculating cost</h2>
+<p>For the main case, use <code>r</code> candidates and <code>1 &lt;= k &lt;= r</code>:</p>
 <ul>
 <li><code>r</code> is the number of candidates examined;</li>
 <li><code>k</code> is the number of winners retained; and</li>
-<li><code>h</code> is the number of candidates after the first <code>k</code> that are
-good enough to replace the current cutoff, so <code>0 &lt;= h &lt;= r-k</code>.</li>
+<li><code>h</code> is the number of later candidates that replace a current winner, so
+<code>0 &lt;= h &lt;= r-k</code>.</li>
 </ul>
-<p>When <code>k &lt; r</code>, an exact method must inspect every candidate. If it skips
-one, that unseen candidate could have the highest score and change the winning
-set. Selection from unsorted input therefore requires at least linear work in
-<code>r</code>. When <code>k = r</code>, membership is already known because every candidate
-wins, but this API still has to copy and order all <code>r</code> candidates.</p>
-<p>The formulas in this lab count calls to the complete <code>better</code> comparison.
-Comparing two <code>float64</code> scores is fixed-size work. When scores tie, Go
-compares service-name strings until it finds different bytes or reaches the
-end of one name. We treat service names as bounded in length. If names can grow
-with the input, their comparison cost also belongs in the model.</p>
-<p>The validation rule is also part of correctness. A comparison involving
-<code>NaN</code> does not establish the ordering required by either <code>sort.Slice</code>
-or <code>container/heap</code>, so both methods reject it before ordering candidates.</p>
-<h2 id="2-count-the-complete-operations">2. Count the complete operations</h2>
-<p><code>TopKBySort</code> validates the input, copies all <code>r</code> candidates, sorts the
-copy, and returns the first <code>k</code>. Its dominant sorting work is:</p>
+<p>An exact method must inspect every candidate. A skipped candidate might have the
+highest score. Selection from unsorted input therefore requires at least linear
+work in <code>r</code>. When <code>k = r</code>, every candidate wins, but this API must still copy
+and order all <code>r</code> candidates.</p>
+<p>The formulas count calls to the complete <code>better</code> comparison. Comparing two
+<code>float64</code> scores has a fixed cost. If scores tie, Go compares service-name
+bytes until it finds a difference. The model assumes a fixed maximum name
+length. If names can grow, include their comparison cost too.</p>
+<p>Validation is part of correctness. A <code>NaN</code> score cannot provide the ordering
+that <code>sort.Slice</code> and <code>container/heap</code> require, so both methods reject it before
+ordering candidates.</p>
+<h2 id="2-count-every-phase">2. Count every phase</h2>
+<p><code>TopKBySort</code> validates the input, copies all <code>r</code> candidates, sorts the copy, and
+returns the first <code>k</code>:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>O(r log r) time
-</span></span><span style="display:flex;"><span>O(r)       working candidate storage</span></span></code></pre></div><p>The storage bound follows from this API&rsquo;s promise not to change the caller&rsquo;s
-slice. A method allowed to reorder that slice would not need the same full
-candidate copy.</p>
-<p><code>TopKByHeap</code> copies the first <code>k</code> candidates and calls
-<code>heap.Init</code>. Bottom-up heap construction costs <code>O(k)</code>. It then
-compares each of the remaining <code>r-k</code> candidates with the root. Only the
-<code>h</code> candidates that enter the answer replace the root and require up to
-<code>O(log k)</code> heap work:</p>
+</span></span><span style="display:flex;"><span>O(r)       working candidate storage</span></span></code></pre></div><p>The API promises not to change the caller&rsquo;s slice, so sorting requires a copy.
+A method allowed to reorder the input would not need that copy.</p>
+<p><code>TopKByHeap</code> copies the first <code>k</code> candidates and calls <code>heap.Init</code>. This
+bottom-up build costs <code>O(k)</code>. It compares each later candidate with the root.
+Only the <code>h</code> new winners replace the root and require up to <code>O(log k)</code> heap
+work:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>build initial heap:       O(k)
 </span></span><span style="display:flex;"><span>check later candidates:   Θ(r-k)
 </span></span><span style="display:flex;"><span>restore after replacement: O(h log k)
 </span></span><span style="display:flex;"><span>selection total:          O(r + h log k)
-</span></span><span style="display:flex;"><span>working candidate storage: O(k)</span></span></code></pre></div><p>In the worst case, every later candidate enters, so <code>h = r-k</code> and
-selection has the familiar <code>O(r log k)</code> upper bound for
-<code>k &gt;= 2</code>. That compact bound is correct, but it hides two useful facts:</p>
+</span></span><span style="display:flex;"><span>working candidate storage: O(k)</span></span></code></pre></div><p>If every later candidate wins, <code>h = r-k</code>. This gives the familiar <code>O(r log k)</code>
+upper bound for <code>k &gt;= 2</code>. That short bound hides two useful facts:</p>
 <ul>
 <li>all <code>r-k</code> later candidates receive one cutoff comparison; and</li>
 <li>only the <code>h</code> candidates that cross the cutoff cause logarithmic heap
 work.</li>
 </ul>
-<p>The function promises an ordered result. A heap identifies which candidates
-won, but its array is not a fully sorted list. Sorting the <code>k</code> survivors
-adds <code>O(k log k)</code>, so the complete heap-based operation is:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>O(r + h log k + k log k)</span></span></code></pre></div><p>Both lab methods also make a separate validation pass over the slice so they
-can reject <code>NaN</code>. That pass is <code>Θ(r)</code> and does not change either
-overall growth class. It does matter at a boundary: with <code>k = 0</code>, this
-API validates all scores and then returns an empty result, so its actual work
-is <code>Θ(r)</code>. An API that returned before validation would have a different
-contract and a different boundary cost.</p>
-<h2 id="3-put-the-useful-cutoff-at-the-root">3. Put the useful cutoff at the root</h2>
-<p>For the largest <code>k</code> candidates, the bounded heap puts the <strong>worst retained
-winner</strong> at its root. With score as the only key, that is a min-heap. A new
-candidate can enter the answer exactly when it is better than this root.</p>
-<p>Using a max-heap of the <code>k</code> winners would expose the best winner, which
-does not tell us whether a new candidate should replace the weakest winner. To
-find the smallest <code>k</code> values, reverse the design: keep the largest retained
-value at the root of a max-heap.</p>
-<p>The lab&rsquo;s tie rule is part of “better.” A lower score is worse. When scores are
-equal, an alphabetically later service name is worse. The heap root is the
-worst candidate under both fields, not just the candidate with the lowest
-score.</p>
+<p>The function promises an ordered result. A heap finds the winners, but its array
+is not fully sorted. Sorting the <code>k</code> winners adds <code>O(k log k)</code>, so the total is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>O(r + h log k + k log k)</span></span></code></pre></div><p>Both methods make a separate <code>Θ(r)</code> validation pass to reject <code>NaN</code>. This does
+not change the overall growth. It matters when <code>k = 0</code>: this API still checks
+all scores before returning an empty result, so that case is <code>Θ(r)</code>. Another
+API could choose to return before validation.</p>
+<h2 id="3-put-the-cutoff-at-the-root">3. Put the cutoff at the root</h2>
+<p>To find the largest <code>k</code> candidates, the heap puts the <strong>worst current winner</strong>
+at its root. If score is the only key, this is a min-heap. A new candidate wins
+only when it is better than the root.</p>
+<p>A max-heap would expose the best winner, which cannot tell us whether a new
+candidate should replace the weakest winner. To find the smallest <code>k</code> values,
+reverse the rule and keep the largest current winner at a max-heap root.</p>
+<p>The tie rule is part of “better.” A lower score is worse. If scores tie, an
+alphabetically later name is worse. The root is the worst candidate under both
+fields, not only the lowest score.</p>
 <p>Use this input with <code>k = 3</code>:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>(search, 0.72), (billing, 0.91), (edge, 0.83),
-</span></span><span style="display:flex;"><span>(catalog, 0.91), (worker, 0.40), (api, 0.83)</span></span></code></pre></div><p>First draw the heap created from the first three candidates by
-<code>heap.Init</code>. For each remaining candidate, mark the root, decide whether
-the candidate crosses the cutoff, and redraw only the parent-child path that
-can change after a replacement.</p>
-<p>Do not sort the heap array in the drawing. Its promise is narrower: no child
-is worse than its parent, so the worst retained candidate is available at
-index zero.</p>
-<p>This root has a different role from the heap in a dispatcher. The top-k heap
-exposes the worst retained winner so checking a new candidate is cheap. A
-dispatcher usually exposes the next work item to serve so removal is cheap.
-The array mechanics are the same; the supplied comparison defines what the
-root means.</p>
-<h2 id="4-read-phase-counters-before-timing">4. Read phase counters before timing</h2>
+</span></span><span style="display:flex;"><span>(catalog, 0.91), (worker, 0.40), (api, 0.83)</span></span></code></pre></div><p>First draw the heap that <code>heap.Init</code> creates from the first three candidates.
+For each later candidate, mark the root, decide whether the candidate wins, and
+redraw only the parent-child path changed by a replacement.</p>
+<p>Do not sort the heap array. It promises only that no child is worse than its
+parent, which puts the worst winner at index zero.</p>
+<p>The root has a different meaning in a dispatcher. A top-k heap exposes the
+worst winner so it can check a new candidate. A dispatcher usually exposes the
+next work item. The array operations are the same; the comparison defines what
+the root means.</p>
+<h2 id="4-read-operation-counts-before-timing">4. Read operation counts before timing</h2>
 <p>Run commands from the <code>cs-prod-bridge</code> module directory:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/lab -v</span></span></code></pre></div><p><code>SelectionStats</code> keeps phases separate so one broad asymptotic bound does
-not conceal the operations that produced it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/lab -v</span></span></code></pre></div><p><code>SelectionStats</code> counts each phase separately:</p>
 <ul>
 <li><code>CandidatesValidated</code> counts candidates checked for <code>NaN</code>;</li>
-<li><code>AllCandidateSortComparisons</code> counts comparisons while the sort method
-ranks all candidates;</li>
+<li><code>AllCandidateSortComparisons</code> counts comparisons while sorting all
+candidates;</li>
 <li><code>CutoffComparisons</code> counts comparisons between a later candidate and
 the worst retained winner;</li>
-<li><code>HeapBuildComparisons</code> and <code>HeapBuildSwaps</code> measure the bottom-up
-construction of the initial size-<code>k</code> heap;</li>
+<li><code>HeapBuildComparisons</code> and <code>HeapBuildSwaps</code> count the bottom-up build of the
+initial size-<code>k</code> heap;</li>
 <li><code>RootReplacements</code> is the measured <code>h</code>;</li>
-<li><code>HeapRestoreComparisons</code> and <code>HeapRestoreSwaps</code> measure work after those
-replacements;</li>
-<li><code>WinnerSortComparisons</code> measures the final ordering of only the retained
+<li><code>HeapRestoreComparisons</code> and <code>HeapRestoreSwaps</code> count work after replacements;</li>
+<li><code>WinnerSortComparisons</code> counts the final ordering of the retained
 winners; and</li>
-<li><code>MaxRetained</code> records the largest working selection collection. It
-excludes the caller&rsquo;s input and returned copy, so it is a candidate count,
-not a byte-accurate memory measurement.</li>
+<li><code>MaxRetained</code> records the largest working collection. It excludes the input
+and returned copy, so it counts candidates rather than bytes.</li>
 </ul>
-<p><code>TestTopKStatsSeparateWorkPhases</code> uses two inputs with the same
-<code>r</code> and <code>k</code>. In one, the best candidates arrive first and
-<code>h = 0</code>. In the other, every later candidate crosses the cutoff and
-<code>h = r-k</code>. The number of cutoff checks stays the same while the number
-of heap restorations changes. This is the distinction hidden by the worst-case
-<code>O(r log k)</code> summary.</p>
-<p><code>TestTopKHeapWithOneWinnerNeedsNoHeapReordering</code> shows the <code>k = 1</code>
-case. Every later candidate is still checked, but a one-element heap has no
-parent-child order to restore and its one winner needs no final sorting.</p>
-<h2 id="5-change-one-workload-dimension-at-a-time">5. Change one workload dimension at a time</h2>
-<p>The benchmark includes final result ordering for both methods; it never
-compares an ordered sort result with an unordered heap array.</p>
+<p><code>TestTopKStatsSeparateWorkPhases</code> uses two inputs with the same <code>r</code> and <code>k</code>.
+In one, the best candidates arrive first and <code>h = 0</code>. In the other, every later
+candidate wins and <code>h = r-k</code>. Both inputs perform the same cutoff checks but a
+different number of heap repairs. The worst-case <code>O(r log k)</code> summary hides
+this difference.</p>
+<p><code>TestTopKHeapWithOneWinnerNeedsNoHeapReordering</code> covers <code>k = 1</code>. Every later
+candidate is checked, but a one-element heap needs no repair or final sort.</p>
+<h2 id="5-change-one-input-size-at-a-time">5. Change one input size at a time</h2>
+<p>Both benchmarks include the final result sort. They do not compare an ordered
+sort result with an unordered heap array.</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/lab <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkTopK -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>Its cases isolate three questions:</p>
+</span></span></span><span style="display:flex;"><span>  -run <span style="color:#5af78e">&#39;^$&#39;</span> -bench BenchmarkTopK -benchmem -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">5</span></span></span></code></pre></div><p>The cases ask three questions:</p>
 <ul>
-<li>Holding <code>k = 10</code> while <code>r</code> grows from 1,000 to 100,000 shows the
-unavoidable input scan.</li>
-<li>Holding <code>r = 10,000</code> while changing <code>k</code> from 1 to 10,000 shows
-when bounded retention stops being much smaller than the input.</li>
-<li>Holding <code>r = 10,000</code> and <code>k = 100</code> while changing arrival order
-gives the bounded-heap path no later replacements in one case and a
-replacement for every later candidate in the other. Input order may also
-affect the sort implementation&rsquo;s constant factors.</li>
+<li>Keep <code>k = 10</code> while <code>r</code> grows from 1,000 to 100,000 to show the required
+input scan.</li>
+<li>Keep <code>r = 10,000</code> while <code>k</code> grows from 1 to 10,000 to find when the retained
+set is no longer much smaller than the input.</li>
+<li>Keep <code>r = 10,000</code> and <code>k = 100</code> while changing input order. One case causes
+no later replacements; the other replaces the root for every later
+candidate. Input order can also affect the sort&rsquo;s machine-specific costs.</li>
 </ul>
-<p>Use operation counts to predict the trend before reading nanoseconds. Then use
-the benchmark to find the effect of Go&rsquo;s implementation, memory layout, and
-constant factors on this machine.</p>
-<p>Read both allocation columns. The heap retains fewer candidate records when
-<code>k</code> is small, but fewer retained records do not guarantee fewer allocation
-events or lower elapsed time. The full sort uses optimized contiguous-slice
-code, while the bounded heap performs its own comparisons and swaps. Allocation
-counts include slice copies and implementation bookkeeping; they do not count
-logical candidates directly. The <code>O(k)</code> storage bound describes how
-retained candidate storage grows; it does not predict the number of allocations
-or which implementation wins at every measured size.</p>
-<p>The lab already receives all candidates in a <code>[]Candidate</code>. Its
-<code>O(k)</code> claim therefore describes <strong>additional working candidate storage</strong>.
-A streaming API could feed the same bounded-heap operation from an iterator,
-channel, file, or network connection without retaining all <code>r</code> candidates
-first. This particular API does not demonstrate that end-to-end memory use.</p>
-<h2 id="6-compare-the-heap-with-real-alternatives">6. Compare the heap with real alternatives</h2>
-<p>Top-k is a result contract, not the name of one algorithm. For an exact,
-ordered answer, the main choices include:</p>
+<p>Predict the operation counts before reading the run times. Then use the
+benchmark to see how Go&rsquo;s implementation and memory layout affect this machine.</p>
+<p>Read both allocation columns. When <code>k</code> is small, the heap retains fewer
+candidates. That does not guarantee fewer allocations or a faster run. Full
+sorting uses optimized slice code; the heap performs its own comparisons and
+swaps. Allocation counts include copies and internal records, not logical
+candidates. The <code>O(k)</code> bound describes retained candidate storage. It does not
+predict allocation count or the faster implementation at every size.</p>
+<p>The lab already receives all candidates in a <code>[]Candidate</code>. Its <code>O(k)</code> claim
+therefore describes <strong>additional working candidate storage</strong>. A streaming API
+could feed the heap from an iterator, channel, file, or network connection.
+This slice-based API does not demonstrate total streaming memory use.</p>
+<h2 id="6-compare-the-available-methods">6. Compare the available methods</h2>
+<p>Top-k describes the required result, not one algorithm. For an exact, ordered
+answer, the choices include:</p>
 <table>
 	<thead>
 			<tr>
 					<th>Method</th>
 					<th style="text-align: right">Time for ordered top <code>k</code></th>
-					<th style="text-align: right">Working candidate storage in this lab&rsquo;s non-mutating setting</th>
+					<th style="text-align: right">Working candidate storage when the input must stay unchanged</th>
 					<th>Trade-off</th>
 			</tr>
 	</thead>
@@ -850,7 +826,7 @@ ordered answer, the main choices include:</p>
 					<td>Keep a min-heap of <code>k</code> winners</td>
 					<td style="text-align: right"><code>O(r + h log k + k log k)</code></td>
 					<td style="text-align: right"><code>O(k)</code></td>
-					<td>One-pass selection and bounded state; update work depends on replacements</td>
+					<td>One-pass selection that stores <code>k</code> candidates; update work depends on replacements</td>
 			</tr>
 			<tr>
 					<td>Quickselect, then sort the winners</td>
@@ -866,56 +842,53 @@ ordered answer, the main choices include:</p>
 			</tr>
 	</tbody>
 </table>
-<p>This lab implements full sorting and a bounded heap because those two methods
-make the retained-information difference easy to inspect. It does not establish
-that they are the only choices. In an in-memory batch, quickselect or a full
-bottom-up heap can have a better time bound than the bounded heap&rsquo;s worst case.
-When <code>k</code> is tiny, a sorted slice can be competitive despite its worse
-asymptotic bound. Measure after matching the algorithm to the actual contract.</p>
-<p>These boundary cases should change the choice:</p>
+<p>The lab implements full sorting and a bounded heap because they make the
+storage difference easy to inspect. They are not the only choices. For an
+in-memory batch, quickselect or a full bottom-up heap can have a better time
+bound for some values of <code>r</code> and <code>k</code>. When <code>k</code> is very small, a sorted slice can
+be competitive despite worse growth. Match the method to the required result,
+then measure it.</p>
+<p>Pay special attention to these boundaries:</p>
 <ul>
-<li>fixed small <code>k</code>: bounded selection grows linearly with <code>r</code> and keeps
-<code>O(k)</code> working candidates;</li>
+<li>fixed small <code>k</code>: bounded selection grows linearly with <code>r</code> and keeps <code>O(k)</code>
+working candidates;</li>
 <li><code>k = 1</code>: use the mental model of a maximum scan, even if the generic
 implementation still stores a one-element heap;</li>
 <li><code>k</code> close to <code>r</code>: final sorting approaches a full sort, so the heap
 has little to save; and</li>
-<li><code>k &gt;= r</code>: every candidate is returned, so direct sorting is clearer
-than building a bounded heap and sorting the same candidates afterward.</li>
+<li><code>k &gt;= r</code>: every candidate is returned, so direct sorting is clearer than
+building a heap and sorting the same candidates afterward.</li>
 </ul>
-<h2 id="7-follow-the-production-implementation">7. Follow the production implementation</h2>
+<h2 id="7-compare-with-a-production-implementation">7. Compare with a production implementation</h2>
 <p><a href="https://github.com/prometheus/prometheus/blob/v3.13.1/promql/engine.go#L3951-L4085">Prometheus v3.13.1 <code>topk</code></a>
-uses the same central operation for each aggregation group: retain at most
-<code>k</code> samples, compare later samples with the smallest retained value, replace
-that root when the sample belongs in the result, and call <code>heap.Fix</code> when
-<code>k &gt; 1</code>. It sorts retained instant-query samples before returning them.</p>
-<p>The local service names, validation, complete tie rule, counters, and API are
-synthetic. They make the operation inspectable; they are not a model of all
-PromQL semantics.</p>
-<p>If a product asks for the <code>k</code> most frequent raw values, remember that the
-heap does not compute frequencies. A separate pass must first count each
-distinct value, often with the hash-table model from Unit 01. The heap then
-selects among those distinct values and their counts.</p>
-<p>For the heap invariant, array representation, operations, and proof, use
+uses the same central operation for each group. It retains at most <code>k</code> samples,
+compares later samples with the smallest retained value, replaces that root for
+a new winner, and calls <code>heap.Fix</code> when <code>k &gt; 1</code>. It sorts the retained
+instant-query samples before returning them.</p>
+<p>The local service names, validation, tie rule, counters, and API are invented
+for this lab. They make the operation easy to inspect; they do not represent
+all PromQL behavior.</p>
+<p>If a product asks for the <code>k</code> most frequent raw values, the heap does not count
+them. First count each distinct value, often with a hash table. Then use the
+heap to select among those values and counts.</p>
+<p>For the heap rule, array representation, operations, and proof, use
 <a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/40d4851e550507ca14dc778b9b2266cc_MIT6_006S20_lec8.pdf">MIT 6.006 Lecture 8: Binary Heaps</a>.
 For the exact Go interface used here, read the standard library&rsquo;s
 <a href="https://pkg.go.dev/container/heap"><code>container/heap</code> documentation</a>.</p>
-<h2 id="8-explain-the-choice-without-hiding-the-conditions">8. Explain the choice without hiding the conditions</h2>
+<h2 id="8-explain-the-choice-plainly">8. Explain the choice plainly</h2>
 <p>Finish with short answers to these questions:</p>
 <ol>
-<li>Why does finding the largest <code>k</code> use the worst retained winner as the
-heap root?</li>
+<li>Why does a largest-<code>k</code> heap keep the worst current winner at its root?</li>
 <li>Which terms in <code>O(r + h log k + k log k)</code> correspond to
 input inspection, changed winners, and final result ordering?</li>
 <li>Why can two inputs with the same <code>r</code> and <code>k</code> perform different
 amounts of heap work?</li>
-<li>What exactly does the bounded heap avoid computing, and what work can it
-never avoid for an exact answer?</li>
-<li>At which relationship between <code>k</code> and <code>r</code> would you choose direct
-sorting for this API, and which benchmark evidence would support that
-decision?</li>
-<li>Why does this slice-based lab prove an <code>O(k)</code> additional-storage bound
-but not an end-to-end streaming memory bound?</li>
+<li>Which work does the bounded heap avoid, and which work must every exact
+method still do?</li>
+<li>When would you choose direct sorting for this API, and which benchmark
+result would support that choice?</li>
+<li>Why does this slice-based lab show <code>O(k)</code> additional storage but not total
+<code>O(k)</code> memory use?</li>
 </ol>
 
 </article>

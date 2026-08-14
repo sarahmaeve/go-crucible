@@ -8,21 +8,21 @@ https://github.com/alex-shpak/hugo-book
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Investigate the rule that returns blocked repairs to the active priority heap.">
+<meta name="description" content="Inspect event evidence, test the dispatcher, and verify your repair.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go-crucible.invalid/03-queues-heaps-scheduling/wheel/02-event-that-woke-everything/candidate/">
 	<meta property="og:site_name" content="Computer Science Through Production Systems">
 	<meta property="og:title" content="W02 candidate guide">
-	<meta property="og:description" content="Investigate the rule that returns blocked repairs to the active priority heap.">
+	<meta property="og:description" content="Inspect event evidence, test the dispatcher, and verify your repair.">
 	<meta property="og:locale" content="en_US">
 	<meta property="og:type" content="article">
 		<meta property="article:section" content="03-queues-heaps-scheduling">
 
 
 	<meta itemprop="name" content="W02 candidate guide">
-	<meta itemprop="description" content="Investigate the rule that returns blocked repairs to the active priority heap.">
-	<meta itemprop="wordCount" content="348">
+	<meta itemprop="description" content="Inspect event evidence, test the dispatcher, and verify your repair.">
+	<meta itemprop="wordCount" content="342">
 
 <title>W02 candidate guide • Computer Science Through Production Systems</title>
 <link rel="icon" href="../../../../favicon.png" >
@@ -31,7 +31,7 @@ https://github.com/alex-shpak/hugo-book
 <link rel="stylesheet" href="../../../../book.min.73be24bb3a385c0fb99b8b22b0485f70c8e46081208ca5c1550d3081e4df725c.css" integrity="sha256-c74kuzo4XA&#43;5m4sisEhfcMjkYIEgjKXBVQ0wgeTfclw=" crossorigin="anonymous">
 
 
-  <script defer type="module" src="../../../../en.search.min.dc535364db114cc98d092108f7b58a80d43fb0f78421bdb6b3b0f25cd41709f7.js" integrity="sha256-3FNTZNsRTMmNCSEI97WKgNQ/sPeEIb22s7DyXNQXCfc=" crossorigin="anonymous"></script>
+  <script defer type="module" src="../../../../en.search.min.76d000e3e2492931b40a21238d56ef739944430b23be115423bea3a85e527d60.js" integrity="sha256-dtAA4&#43;JJKTG0CiEjjVbvc5lEQwsjvhFUI76jqF5SfWA=" crossorigin="anonymous"></script>
 
   
 </head>
@@ -108,7 +108,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../01-big-o-hash-tables/lab/" class="">
-      Exploration lab: scan or index?</a>
+      Lab: scan or index?</a>
   
 
           
@@ -285,7 +285,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../02-sequences-sorting-search/lab/" class="">
-      Exploration lab: scan, intersect, and order</a>
+      Lab: scan, intersect, and order</a>
   
 
           
@@ -434,7 +434,7 @@ https://github.com/alex-shpak/hugo-book
 
   
     <a href="../../../../03-queues-heaps-scheduling/lab/" class="">
-      Exploration lab: keep the highest-risk k</a>
+      Lab: keep the highest-risk k</a>
   
 
           
@@ -669,48 +669,49 @@ https://github.com/alex-shpak/hugo-book
   <article class="markdown book-article"><h1 id="w02-candidate-guide">W02 Candidate Guide</h1>
 <h2 id="what-you-may-change">What you may change</h2>
 <p>Change only <code>OnEvent</code> in <code>dispatcher.go</code>.</p>
-<p>The dispatcher keeps a structured record of why each failed repair is blocked.
-Do not assume which parts of that record <code>OnEvent</code> should use. Infer the rule
-from the report and the evidence you choose. Preserve these behaviors:</p>
+<p>The dispatcher records why each failed repair is blocked. Use the report and
+evidence to decide which parts of that record <code>OnEvent</code> needs. Preserve these
+rules:</p>
 <ul>
 <li>active work is ordered by priority descending, sequence ascending, and ID
 ascending;</li>
 <li>a failed attempt moves the repair to blocked state;</li>
 <li>the reported inventory burst does not prevent runnable routine repairs from
 completing;</li>
-<li>a change that makes a blocked repair runnable is not lost; and</li>
+<li>a change that can make a blocked repair runnable is not lost; and</li>
 <li>a repair returned to the active heap still has to pass its readiness check.</li>
 </ul>
-<p>Do not replace the active priority heap or optimize the scan of blocked items.
-This Wheel isolates the rule that selects which blocked items an event returns
-to active work. The local function may still inspect every blocked item. An
-index by condition would be a separate improvement.</p>
-<h2 id="choose-the-next-evidence-packet">Choose the next evidence packet</h2>
-<p>The <a href="../evidence/">evidence index</a> names available packets without
-revealing their contents. Before opening one, write down the question it tests,
-the outcomes you expect, and how each outcome would change your explanation.</p>
+<p>Do not replace the priority heap or optimize the scan of blocked items. This
+Wheel covers only the rule that selects which items an event returns to active
+work. The function may still inspect every blocked item. An index would be a
+separate change.</p>
+<h2 id="choose-evidence">Choose evidence</h2>
+<p>The <a href="../evidence/">evidence index</a> names packets without showing their
+contents. Before you open one, write the question it tests, the likely results,
+and how each result would change your explanation.</p>
 <p>You do not need every packet.</p>
-<h2 id="before-opening-the-source">Before opening the source</h2>
-<p>Open <code>dispatcher.go</code> only after you can explain:</p>
+<h2 id="decide-when-to-open-the-code">Decide when to open the code</h2>
+<p>Open <code>dispatcher.go</code> only after you can answer these questions:</p>
 <ul>
 <li>the separate questions answered by active ordering, event handling, and the
 readiness check;</li>
 <li>why a correct max-priority order can repeatedly select useless work;</li>
-<li>why backoff—a delay before another attempt—can space failures without showing
-that another attempt is worthwhile; and</li>
-<li>which measurements distinguish scanning blocked work, requesting
-reactivation, attempting work, and completing work.</li>
+<li>why backoff—a delay before another attempt—can space failures without proving
+that another attempt can help; and</li>
+<li>which measurements distinguish scanning blocked work, returning it to the
+active heap, attempting it, and completing it.</li>
 </ul>
-<p>Run the ordinary behavior tests:</p>
-<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/02-event-that-woke-everything -v</span></span></code></pre></div><p>Run the test that reproduces the report&rsquo;s failure pattern:</p>
+<p>Run the ordinary tests:</p>
+<div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> ./03-queues-heaps-scheduling/wheel/02-event-that-woke-everything -v</span></span></code></pre></div><p>Run the test that reproduces the report:</p>
 <div class="highlight"><pre tabindex="0" style="color:#e2e4e5;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#ff5c57">test</span> -tags<span style="color:#ff6ac1">=</span>csbridgewheel6 <span style="color:#5af78e">\
 </span></span></span><span style="display:flex;"><span>  ./03-queues-heaps-scheduling/wheel/02-event-that-woke-everything <span style="color:#5af78e">\
-</span></span></span><span style="display:flex;"><span>  -run TestInventoryBurstPreservesUsefulProgress -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>Change <code>OnEvent</code>, then run both commands again. The tagged test counts
-activations, futile attempts, and completions; it has no sleep or timing
-threshold.</p>
-<p>Write a three-minute handoff that states the blocked condition, the event rule
-you adopted, what work is avoided, and how the test proves that a repair is not
-lost when it becomes runnable. Then read <a href="../debrief/">the debrief</a>.</p>
+</span></span></span><span style="display:flex;"><span>  -run TestInventoryBurstPreservesUsefulProgress -count<span style="color:#ff6ac1">=</span><span style="color:#ff9f43">1</span> -v</span></span></code></pre></div><p>After you diagnose the failure, make the smallest change that passes the tagged
+test while preserving useful events. Run both commands again. The tagged test
+counts activations, attempts that cannot succeed, and completions. It does not
+use sleeps or a timing limit.</p>
+<p>Write a three-minute handoff. State the blocked condition, your event rule, the
+work it avoids, and how the test checks newly runnable work. Then read
+<a href="../debrief/">the debrief</a>.</p>
 
 </article>
  

@@ -6,27 +6,25 @@
 ## Incoming report
 
 > During a regional failover, the incident-history UI omitted several alerts.
-> Refreshing did not restore them, but opening an alert by its ID worked. The
-> API returned HTTP 200 for every page and latency stayed normal. The omission
-> appears only during bursts, when many alerts share the same millisecond
-> timestamp. The client requests 50 results at a time and uses the timestamp
-> of the last result as the cursor for its next request.
+> Refreshing did not restore them, but users could open each alert by its ID.
+> The API returned HTTP 200 for every page, and latency stayed normal. The
+> problem appears only during bursts, when many alerts share a millisecond
+> timestamp. The client requests 50 results at a time. It uses the last result's
+> timestamp as the cursor for the next request.
 >
-> Your task is limited to sorting and pagination in this endpoint. Do not
-> change ingestion or UI rendering. Determine whether the current cursor can
-> skip or repeat incidents when a page ends inside a group with the same
-> timestamp. If it can, repair both the ordering and cursor.
+> You can change only sorting and pagination in this endpoint. Do not change
+> ingestion or UI rendering. Determine whether the cursor can skip or repeat
+> incidents when a page ends within a group that has one timestamp. If it can,
+> repair the endpoint.
 
 Before opening the source or tests, write down:
 
-- why HTTP success and normal latency do not show that pagination returned
-  every incident;
-- the exact meaning of “newest first” when timestamps are equal;
-- what a timestamp-only cursor can say about unreturned incidents with the same
-  timestamp;
-- whether a stable sort supplies an order that another request or replica can
-  reproduce; and
-- the smallest test case that would demonstrate a skipped incident.
+- why HTTP success and normal latency do not prove that every incident was
+  returned;
+- what “newest first” means when timestamps are equal;
+- what the cursor says about unreturned incidents with the same timestamp;
+- whether another request or replica can reproduce a stable sort; and
+- the smallest test that could show a skipped incident.
 
-Continue with [CANDIDATE.md](./CANDIDATE.md) after recording your initial
-explanation.
+After you write your initial explanation, continue with
+[CANDIDATE.md](./CANDIDATE.md).

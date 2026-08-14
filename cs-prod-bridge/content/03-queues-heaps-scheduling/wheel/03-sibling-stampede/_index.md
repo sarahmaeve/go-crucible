@@ -1,6 +1,6 @@
 +++
 title = 'W03: The Sibling Stampede'
-description = 'Investigate why requests grow roughly with the square of group size even though the queue stores each repair ID once.'
+description = 'Find why request and log counts grow while queue size stays small.'
 weight = 4
 bookCollapseSection = true
 bookToC = false
