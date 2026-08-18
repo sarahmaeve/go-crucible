@@ -229,9 +229,10 @@ case and explorable failure exist, not merely to complete a conventional list.
 | 2. Sequences, sorting, and ordered search | Arrays and linked structures, locality, binary search, stable and total ordering, linear merge/intersection | Metric-label indexes, Boolean search, compaction, deterministic result APIs |
 | 3. Queues, heaps, and scheduling | FIFO, priority-queue operations, binary-heap invariants, build/push/pop/fix, delayed work | Controller queues, top-k queries, retry backoff, useful requeueing, starvation, overload |
 | 4. Build dependency graphs | Directed graphs, adjacency lists, BFS/DFS, cycles, topological order | Bazel target dependencies, build ordering, cycle diagnosis, declared versus actual dependencies |
-| 5. Trees and indexes | Search trees, B-trees, tries, range lookup | Database indexes, routing, prefix matching, watch caches, filesystem metadata |
-| 6. Sets and probabilistic structures | Membership, Bloom filters, sketches, error bounds | Admission filters, cache protection, approximate cardinality, telemetry cost |
-| 7. Dynamic programming and state | Overlapping subproblems, memoization, state transitions | Policy evaluation, rollout planning, diffing, bounded optimization |
+| 5. Bloom filters and approximate membership | One-sided error, bit occupancy, false-positive bounds, capacity, hashing, lifecycle | SSTable and log-block skipping, changed-path indexes, approximate cardinality policy |
+| 6. Trees and indexes | Search trees, B-trees, tries, range lookup | Database indexes, routing, prefix matching, watch caches, filesystem metadata |
+| 7. Streaming sketches | Approximate counts, quantiles, heavy hitters, mergeability, error bounds | Telemetry cost, cardinality planning, distributed aggregation |
+| 8. Dynamic programming and state | Overlapping subproblems, memoization, state transitions | Policy evaluation, rollout planning, diffing, bounded optimization |
 
 Concurrency is not isolated as a single algorithms unit. It should appear when
 it changes ownership, consistency, or the useful cost model of the structure in
@@ -385,6 +386,30 @@ and current and pending-deletion resources that share a logical URN but remain
 different concrete nodes. Their ordinary tests preserve valid behavior; build
 tags `csbridgewheel8`, `csbridgewheel9`, and `csbridgewheel10` reproduce the
 three symptoms.
+
+## Unit 5: Bloom filters and approximate membership
+
+Unit 5 has a foundations lesson authored as
+[Hugo Markdown](../cs-prod-bridge/content/05-bloom-filters/_index.md). Its
+production-source audit, formal model, lab design, and planned Wheels are in
+[`docs/cs-prod-bridge-unit-05.md`](./cs-prod-bridge-unit-05.md).
+
+The unit begins with negative partition-key lookups across Cassandra SSTables.
+One Bloom filter belongs to one immutable SSTable and can rule that file out;
+a possible match still reaches the exact index. VictoriaLogs transfers the
+same contract to compressed log-block skipping. Git's changed-path commit
+graph demonstrates persisted filter versions, while Go Ethereum's fixed-size
+log Bloom demonstrates saturation when the represented set grows without the
+bit budget.
+
+The Go 1.26 section defines a local `MayContain` interface because the target
+standard library has no Bloom-filter type. It uses `hash/maphash` only to
+explain an ephemeral implementation boundary: the documented seed cannot be
+serialized or recreated in another process. Persistent filters must specify a
+stable key encoding, hash/version, capacity parameters, and exact-data
+generation. The planned lab will make exact checks avoided, false positives,
+bit density, over-capacity behavior, and repeated false-positive keys directly
+observable.
 
 ## Interview translation
 

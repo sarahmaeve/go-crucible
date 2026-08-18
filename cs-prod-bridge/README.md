@@ -28,6 +28,7 @@ through benchmarks, profiles, and report-first debugging scenarios.
 | [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
 | [03](./public/03-queues-heaps-scheduling/index.html) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
 | [04](./public/04-build-dependency-graphs/index.html) | Build dependency graphs | Foundations, graph lab, and three Wheels |
+| [05](./public/05-bloom-filters/index.html) | Bloom filters and approximate membership | Foundations chapter |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and
@@ -42,7 +43,9 @@ record, selected production case, source audit, and implementation design are in
 concept-to-production source audit and design spike are in
 [`docs/cs-prod-bridge-unit-03.md`](../docs/cs-prod-bridge-unit-03.md). Unit 04's
 Bazel-centered research record and lab design are in
-[`docs/cs-prod-bridge-unit-04.md`](../docs/cs-prod-bridge-unit-04.md).
+[`docs/cs-prod-bridge-unit-04.md`](../docs/cs-prod-bridge-unit-04.md). Unit 05's
+approximate-membership model, production-source audit, and lab design are in
+[`docs/cs-prod-bridge-unit-05.md`](../docs/cs-prod-bridge-unit-05.md).
 
 ## Building the site
 
