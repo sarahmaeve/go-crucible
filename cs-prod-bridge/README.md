@@ -24,11 +24,11 @@ through benchmarks, profiles, and report-first debugging scenarios.
 
 | # | Unit | Status |
 |---|---|---|
-| [01](./public/01-big-o-hash-tables/index.html) | Big-O and hash tables | Initial implementation |
-| [02](./public/02-sequences-sorting-search/index.html) | Sequences, sorting, and ordered search | Initial implementation |
-| [03](./public/03-queues-heaps-scheduling/index.html) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
-| [04](./public/04-build-dependency-graphs/index.html) | Build dependency graphs | Foundations, graph lab, and three Wheels |
-| [05](./public/05-bloom-filters/index.html) | Bloom filters and approximate membership | Foundations chapter |
+| [01](./content/01-big-o-hash-tables/_index.md) | Big-O and hash tables | Initial implementation |
+| [02](./content/02-sequences-sorting-search/_index.md) | Sequences, sorting, and ordered search | Initial implementation |
+| [03](./content/03-queues-heaps-scheduling/_index.md) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
+| [04](./content/04-build-dependency-graphs/_index.md) | Build dependency graphs | Foundations, graph lab, and three Wheels |
+| [05](./content/05-bloom-filters/_index.md) | Bloom filters and approximate membership | Foundations chapter |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and
@@ -64,8 +64,8 @@ make bridge-serve
 ```
 
 Then open <http://localhost:1313/>. The target explicitly renders to memory, so
-it does not replace the committed files under
-`cs-prod-bridge/public/`. To use a different port:
+it does not replace the ignored local build under `cs-prod-bridge/public/`. To
+use a different port:
 
 ```bash
 make bridge-serve BRIDGE_PORT=8080
@@ -73,8 +73,8 @@ make bridge-serve BRIDGE_PORT=8080
 
 Hugo downloads the pinned theme on the first build, then reads the content and
 small local MathML/callout extensions under this directory. It writes the static
-site to `cs-prod-bridge/public/`. To check that committed output matches its
-sources:
+site to the ignored `cs-prod-bridge/public/` directory. To verify that the site
+renders successfully without changing that local output:
 
 ```bash
 make bridge-check

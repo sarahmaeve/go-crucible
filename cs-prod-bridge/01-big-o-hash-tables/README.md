@@ -1,12 +1,12 @@
 # Unit 01: Big-O and Hash Tables
 
-Open the HTML guide to read the lesson with its formulas, tables, definitions,
-and callouts:
+Read the lesson source here, or run `make bridge-serve` from the repository root
+for the fully rendered site:
 
-**[Open the Big-O and hash-tables guide](../public/01-big-o-hash-tables/index.html)**
+**[Open the Big-O and hash-tables guide](../content/01-big-o-hash-tables/_index.md)**
 
 Use these files for the exercises:
 
 - [Exploration lab](./lab/README.md)
 - [Wheel of Misfortune scenarios](./wheel/README.md)
-- [Production case study](../public/01-big-o-hash-tables/case-study/index.html)
+- [Production case study](../content/01-big-o-hash-tables/case-study.md)

@@ -149,7 +149,7 @@ cs-prod-bridge/
       render-passthrough.html
   assets/
     _custom.scss            # MathML additions only
-  public/                  # generated static site
+  public/                  # ignored generated static site
   01-big-o-hash-tables/
     lab/
       README.md

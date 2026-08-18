@@ -41,12 +41,13 @@ bridge:
 bridge-check:
 	@tmpdir=$$(mktemp -d); \
 	trap 'rm -rf "$$tmpdir"' EXIT; \
-	$(HUGO) --source cs-prod-bridge --destination "$$tmpdir" --quiet \
-	&& diff -r cs-prod-bridge/public "$$tmpdir"
+	HUGO_RESOURCEDIR="$$tmpdir/resources" $(HUGO) --source cs-prod-bridge \
+		--destination "$$tmpdir/public" \
+		--cleanDestinationDir --noBuildLock --quiet
 
 # Hugo's development server renders to memory by default, so this does not
-# replace the committed production build under cs-prod-bridge/public. The
-# local base URL is supplied only here; Cloudflare supplies its deployment URL.
+# replace the ignored local build under cs-prod-bridge/public. The local base
+# URL is supplied only here; Cloudflare supplies its deployment URL.
 bridge-serve:
 	$(HUGO) server \
 		--source cs-prod-bridge \

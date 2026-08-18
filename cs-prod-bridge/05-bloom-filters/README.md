@@ -1,9 +1,9 @@
 # Unit 05: Bloom Filters and Approximate Membership
 
-Open the HTML guide for the foundations lesson, production examples, formulas,
-and source notes:
+Read the lesson source here, or run `make bridge-serve` from the repository root
+for the fully rendered site:
 
-**[Open the Bloom filters guide](../public/05-bloom-filters/index.html)**
+**[Open the Bloom filters guide](../content/05-bloom-filters/_index.md)**
 
 The lesson begins with Cassandra SSTable lookups, transfers the same negative
 lookup contract to VictoriaLogs, and uses Git and Go Ethereum to examine

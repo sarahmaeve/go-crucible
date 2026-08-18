@@ -1,9 +1,9 @@
 # Unit 03: Queues, Heaps, and Scheduling
 
-Open the HTML guide to read the lesson with its formulas, tables, definitions,
-and callouts:
+Read the lesson source here, or run `make bridge-serve` from the repository root
+for the fully rendered site:
 
-**[Open the queues, heaps, and scheduling guide](../public/03-queues-heaps-scheduling/index.html)**
+**[Open the queues, heaps, and scheduling guide](../content/03-queues-heaps-scheduling/_index.md)**
 
 Use these files for the exercises:
 

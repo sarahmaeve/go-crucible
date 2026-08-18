@@ -1,9 +1,9 @@
 # Unit 04: Build Dependency Graphs
 
-Open the HTML guide for the foundations lesson, production examples, diagrams,
-and source notes:
+Read the lesson source here, or run `make bridge-serve` from the repository root
+for the fully rendered site:
 
-**[Open the build dependency graphs guide](../public/04-build-dependency-graphs/index.html)**
+**[Open the build dependency graphs guide](../content/04-build-dependency-graphs/_index.md)**
 
 Use these files for the runnable work:
 

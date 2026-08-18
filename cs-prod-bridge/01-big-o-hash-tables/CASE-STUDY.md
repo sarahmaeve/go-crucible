@@ -1,9 +1,9 @@
 # Case Study: Indexing a Network-Enrichment Stream
 
-Open the HTML case study to read its formulas, cost comparison, and production
-decision:
+Read the case-study source here, or run `make bridge-serve` from the repository
+root for the fully rendered site:
 
-**[Open the network-enrichment case study](../public/01-big-o-hash-tables/case-study/index.html)**
+**[Open the network-enrichment case study](../content/01-big-o-hash-tables/case-study.md)**
 
-Return to the [unit guide](../public/01-big-o-hash-tables/index.html), or start
+Return to the [unit guide](../content/01-big-o-hash-tables/_index.md), or start
 the [lab](./lab/README.md).
