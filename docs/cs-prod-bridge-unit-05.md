@@ -1,7 +1,7 @@
 # Unit 05 Research and Design: Bloom Filters and Approximate Membership
 
-**Status:** foundations lesson implemented; lab and Wheels designed but not yet
-implemented
+**Status:** foundations lesson and exploration lab implemented; Wheels designed
+but not yet implemented
 
 **Research reviewed:** 2026-08-18
 
@@ -140,8 +140,8 @@ m = -\frac{n\ln p}{(\ln 2)^2}
 \]
 
 bits, then round to the representation boundary and choose an integer \(k\)
-near \((m/n)\ln 2\). The implementation must recompute the achieved target
-after rounding.
+near \((m/n)\ln 2\). The implementation must recompute and expose the modeled
+false-positive rate after rounding.
 
 At the optimum, representative targets cost approximately:
 
@@ -172,13 +172,15 @@ bits were not cleared; reads observe completed writes; storage is not corrupt;
 and the filter belongs to the same exact data generation. A production system
 must make those conditions true.
 
-The public API in teaching code should therefore use `MayContain`:
+The public read contract in teaching code should therefore use `MayContain`,
+while construction remains inside a builder:
 
 ~~~go
 type Membership interface {
-	Add(key []byte)
 	MayContain(key []byte) bool
 }
+
+func BuildMembership(keys [][]byte, cfg Config) (*Filter, error)
 ~~~
 
 It should not use `Contains`, `Exists`, or `Find`, because those names invite a
@@ -295,8 +297,8 @@ updates can create an apparent false negative. Valid designs include:
 - atomic word updates; or
 - sharding with documented ownership.
 
-The foundations code should use build-then-publish because it keeps the model
-visible. The future lab may add an atomic variant as an extension.
+The foundations code and lab use build-then-publish because it keeps the model
+visible. A future extension may add an atomic variant.
 
 ## Lifecycle rules the lesson must teach
 
@@ -312,7 +314,8 @@ Store or expose:
 - approximate inserted count or source cardinality;
 - bit count and probe count;
 - observed bit density; and
-- rebuild reason and generation.
+- rebuild reason and generation; and
+- a maximum allocation derived from the service memory budget.
 
 ### A standard Bloom filter cannot delete one key
 
@@ -371,7 +374,7 @@ cache or I/O traffic.
 
 ## Observability design
 
-The future lab should expose counters with unambiguous denominators:
+The lab exposes runtime counters and sizing state with unambiguous denominators:
 
 - total filter queries;
 - definite-negative results;
@@ -381,7 +384,10 @@ The future lab should expose counters with unambiguous denominators:
 - exact checks avoided;
 - filter bytes and bit density;
 - planned capacity and inserted count; and
-- data/filter generation and hash-format version.
+- modeled and correctly-denominated observed false-positive rates.
+
+A persistent production implementation should additionally expose its
+data/filter generation and hash-format version.
 
 For absent queries whose truth was verified, the observed false-positive ratio
 is
@@ -416,10 +422,10 @@ positive can waste far more work than a uniform average suggests.
 11. Design generation swaps, capacity monitoring, tests, and dashboards.
 12. End with a production explanation rather than an implementation recital.
 
-## Planned exploration lab: Skip the Cold Segment
+## Implemented exploration lab: Skip the Cold Segment
 
-The future Go lab should create immutable segments containing exact sorted key
-indexes and optional Bloom filters. Workloads vary:
+The Go lab creates immutable segments containing exact sorted key indexes and
+optional Bloom filters. Its repeatable matrix and custom runner vary:
 
 - segment count;
 - keys per segment;
@@ -429,7 +435,7 @@ indexes and optional Bloom filters. Workloads vary:
 - uniform versus repeated absent keys; and
 - in-memory versus simulated expensive exact checks.
 
-The lab should report deterministic counts before timing:
+The lab reports deterministic counts before timing:
 
 - filter probes;
 - exact segment checks;
@@ -437,9 +443,14 @@ The lab should report deterministic counts before timing:
 - false positives; and
 - exact checks avoided.
 
-Benchmarks can then add allocations and nanoseconds. The learner should predict
-the counts first. A variant that lies about capacity should demonstrate
-saturation without changing correctness.
+Benchmarks then add allocations and nanoseconds for filter construction,
+filtered and exact lookups, and over-capacity lookups. Executable examples,
+property fuzzing, and a race-enabled concurrent-read test exercise the caller
+and immutability contracts. The learner predicts the direction of each change
+in a worksheet before running the matrix. A variant that lies about capacity
+demonstrates saturation without changing correctness, and a cost model compares
+cheap and expensive exact checks without presenting modeled work as elapsed
+time. The builder rejects allocations above a configurable byte limit.
 
 ## Planned Wheels of Misfortune
 

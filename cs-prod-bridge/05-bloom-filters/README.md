@@ -11,7 +11,15 @@ persistence and saturation. The Go section defines a narrow `MayContain`
 contract and explains why an ephemeral `hash/maphash` seed is not a persistent
 filter format.
 
-The exploration lab and Wheel scenarios are designed in the
+The runnable [Skip the Cold Segment lab](./lab/) places one process-local Bloom
+filter in front of each immutable segment's exact sorted index. It exposes
+filter probes, exact checks avoided, false positives, density, planned
+capacity, modeled and observed false-positive rates, and over-capacity behavior
+before adding lookup and rebuild benchmarks. Its executable examples, fuzz
+properties, concurrent-read test, worksheet, and repeatable experiment runner
+compare workload mix, sizing targets, capacity load, exact-check cost, and
+uniform versus hot absent keys.
+
+The Wheel scenarios are designed in the
 [Unit 05 research record](../../docs/cs-prod-bridge-unit-05.md) but are not yet
-implemented. This directory will hold their runnable Go code when they are
-added.
+implemented.

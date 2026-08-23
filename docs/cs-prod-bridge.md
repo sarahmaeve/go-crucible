@@ -390,8 +390,9 @@ three symptoms.
 ## Unit 5: Bloom filters and approximate membership
 
 Unit 5 has a foundations lesson authored as
-[Hugo Markdown](../cs-prod-bridge/content/05-bloom-filters/_index.md). Its
-production-source audit, formal model, lab design, and planned Wheels are in
+[Hugo Markdown](../cs-prod-bridge/content/05-bloom-filters/_index.md) and a
+runnable [Skip the Cold Segment lab](../cs-prod-bridge/05-bloom-filters/lab/).
+Its production-source audit, formal model, lab design, and planned Wheels are in
 [`docs/cs-prod-bridge-unit-05.md`](./cs-prod-bridge-unit-05.md).
 
 The unit begins with negative partition-key lookups across Cassandra SSTables.
@@ -402,14 +403,14 @@ graph demonstrates persisted filter versions, while Go Ethereum's fixed-size
 log Bloom demonstrates saturation when the represented set grows without the
 bit budget.
 
-The Go 1.26 section defines a local `MayContain` interface because the target
-standard library has no Bloom-filter type. It uses `hash/maphash` only to
+The Go 1.26 section and lab define a local `MayContain` interface because the
+target standard library has no Bloom-filter type. It uses `hash/maphash` only to
 explain an ephemeral implementation boundary: the documented seed cannot be
 serialized or recreated in another process. Persistent filters must specify a
 stable key encoding, hash/version, capacity parameters, and exact-data
-generation. The planned lab will make exact checks avoided, false positives,
-bit density, over-capacity behavior, and repeated false-positive keys directly
-observable.
+generation. The lab makes exact checks avoided, modeled and observed false
+positives, bit density, over-capacity behavior, rebuild cost, and repeated
+false-positive keys directly observable.
 
 ## Interview translation
 

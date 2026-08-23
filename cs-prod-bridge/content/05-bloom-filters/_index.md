@@ -489,13 +489,16 @@ type Membership interface {
 type Config struct {
 	PlannedItems            uint64
 	TargetFalsePositiveRate float64
+	MaxBytes                uint64
 }
 
-func BuildMembership(keys [][]byte, cfg Config) (Membership, error)
+func BuildMembership(keys [][]byte, cfg Config) (*Filter, error)
 ~~~
 
-`BuildMembership` validates the configuration, adds every canonical key, and
-returns an immutable filter. The segment lookup uses it as follows:
+`BuildMembership` validates the configuration and distinct canonical keys,
+adds every key, and returns an immutable concrete filter. A consumer can define
+the narrow `Membership` interface shown above when it needs substitution. The
+segment lookup uses the filter as follows:
 
 ~~~go
 func (s *Segment) Lookup(key []byte) (Record, bool) {
@@ -508,7 +511,9 @@ func (s *Segment) Lookup(key []byte) (Record, bool) {
 }
 ~~~
 
-The interface still leaves necessary policy in the surrounding contract:
+The interface still leaves necessary policy in the surrounding contract. Use
+the following questions as a design checklist, not as questions with universal
+answers supplied by the bit-array implementation:
 
 - Are caller-owned key bytes read only during the call?
 - What is the planned capacity?
@@ -518,6 +523,11 @@ The interface still leaves necessary policy in the surrounding contract:
 
 These choices belong in the API documentation because they cannot be inferred
 from the bit-array implementation.
+
+The teaching implementation interprets `MaxBytes == 0` as a 64 MiB default and
+rejects larger requested filters before allocating their bit arrays. A
+production service should set a limit derived from its own memory budget and
+configuration trust boundary.
 
 ### Process-local hashing and persistent filters
 
@@ -831,7 +841,9 @@ describes stored Bloom data and settings. The `commitGraph.changedPathsVersion`
 configuration controls which filter versions a Git process reads and writes,
 and the documentation warns about compatibility with older Git versions.
 
-A persistent filter format needs to define:
+A persistent filter format needs to define the following. These are format
+design questions; this chapter identifies the required decisions but does not
+specify all of Git's answers:
 
 - Which exact paths belong to a commit's represented set?
 - How are path bytes normalized and hashed?
@@ -890,6 +902,8 @@ decisions, exact lookup results, and the work avoided:
 | filter bytes | space cost |
 | set-bit density—the fraction of bits that are one | saturation signal |
 | planned capacity and inserted count | whether the sizing premise still holds |
+| modeled and observed false-positive rates | expected versus workload-specific wasted work |
+| configured maximum bytes | whether a sizing request can exceed the allocation budget |
 | build/data generation and format version | lifecycle agreement |
 | database-to-filter update lag | whether the filter may be missing recent keys |
 | exact-check latency or bytes | value of each saved check |
@@ -949,9 +963,15 @@ for _, key := range exactKeys {
 }
 ~~~
 
-Run this across empty input, one item, duplicate adds, bit positions on both
-sides of a machine-word boundary, and maximum planned capacity. For a
-persistent format, build and query across the supported writer/reader versions.
+Run this across empty input, one item, bit positions on both sides of a
+machine-word boundary, and maximum planned capacity. If the builder requires a
+set of distinct inputs, also verify that it rejects duplicates. For a persistent
+format, build and query across the supported writer/reader versions.
+
+Property fuzzing can extend these fixtures with arbitrary binary keys. Preserve
+the same two properties for every generated input: inserted keys never return
+false, and the complete filtered lookup returns the same record and presence
+bit as the exact-only path.
 
 ### Caller-contract tests
 
@@ -977,6 +997,18 @@ rather than requiring an exact percentage from every sample.
 Hold \(m\) and \(k\) fixed while increasing insertions above planned \(n\).
 Assert deterministic bit density or exact-check counts for the fixture, then
 use benchmarks to measure the associated change in execution time.
+
+Also benchmark construction and rebuilds. An immutable-generation design pays
+for hashing, transient duplicate validation, and bit-array allocation outside
+the read path. Report both those temporary allocations and the retained filter
+bytes so operators can budget rebuild overlap.
+
+### Concurrency tests
+
+An immutable filter should permit concurrent `MayContain` calls after
+publication. Exercise concurrent member and nonmember queries under the race
+detector, and make every reader's completion and error observable to the test
+goroutine.
 
 ## Workloads where a Bloom filter is unsuitable
 
