@@ -4,7 +4,7 @@
 
 **Research reviewed:** 2026-08-12
 
-**Target toolchain:** Go 1.26.x
+**Target toolchain:** Go 1.27.x
 
 ## Decision
 
@@ -290,7 +290,7 @@ work queue.
 ### Go contract
 
 - [Go `container/heap` documentation](https://pkg.go.dev/container/heap)
-- [Go 1.26 `container/heap` source](https://go.dev/src/container/heap/heap.go)
+- [Go 1.27 `container/heap` source](https://go.dev/src/container/heap/heap.go)
 
 Claims to make precisely:
 

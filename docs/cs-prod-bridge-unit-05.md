@@ -5,7 +5,7 @@ but not yet implemented
 
 **Research reviewed:** 2026-08-18
 
-**Target toolchain:** Go 1.26.x
+**Target toolchain:** Go 1.27.x
 
 ## Decision
 
@@ -267,7 +267,7 @@ grows.
 
 ## Go contract and implementation boundary
 
-Go 1.26 has no standard-library Bloom-filter type. The unit therefore defines
+Go 1.27 has no standard-library Bloom-filter type. The unit therefore defines
 its own narrow membership interface and labels the implementation as teaching
 code.
 
@@ -417,7 +417,7 @@ positive can waste far more work than a uniform average suggests.
 7. Read Cassandra's SSTable file model, table setting, and metrics.
 8. Transfer the model to VictoriaLogs block skipping.
 9. Examine Git persistence and Geth saturation as lifecycle boundaries.
-10. Define an ephemeral Go 1.26 interface and explain `maphash`'s persistence
+10. Define an ephemeral Go 1.27 interface and explain `maphash`'s persistence
     limitation.
 11. Design generation swaps, capacity monitoring, tests, and dashboards.
 12. End with a production explanation rather than an implementation recital.
@@ -509,7 +509,7 @@ reported symptoms, following the existing track convention.
 1. [`hash/maphash` package documentation](https://go.dev/pkg/hash/maphash/),
    especially the `Seed` process-local and non-serializable contract.
 
-There is no Go 1.26 standard-library Bloom-filter contract. The lesson's
+There is no Go 1.27 standard-library Bloom-filter contract. The lesson's
 interface is local teaching code, and current production implementations are
 identified by repository and release.
 

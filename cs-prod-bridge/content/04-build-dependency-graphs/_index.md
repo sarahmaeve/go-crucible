@@ -961,8 +961,8 @@ to say that they will do so.
 The Go command's builder shows how a completed prerequisite updates only the
 actions that are waiting for it:
 
-- [`cmd/go/internal/work/action.go` at Go 1.26.5](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/action.go)
-- [`cmd/go/internal/work/exec.go` at Go 1.26.5](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/exec.go)
+- [`cmd/go/internal/work/action.go` at Go 1.27.0](https://cs.opensource.google/go/go/+/refs/tags/go1.27.0:src/cmd/go/internal/work/action.go)
+- [`cmd/go/internal/work/exec.go` at Go 1.27.0](https://cs.opensource.google/go/go/+/refs/tags/go1.27.0:src/cmd/go/internal/work/exec.go)
 
 An action records the actions it needs first. The builder also records the
 relationship in the other direction, in a field named `triggers`. For each

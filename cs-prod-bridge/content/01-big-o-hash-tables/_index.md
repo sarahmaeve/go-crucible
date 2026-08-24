@@ -177,7 +177,7 @@ Go team's
 control bytes, groups of candidate slots, probing, table growth, and the
 constraints created by Go's iteration rules.
 
-The examples in this repository target Go 1.26. Before you interpret a profile,
+The examples in this repository target Go 1.27. Before you interpret a profile,
 run `go version`. Runtime details can change between releases. Swiss Tables are
 an **implementation detail**, not part of the language contract.
 

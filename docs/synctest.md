@@ -5,7 +5,8 @@
 > [blog: Testing Time](https://go.dev/blog/testing-time) ·
 > [pkg.go.dev/testing/synctest](https://pkg.go.dev/testing/synctest) ·
 > [Go 1.25 release notes](https://go.dev/doc/go1.25) ·
-> [Go 1.26 release notes](https://go.dev/doc/go1.26)
+> [Go 1.26 release notes](https://go.dev/doc/go1.26) ·
+> [Go 1.27 release notes](https://go.dev/doc/go1.27)
 
 `testing/synctest` is a standard-library package for writing **fast and
 deterministic** tests of concurrent, time-dependent code. This page explains the
@@ -21,8 +22,9 @@ help.
 | 1.24 | Experimental, hidden behind `GOEXPERIMENT=synctest`; API was `synctest.Run` |
 | **1.25** | **Graduated to the standard library.** No flag. API is `synctest.Test` + `synctest.Wait` |
 | 1.26 | The old `GOEXPERIMENT` API is removed; only `Test`/`Wait` remain |
+| 1.27 | Adds `synctest.Sleep`, combining `time.Sleep` with `synctest.Wait` |
 
-This repo builds with `go 1.26` (see `go.mod`), so the package is available with
+This repo builds with `go 1.27` (see `go.mod`), so the package is available with
 no build flags or experiments. The extension tests use an ordinary `synctest`
 **build tag** purely to keep themselves out of the canonical suite — that is not
 related to the old `GOEXPERIMENT`.

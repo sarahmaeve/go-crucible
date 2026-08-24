@@ -1,11 +1,14 @@
 .PHONY: test test-race test-exercise vet status status-race verify-solution \
 	verify verify-quick verify-vet verify-sanity verify-failures verify-patches \
-	bridge bridge-check bridge-serve
+	bridge bridge-check bridge-serve advanced-json-check advanced-json-bench \
+	advanced-json-check-legacy advanced-json-bench-legacy advanced-json-cold \
+	advanced-json-retention
 
 HUGO ?= hugo
 BRIDGE_BIND ?= 127.0.0.1
 BRIDGE_PORT ?= 1313
 BRIDGE_BASE_URL ?= http://localhost:$(BRIDGE_PORT)/
+JSON_LAB_TOOLCHAIN ?= go1.27.0
 
 # All exercise numbers, in order. Add new exercises here (used by the
 # status and verify targets; tools/verify checks this list against the
@@ -56,6 +59,27 @@ bridge-serve:
 		--baseURL $(BRIDGE_BASE_URL) \
 		--renderToMemory \
 		--disableFastRender
+
+advanced-json-check:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go test ./... -count=1
+
+advanced-json-check-legacy:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) GOEXPERIMENT=nojsonv2 go test ./... -count=1
+
+advanced-json-bench:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go test -run '^$$' -bench 'Benchmark(Marshal|Unmarshal|ParallelMediumUnmarshal|HTTPMetricIngestion|Stream.*)$$' -benchmem -count=5
+
+advanced-json-bench-legacy:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) GOEXPERIMENT=nojsonv2 go test -run '^$$' -bench 'Benchmark(Marshal|Unmarshal|ParallelMediumUnmarshal|HTTPMetricIngestion|Stream.*)$$' -benchmem -count=5
+
+advanced-json-cold:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go test -run '^$$' -bench BenchmarkColdProcess -benchtime=10x -count=5
+
+advanced-json-retention:
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go run ./cmd/retention -codec=encoding-json
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go run ./cmd/retention -codec=go-json-v2
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go run ./cmd/retention -codec=sonic-std
+	cd advanced/json-codecs && GOTOOLCHAIN=$(JSON_LAB_TOOLCHAIN) go run ./cmd/retention -codec=sonic-default
 
 status:
 	@echo "=== Go Crucible Exercise Status ==="

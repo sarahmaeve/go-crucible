@@ -476,7 +476,7 @@ details are not used here as evidence.
 
 ## Go API
 
-Go 1.26 does not provide a standard-library Bloom-filter type. A local API can
+Go 1.27 does not provide a standard-library Bloom-filter type. A local API can
 make the read path explicit while keeping mutation inside a builder:
 
 ~~~go

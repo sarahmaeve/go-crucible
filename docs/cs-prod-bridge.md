@@ -403,7 +403,7 @@ graph demonstrates persisted filter versions, while Go Ethereum's fixed-size
 log Bloom demonstrates saturation when the represented set grows without the
 bit budget.
 
-The Go 1.26 section and lab define a local `MayContain` interface because the
+The Go 1.27 section and lab define a local `MayContain` interface because the
 target standard library has no Bloom-filter type. It uses `hash/maphash` only to
 explain an ephemeral implementation boundary: the documented seed cannot be
 serialized or recreated in another process. Persistent filters must specify a

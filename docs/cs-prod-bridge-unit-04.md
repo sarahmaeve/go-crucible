@@ -7,7 +7,7 @@ Explorer lab, and three Wheels
 
 **Implementation completed:** 2026-08-14
 
-**Target toolchain:** Go 1.26.x
+**Target toolchain:** Go 1.27.x
 
 ## Decision
 
@@ -456,10 +456,10 @@ graph problems appear in code and incident fixes.
 
 ### Go command builder: ready work
 
-Pin the standard-library reading to the Go 1.26.5 tree:
+Pin the standard-library reading to the Go 1.27.0 tree:
 
-- [cmd/go/internal/work/action.go](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/action.go)
-- [cmd/go/internal/work/exec.go](https://cs.opensource.google/go/go/+/refs/tags/go1.26.5:src/cmd/go/internal/work/exec.go)
+- [cmd/go/internal/work/action.go](https://cs.opensource.google/go/go/+/refs/tags/go1.27.0:src/cmd/go/internal/work/action.go)
+- [cmd/go/internal/work/exec.go](https://cs.opensource.google/go/go/+/refs/tags/go1.27.0:src/cmd/go/internal/work/exec.go)
 
 The builder creates actions with prerequisite actions, computes reverse
 triggers, tracks pending prerequisites, and releases work when the pending

@@ -2,7 +2,7 @@
 
 **Status:** initial implementation complete  
 **Research reviewed:** 2026-08-05  
-**Target toolchain:** Go 1.26.x
+**Target toolchain:** Go 1.27.x
 
 ## Implementation outcome
 
@@ -305,7 +305,7 @@ Claims to make precisely:
 - [Go `slices/sort.go` source](https://go.dev/src/slices/sort.go)
 - [Generated comparison-sort implementation](https://go.dev/src/slices/zsortanyfunc.go)
 
-The implementation walkthrough should be pinned to the repository's Go 1.26
+The implementation walkthrough should be pinned to the repository's Go 1.27
 line. In that line, `SortFunc` dispatches to pattern-defeating quicksort code
 with a heapsort fallback, while the stable path uses insertion-sorted blocks
 and symmetric merge. These facts are implementation details, not API
