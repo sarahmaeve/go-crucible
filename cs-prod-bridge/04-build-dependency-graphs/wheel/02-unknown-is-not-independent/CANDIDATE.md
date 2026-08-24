@@ -2,15 +2,18 @@
 
 ## An empty list can mean different things
 
-Before opening a packet, write at least three interpretations of an empty
-dependency collection. For each interpretation, answer:
+Before opening a packet, distinguish the two analyzer outcomes in the report
+that both return no dependency IDs: analysis completed and found none, and
+analysis did not reach a conclusion. For each outcome, answer:
 
 - what evidence would support it;
 - whether the evidence supports running the work at the same time; and
 - what message, if any, an operator should receive.
 
-Then state what one node and one edge represent in this local planner. Do not
-conclude “there is no edge” until you can name the evidence that would show it.
+Then state what one node and one edge represent in this local planner. Also
+explain why a missing target is a separate error rather than a third meaning
+for an empty dependency slice. Do not conclude “there is no edge” until you
+can name the evidence that would show it.
 
 ## Choose evidence
 

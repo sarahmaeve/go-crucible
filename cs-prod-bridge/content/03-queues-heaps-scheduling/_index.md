@@ -1089,8 +1089,8 @@ that supports it:
    destination queue stored each key once?
 7. What state did selective requeueing need to retain, and which cleanup paths
    deserve tests?
-8. What concrete service guarantee—maximum wait, turn frequency, or capacity
-   share—would you promise for your own workload?
+8. What workload bounds must be stated before promising a maximum wait, a turn
+   frequency, or a capacity share?
 9. How do new logical arrivals and retry attempts place different kinds of
    pressure on the service?
 10. Why did requests completing before their deadlines make Kafka's previous

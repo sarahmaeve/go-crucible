@@ -1,6 +1,9 @@
 # Unit 04 Investigation Worksheet
 
 Copy these questions into your notes before starting a Wheel.
+When a field does not apply to the reported graph, write `none` or `not
+applicable` and cite the report fact that rules it out; do not invent an
+unknown relationship, shared identity, or failure state to fill every field.
 
 ## Read the report
 

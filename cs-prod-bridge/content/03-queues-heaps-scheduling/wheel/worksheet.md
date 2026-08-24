@@ -7,14 +7,17 @@ weight = 1
 # Investigation worksheet
 
 Copy these questions into your notes before starting a Wheel.
+When a question does not apply to the reported state machine, write `not
+applicable` and cite the report fact that rules it out; do not invent a retry,
+state transition, or second incident stage merely to fill every field.
 
 ## Read the report
 
 **What did users or operators observe?**
 
-**Which condition started the incident?**
+**Which condition triggered or exposed the incident?**
 
-**Which later condition prevented recovery?**
+**Which condition prevented useful progress or recovery?**
 
 **What can you change? What must stay unchanged?**
 
@@ -22,8 +25,8 @@ Copy these questions into your notes before starting a Wheel.
 
 **What is the logical work item?**
 
-**Which state owns it now: queued, assigned, delayed, running, completed, or
-ended?**
+**Which state owns it now: queued, assigned, delayed, blocked, active, running,
+completed, or ended?**
 
 **Which event or time permits the next state change?**
 
@@ -63,7 +66,8 @@ trace.
 
 **Which state change should replace the repetition, and who owns that change?**
 
-**Which tests preserve genuinely recoverable retries?**
+**Which tests preserve attempts, reactivations, or later rounds that can
+genuinely make progress?**
 
 ## Three-minute handoff
 

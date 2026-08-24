@@ -1554,7 +1554,8 @@ Each hidden debrief explains one approach after the exercise.
 
 ## Reflection
 
-For each answer, name the graph and say what one edge means:
+Answer from the declarations and production examples above. Whenever a
+question concerns a graph, name that graph and say what one edge means:
 
 1. How do `app/BUILD.bazel`, package `app`, and `name = "server"` combine to
    identify `//app:server`?

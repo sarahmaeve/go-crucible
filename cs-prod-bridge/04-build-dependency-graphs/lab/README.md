@@ -29,14 +29,15 @@ The tests use six known targets:
 //tool/lint:lint
 ```
 
-Write down your answers before opening `graph_test.go`:
+Write down your answers before opening `graph_test.go`. Questions 4–6 plan a
+build whose only requested root is `//app:server`:
 
 1. Which targets can the server reach by following dependency edges? This set,
    including the server, is its dependency closure.
 2. Which targets directly require `//lib/config:config`?
 3. Why does the server require logging? Give the path and count its edges.
 4. Which targets are ready before any work completes?
-5. Which target becomes ready after logging completes but config does not?
+5. After config and logging both complete, which target becomes ready?
 6. Which targets must not appear when only the server is requested?
 
 The lint target has no selected edges on purpose. It tests whether the graph
@@ -66,8 +67,11 @@ lists of neighboring nodes.
 - public results use a fixed dictionary order instead of Go map order.
 
 Add the server-to-HTTP declaration a second time with a different source
-location. Predict which counts and results will change. Then compare your
-prediction with `TestCycleWitnessIsClosedAndPreservesSources`.
+location. The constructor contract above is enough to predict the result:
+state whether the direct-dependency list, closure edge count, and build order
+change. Section 5 adds a cycle so that
+`TestCycleWitnessIsClosedAndPreservesSources` can also check the source records
+kept for that one edge.
 
 ## 3. Follow the question in the correct direction
 
@@ -115,9 +119,9 @@ that the target directly depends on itself. Use the cycle check to look for a
 path with at least one edge back to the same target.
 
 Change the equal-length-path test so that its declarations arrive in a
-different order. The returned path should not change. Then swap the dictionary
-order of the two middle target names and predict which path the API will
-select.
+different order. The returned path should not change. Then rename target `B`
+to `Z` everywhere in that test. Because `C` now sorts before `Z`, predict which
+equal-length path the API will select.
 
 ## 5. Distinguish a shared dependency from a cycle
 
@@ -213,6 +217,19 @@ However, they use the queue, recursive calls, and ready set differently.
 Compare memory allocations as well as elapsed time. These measurements
 describe this Go program on this machine. They do not change the stated
 complexity limits.
+
+The ordinary test command also runs the seed corpus for
+`FuzzGraphOperationsAgreeWithReference`. Run a generated-input campaign with:
+
+```bash
+go test ./04-build-dependency-graphs/lab \
+  -run '^$' -fuzz '^FuzzGraphOperationsAgreeWithReference$' -fuzztime=10s
+```
+
+The fuzz property builds small arbitrary directed graphs. It compares direct
+and reverse neighbors, closure, fewest-edge paths, cycles, ready work, and
+build order with an independent reference model. It also rebuilds each graph
+with reversed input order and checks that public answers do not change.
 
 ## 8. Check the boundary of the model
 

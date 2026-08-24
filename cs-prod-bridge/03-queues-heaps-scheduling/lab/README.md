@@ -124,6 +124,19 @@ Run commands from the `cs-prod-bridge` module directory:
 go test ./03-queues-heaps-scheduling/lab -v
 ```
 
+That ordinary command runs the seed corpus for
+`FuzzTopKImplementationsAgree`. To generate more combinations of candidates,
+ties, special floating-point scores, and boundary values of `k`, run:
+
+```bash
+go test ./03-queues-heaps-scheduling/lab \
+  -run '^$' -fuzz '^FuzzTopKImplementationsAgree$' -fuzztime=10s
+```
+
+The fuzz property uses full sorting as a reference for the bounded heap. It
+also checks result order, retained size, matching validation errors, and that
+neither implementation changes the input.
+
 `SelectionStats` counts each phase separately:
 
 - `CandidatesValidated` counts candidates checked for `NaN`;

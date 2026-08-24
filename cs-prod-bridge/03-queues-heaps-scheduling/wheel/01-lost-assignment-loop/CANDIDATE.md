@@ -36,7 +36,8 @@ You do not need every packet.
 
 Open `runner.go` only after you can answer these questions:
 
-- why adding assignment capacity fixed the first stage but not the second;
+- why restoring assignment capacity while reducing new arrivals stopped the
+  backlog's growth but did not make it drain;
 - why retry count, completions, and connected-worker count must be read
   together;
 - why backoff would reduce retry traffic but would not make a deleted
