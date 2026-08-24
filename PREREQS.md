@@ -7,8 +7,8 @@ Go code and run commands in a terminal.
 
 ## What You Need Installed
 
-- **Go** (1.27 or later) — [install instructions](https://go.dev/doc/install).
-  Verify with `go version`. The module's declared minimum is Go 1.27, so earlier
+- **Go** (1.27.0 or later) — [install instructions](https://go.dev/doc/install).
+  Verify with `go version`. The module's declared minimum is Go 1.27.0, so earlier
   toolchains will reject it.
 - **Git** — for cloning the repo and optionally applying solution patches.
 - **A text editor** you're comfortable navigating code in. VS Code with the Go

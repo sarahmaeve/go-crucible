@@ -10,7 +10,7 @@ No Kubernetes cluster is required. All tests run locally against in-process fake
 
 ## Prerequisites
 
-- Go 1.27 or later (`go version`)
+- Go 1.27.0 or later (`go version`)
 - Git
 
 ## Getting Started

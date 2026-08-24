@@ -7,6 +7,52 @@ import (
 	"github.com/go-crucible/go-crucible/internal/generate"
 )
 
+func TestBaseTemplatePinsCurrentGo(t *testing.T) {
+	wf, err := (generate.BaseTemplate{WorkflowName: "CI"}).Generate()
+	if err != nil {
+		t.Fatalf("Generate() returned unexpected error: %v", err)
+	}
+
+	steps := wf.Jobs["test"].Steps
+	if len(steps) < 2 {
+		t.Fatalf("test job has %d steps; want at least checkout and Go setup", len(steps))
+	}
+	if got, want := steps[1].Uses, "actions/setup-go@v5"; got != want {
+		t.Errorf("Go setup action = %q; want %q", got, want)
+	}
+	if got, want := steps[1].With["go-version"], "1.27.0"; got != want {
+		t.Errorf("generated Go version = %q; want %q", got, want)
+	}
+}
+
+func TestAdvancedTemplateDefaultsToCurrentGo(t *testing.T) {
+	wf, err := (generate.AdvancedTemplate{
+		BaseTemplate: generate.BaseTemplate{WorkflowName: "Advanced CI"},
+	}).Generate()
+	if err != nil {
+		t.Fatalf("Generate() returned unexpected error: %v", err)
+	}
+
+	if got, want := wf.Jobs["test"].Strategy.Matrix["go"], []string{"1.27.0"}; !slices.Equal(got, want) {
+		t.Errorf("default matrix.go = %v; want %v", got, want)
+	}
+}
+
+func TestDefaultAdvancedTemplatePinsCurrentGo(t *testing.T) {
+	tmpl, err := generate.DefaultRegistry.New("advanced")
+	if err != nil {
+		t.Fatalf("DefaultRegistry.New() returned unexpected error: %v", err)
+	}
+	wf, err := tmpl.Generate()
+	if err != nil {
+		t.Fatalf("Generate() returned unexpected error: %v", err)
+	}
+
+	if got, want := wf.Jobs["test"].Strategy.Matrix["go"], []string{"1.27.0"}; !slices.Equal(got, want) {
+		t.Errorf("registry matrix.go = %v; want %v", got, want)
+	}
+}
+
 // TestExercise11_TemplateTrap verifies that BuildAdvancedTemplate returns a
 // Template whose Generate method produces a workflow with a matrix strategy
 // and concurrency settings matching the provided configuration.

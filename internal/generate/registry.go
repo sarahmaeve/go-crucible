@@ -63,7 +63,7 @@ func init() {
 		return NewAdvancedTemplate(
 			"Advanced CI",
 			[]string{"ubuntu-latest", "macos-latest"},
-			[]string{"1.21", "1.22", "1.23"},
+			[]string{defaultGoVersion},
 			"ci-${{ github.ref }}",
 		)
 	})
