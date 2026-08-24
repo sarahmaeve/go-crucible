@@ -11,7 +11,7 @@ Added 2026-06-25. These are an opt-in teaching layer, not graded exercises.
 
 Exercise 06 retains an opt-in synctest extension that turns a goroutine leak
 into a located deadlock failure. Exercise 10 now uses synctest in its canonical
-test because the repository requires Go 1.26; its fake clock asserts
+test because the repository requires Go 1.27; its fake clock asserts
 `context.DeadlineExceeded` exactly and instantly.
 
 ## Why exercise 06 still uses a build tag

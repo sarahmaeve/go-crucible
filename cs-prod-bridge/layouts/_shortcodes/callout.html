@@ -1,0 +1,9 @@
+{{- $kind := .Get "kind" | default "note" -}}
+{{- if not (in (slice "note" "contract" "warning" "production") $kind) -}}
+  {{- errorf "unknown callout kind %q in %s" $kind .Position -}}
+{{- end -}}
+{{- $style := index (dict "note" "note" "contract" "tip" "warning" "warning" "production" "important") $kind -}}
+<blockquote class="book-hint {{ $style }}">
+  {{ with .Get "title" }}<p><strong>{{ . }}</strong></p>{{ end }}
+  <div class="markdown-inner">{{ .Page.RenderString .Inner }}</div>
+</blockquote>

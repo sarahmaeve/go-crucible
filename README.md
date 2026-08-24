@@ -10,7 +10,7 @@ No Kubernetes cluster is required. All tests run locally against in-process fake
 
 ## Prerequisites
 
-- Go 1.26 or later (`go version`)
+- Go 1.27.0 or later (`go version`)
 - Git
 
 ## Getting Started
@@ -112,6 +112,25 @@ assertion that runs in fake time. See [docs/synctest.md](./docs/synctest.md) for
 the model, a fit map of where the technique helps (and where it does not), and
 how to run the extension tests.
 
+## Production Service Design
+
+[From Process to Promise: Building a Persistent Go HTTPS Service](./docs/persistent-https-service.md)
+uses a real loopback HTTPS and SQLite service as a case study in the gap between
+an HTTP process and an operational service contract. It examines what the usual
+few-line Go server gets right, what a persistent service must add, where
+well-chosen mechanisms still fail to compose, and how to test startup, trust,
+admission, readiness, persistence, shutdown, and recovery as end-to-end
+promises.
+
+## Advanced Concept Explorations
+
+The [advanced explorations](./advanced/README.md) sit between the debugging
+exercises and the CS-production bridge. They use passing backing code,
+compatibility tests, benchmarks, and profiles to evaluate implementation
+choices that do not have one canonical repair. The first exploration asks when
+replacing `encoding/json` with ByteDance Sonic is worth its compatibility and
+maintenance costs.
+
 ## Repository Layout
 
 ```
@@ -133,7 +152,8 @@ exercises/      One subdirectory per exercise — README.md and HINTS.md
   diagnosis/    Diagnosis track — artifact-first debugging (D01, D02, ...)
   wheel/        Wheel track — report-first investigation (W01, W02, ...)
 solutions/      Reference solutions (consult only after you have tried)
-docs/           Supporting docs (Go style précis, testing/synctest guide)
+docs/           Supporting docs (style, synctest, production service design)
+advanced/       Concept explorations backed by tests and benchmarks
 testdata/       Sample YAML files used by tests
 .crucible/      Maintainer registry — contains spoilers; do not read until
                 after attempting an exercise

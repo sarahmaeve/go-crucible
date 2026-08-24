@@ -1,0 +1,13 @@
+{{- $opts := dict "output" "mathml" "displayMode" (eq .Type "block") -}}
+{{- with try (transform.ToMath .Inner $opts) -}}
+  {{- with .Err -}}
+    {{- errorf "unable to render math at %s: %s" $.Position . -}}
+  {{- else -}}
+    {{- if eq $.Type "block" -}}
+      <div class="math-block">{{ .Value }}</div>
+    {{- else -}}
+      <span class="math-inline">{{ .Value }}</span>
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+

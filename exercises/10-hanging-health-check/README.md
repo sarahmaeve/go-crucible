@@ -41,6 +41,6 @@ See [HINTS.md](./HINTS.md) for progressive hints if you get stuck.
 ## Deterministic timing
 
 The canonical test uses `testing/synctest`, available under this repository's
-Go 1.26 floor, to assert the deadline at exactly 500 ms of fake time without a
+Go 1.27 floor, to assert the deadline at exactly 500 ms of fake time without a
 wall-clock wait. See [EXTENSION.md](./EXTENSION.md) for why this is more reliable
 than timeout races in tests.

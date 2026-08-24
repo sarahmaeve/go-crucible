@@ -236,7 +236,7 @@ exercises:
       they used context.Background() internally), so the lesson of this
       exercise now matches the shape of the surrounding codebase. Learners
       who want the buggy form back: `git apply -R solutions/10-*.patch`.
-      The canonical test uses testing/synctest under the Go 1.26 floor, so its
+      The canonical test uses testing/synctest under the Go 1.27 floor, so its
       500 ms deadline assertion consumes no wall-clock time.
 
   - number: "11"

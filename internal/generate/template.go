@@ -7,6 +7,8 @@ import (
 	"github.com/go-crucible/go-crucible/internal/types"
 )
 
+const defaultGoVersion = "1.27.0"
+
 // Template is the interface that all workflow generators must implement.
 type Template interface {
 	// Name returns the template's human-readable name.
@@ -47,6 +49,11 @@ func (b BaseTemplate) Generate() (types.Workflow, error) {
 				RunsOn: runner,
 				Steps: []types.Step{
 					{Name: "Checkout", Uses: "actions/checkout@v4"},
+					{
+						Name: "Set up Go",
+						Uses: "actions/setup-go@v5",
+						With: map[string]string{"go-version": defaultGoVersion},
+					},
 					{Name: "Test", Run: "go test ./..."},
 				},
 			},
@@ -76,7 +83,7 @@ func (a AdvancedTemplate) Generate() (types.Workflow, error) {
 	}
 	goVersions := a.GoVersions
 	if len(goVersions) == 0 {
-		goVersions = []string{"1.22"}
+		goVersions = []string{defaultGoVersion}
 	}
 
 	ff := false

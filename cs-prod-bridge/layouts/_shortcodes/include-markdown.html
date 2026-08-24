@@ -1,0 +1,18 @@
+{{- $path := .Get "path" -}}
+{{- $mode := .Get "rewrite" | default "none" -}}
+{{- $source := os.ReadFile $path -}}
+
+{{- if eq $mode "wheel-overview" -}}
+  {{- $source = replace $source "../../../exercises/wheel/WORKSHEET.template.md" "worksheet/" -}}
+  {{- $source = replaceRE `\./([^/]+)/REPORT\.md` `$1/` $source -}}
+{{- else if eq $mode "report" -}}
+  {{- $source = replace $source "[CANDIDATE.md](./CANDIDATE.md)" "[candidate guide](candidate/)" -}}
+{{- else if eq $mode "candidate" -}}
+  {{- $source = replace $source "./evidence/README.md" "../evidence/" -}}
+  {{- $source = replaceRE `\./evidence/([0-9]+)\.md` `../evidence/$1/` $source -}}
+  {{- $source = replace $source "[DEBRIEF.md](./DEBRIEF.md)" "[the debrief](../debrief/)" -}}
+{{- else if eq $mode "evidence-index" -}}
+  {{- $source = replaceRE `\./([0-9]+)\.md` `$1/` $source -}}
+{{- end -}}
+
+{{- .Page.RenderString (dict "display" "block") $source -}}

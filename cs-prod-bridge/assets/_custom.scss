@@ -1,0 +1,27 @@
+// Keep formulas and teaching-specific text roles legible while leaving Hugo
+// Book's layout and color system intact.
+.book-lead {
+  max-width: 48rem;
+  margin: -0.25rem 0 1.75rem;
+  font-size: 1.2rem;
+  line-height: 1.55;
+  opacity: 0.8;
+}
+
+.math-inline math {
+  margin-inline: 0.1em;
+}
+
+.math-block {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-inline-start: 0.25rem solid var(--color-accent-note);
+  border-radius: var(--border-radius);
+  background: var(--gray-100);
+  text-align: center;
+}
+
+.math-block math {
+  font-size: 1.2em;
+}
