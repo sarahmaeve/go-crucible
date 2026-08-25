@@ -390,9 +390,10 @@ three symptoms.
 ## Unit 5: Bloom filters and approximate membership
 
 Unit 5 has a foundations lesson authored as
-[Hugo Markdown](../cs-prod-bridge/content/05-bloom-filters/_index.md) and a
-runnable [Skip the Cold Segment lab](../cs-prod-bridge/05-bloom-filters/lab/).
-Its production-source audit, formal model, lab design, and planned Wheels are in
+[Hugo Markdown](../cs-prod-bridge/content/05-bloom-filters/_index.md), a
+runnable [Skip the Cold Segment lab](../cs-prod-bridge/05-bloom-filters/lab/),
+and the report-first [Filter from Yesterday Wheel](../cs-prod-bridge/05-bloom-filters/wheel/).
+Its production-source audit, formal model, lab design, and Wheel design are in
 [`docs/cs-prod-bridge-unit-05.md`](./cs-prod-bridge-unit-05.md).
 
 The unit begins with negative partition-key lookups across Cassandra SSTables.

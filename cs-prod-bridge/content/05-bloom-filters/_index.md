@@ -1037,6 +1037,14 @@ For smaller sets, an exact map may be simpler, while a min/max range check may
 exclude most files in an ordered data set. The comparison should include the
 complete lookup path and operational cost rather than only bytes per key.
 
+## Investigate a lifecycle failure
+
+The [Filter from Yesterday Wheel](wheel/) begins with a newly published key
+that the ordinary read path reports missing. Work from the incoming report,
+keep several explanations alive, and select evidence before opening the
+implementation. The exercise isolates the rule that exact data and its
+negative-lookup filter must be published as one generation.
+
 ## Sources and the claims they support
 
 | Claim | Source role | Source or evidence |

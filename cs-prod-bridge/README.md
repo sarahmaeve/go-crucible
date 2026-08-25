@@ -28,7 +28,7 @@ through benchmarks, profiles, and report-first debugging scenarios.
 | [02](./content/02-sequences-sorting-search/_index.md) | Sequences, sorting, and ordered search | Initial implementation |
 | [03](./content/03-queues-heaps-scheduling/_index.md) | Queues, heaps, and scheduling | Foundations, top-k lab, and three Wheels |
 | [04](./content/04-build-dependency-graphs/_index.md) | Build dependency graphs | Foundations, graph lab, and three Wheels |
-| [05](./content/05-bloom-filters/_index.md) | Bloom filters and approximate membership | Foundations chapter |
+| [05](./content/05-bloom-filters/_index.md) | Bloom filters and approximate membership | Foundations, segment lab, and one Wheel |
 
 The generated units include guides, case studies, exploration labs, Wheel
 reports, candidate guides, selectively revealed evidence packets, and

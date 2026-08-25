@@ -1,7 +1,7 @@
 # Unit 05 Research and Design: Bloom Filters and Approximate Membership
 
-**Status:** foundations lesson and exploration lab implemented; Wheels designed
-but not yet implemented
+**Status:** foundations lesson, exploration lab, and Filter from Yesterday
+Wheel implemented
 
 **Research reviewed:** 2026-08-18
 
@@ -452,18 +452,7 @@ demonstrates saturation without changing correctness, and a cost model compares
 cheap and expensive exact checks without presenting modeled work as elapsed
 time. The builder rejects allocations above a configurable byte limit.
 
-## Planned Wheels of Misfortune
-
-### Wheel 11: Maybe Is Not Present
-
-**Incoming report:** a negative-cache optimization occasionally returns a
-record that never existed, or suppresses a required exact check.
-
-**First local cause:** caller interprets `MayContain == true` as proof of
-membership.
-
-**Deterministic symptom:** a searched absent key is an engineered false
-positive; the buggy API returns present while the exact source returns absent.
+## Implemented Wheel of Misfortune
 
 ### Wheel 12: Filter from Yesterday
 
@@ -476,19 +465,12 @@ different generations.
 **Deterministic symptom:** every inserted key exists in the exact new segment,
 but one key maps to a zero bit in the old filter.
 
-### Wheel 13: Ten Times Planned Cardinality
-
-**Incoming report:** storage reads and latency rise while the Bloom filter
-reports no errors and consumes its usual amount of memory.
-
-**First local cause:** actual distinct insertions exceed planned capacity by an
-order of magnitude.
-
-**Deterministic symptom:** bit density and exact checks rise predictably while
-all present-key correctness checks continue to pass.
-
-The Wheels should keep ordinary tests passing and use build tags only for the
-reported symptoms, following the existing track convention.
+The implementation keeps ordinary tests passing and uses `csbridgewheel12`
+only for the reported symptoms. A deterministic exact-membership test double
+obeys the same safe negative-answer contract while removing hash probability
+from the generation-lifecycle test. W11 and W13 were not implemented: the
+first repeated the lesson's basic caller contract, while the lab already
+explores the second's over-capacity behavior.
 
 ## Source audit
 
